@@ -68,7 +68,8 @@ with sync_playwright() as playwright:
     alice, bob = alice_context.new_page(), bob_context.new_page()
     register(browser, alice, "Alice")
     alice.goto(args.url + "/communities/")
-    alice.get_by_label("Nom de la communauté").fill("Voisins " + secrets.token_hex(3))
+    community_name = "Voisins " + secrets.token_hex(3)
+    alice.get_by_label("Nom de la communauté").fill(community_name)
     alice.get_by_role("button", name="Créer ma communauté", exact=True).click()
     community_url = alice.url
     alice.get_by_role("button", name="Créer un lien d'invitation", exact=True).click()
@@ -91,5 +92,43 @@ with sync_playwright() as playwright:
     print(
         "PASS communautés : création, invitation, inscription depuis lien, "
         "vérification séparée, adhésion explicite, responsive"
+    )
+    title = "Jeu scénario " + secrets.token_hex(4)
+    alice.goto(args.url + "/games/new/")
+    alice.get_by_label("Titre du jeu", exact=True).fill(title)
+    alice.get_by_label("Joueurs minimum", exact=True).fill("2")
+    alice.get_by_label("Joueurs maximum", exact=True).fill("4")
+    alice.get_by_role("button", name="Enregistrer", exact=True).click()
+    game_url = alice.url
+    alice.get_by_role("link", name="Ajouter mon exemplaire", exact=True).click()
+    alice.get_by_label(community_name, exact=True).check()
+    alice.get_by_label("État et commentaires de mon exemplaire").fill("Boîte Alice")
+    alice.get_by_role("button", name="Enregistrer", exact=True).click()
+    copy_url = alice.url
+    bob.goto(game_url)
+    bob.get_by_role("link", name="Ajouter mon exemplaire", exact=True).click()
+    bob.get_by_label("État et commentaires de mon exemplaire").fill("Copie Bob privée")
+    bob.get_by_role("button", name="Enregistrer", exact=True).click()
+    bob_private_url = bob.url
+    response = alice.goto(bob_private_url)
+    check(response is not None and response.status == 404, "Fuite d'exemplaire privé")
+    alice.goto(copy_url)
+    bob.goto(copy_url)
+    check("Boîte Alice" in bob.locator("main").inner_text(), "Exemplaire partagé invisible")
+    outsider_context = browser.new_context(viewport={"width": 360, "height": 900})
+    outsider = outsider_context.new_page()
+    register(browser, outsider, "Clara")
+    response = outsider.goto(copy_url)
+    check(response is not None and response.status == 404, "Accès croisé à un exemplaire")
+    for width in (360, 768, 1280):
+        bob.set_viewport_size({"width": width, "height": 900})
+        check(
+            not bob.evaluate("document.documentElement.scrollWidth > innerWidth"),
+            "Débordement exemplaire",
+        )
+        bob.screenshot(path=f"work/copy-{width}.png", full_page=True)
+    print(
+        "PASS catalogue/exemplaires : fiche réutilisée, partage choisi, "
+        "copie privée, accès croisés refusés"
     )
     browser.close()

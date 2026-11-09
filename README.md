@@ -219,3 +219,12 @@ avec un second compte fictif vérifié. L'adhésion doit être confirmée ; les 
 sont multiusages, expirables et révocables. Transférer l'administration avant le
 départ du dernier administrateur. Les détails et membres restent privés.
 [Schéma, permissions, concurrence et vérifications](docs/lot-2-communities.md).
+
+## Catalogue et collection (lot 3)
+
+**Ajouter un jeu** commence par la recherche d'une fiche existante ; sinon créer
+une fiche générique manuellement. **Ajouter mon exemplaire** sélectionne ensuite
+zéro ou plusieurs communautés : sans sélection, il reste privé. Un second compte
+réutilise la même fiche pour sa propre copie. **Ma collection** permet l'édition
+et le retrait du prêt. Une fiche déjà réutilisée passe par le signalement pour
+correction. [Schéma et confidentialité](docs/lot-3-catalogue.md).

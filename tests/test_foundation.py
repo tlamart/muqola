@@ -62,7 +62,7 @@ def test_custom_user_and_database_sessions() -> None:
     assert SessionStore(session.session_key)["synthetic"] == user.pk
 
 
-@pytest.mark.parametrize("path", ["/admin/", "/games/", "/loans/"])
+@pytest.mark.parametrize("path", ["/admin/", "/loans/"])
 def test_no_business_routes_are_exposed(client: Client, path: str) -> None:
     response = client.get(path)
     assert response.status_code == 404

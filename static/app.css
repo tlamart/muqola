@@ -42,3 +42,5 @@ form label { display: block; font-weight: 650; }
 textarea, select { width: 100%; max-width: 100%; min-height: 44px; font: inherit; padding: .6rem; border: 1px solid var(--muted); border-radius: .4rem; }
 textarea { resize: vertical; }
 summary { cursor: pointer; min-height: 44px; padding: .5rem 0; }
+.game-placeholder { display: inline-grid; place-items: center; width: 64px; height: 64px; background: var(--cream); color: var(--green); font-size: 2rem; border-radius: .5rem; }
+input[type=checkbox] { display: inline-block; width: 22px; min-height: 22px; margin: .5rem; vertical-align: middle; }

@@ -116,7 +116,9 @@ def remove(user: User, community_id: UUID, target_id: int) -> None:
             )
         target.active, target.role = False, Membership.Role.MEMBER
         target.save(update_fields=["active", "role"])
-        # Retraits de visibilité et demandes seront raccordés avec leurs modèles aux lots 3/4.
+        from muqola.inventory.services import remove_community_visibility
+
+        remove_community_visibility(target_id, community_id)
         del actor
 
 

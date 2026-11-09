@@ -23,10 +23,10 @@
 **Acceptation :** Bob rejoint la communauté d'Alice via lien ; un non-membre n'accède à rien.
 
 ## Lot 3 — Catalogue interne et exemplaires
-- [ ] Modèles `Game`, `OwnedGame`, `GameVisibility` et contraintes.
-- [ ] Recherche des fiches `Game` existantes, sélection, création manuelle si absente ; réemploi d'une fiche pour un second exemplaire.
-- [ ] Création/édition d'exemplaire, **zéro ou plusieurs** communautés de visibilité, retrait du prêt ; édition des métadonnées génériques sans écraser une fiche partagée.
-- [ ] Recherche/filtres dans les communautés autorisées ; aucun leak d'exemplaire privé. Visuel neutre sans images distantes requises.
+- [x] Modèles `Game`, `OwnedGame`, `GameVisibility` et contraintes.
+- [x] Recherche des fiches `Game` existantes, sélection, création manuelle si absente ; réemploi d'une fiche pour un second exemplaire.
+- [x] Création/édition d'exemplaire, **zéro ou plusieurs** communautés de visibilité, retrait du prêt ; édition des métadonnées génériques sans écraser une fiche partagée.
+- [x] Recherche/filtres dans les communautés autorisées ; aucun leak d'exemplaire privé. Visuel neutre sans images distantes requises.
 **Acceptation :** deux membres ajoutent chacun un exemplaire de la même fiche ; seules les communautés choisies voient chaque exemplaire.
 
 ## Lot 4 — Prêts

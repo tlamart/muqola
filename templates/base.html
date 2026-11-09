@@ -14,7 +14,7 @@
     <a class="brand" href="/" aria-label="Muqola, accueil">Muqola<span aria-hidden="true">●</span></a>
     <nav aria-label="Navigation principale">
       {% if user.is_authenticated %}
-        {% if user.email_verified_at %}<a href="{% url 'identity:dashboard' %}">Mon espace</a><a href="{% url 'communities:index' %}">Mes communautés</a>{% else %}<a href="{% url 'identity:pending' %}">Vérifier mon e-mail</a>{% endif %}
+        {% if user.email_verified_at %}<a href="{% url 'identity:dashboard' %}">Mon espace</a><a href="{% url 'communities:index' %}">Mes communautés</a><a href="{% url 'inventory:index' %}">Trouver un jeu</a>{% else %}<a href="{% url 'identity:pending' %}">Vérifier mon e-mail</a>{% endif %}
         <form method="post" action="{% url 'identity:logout' %}">{% csrf_token %}<button class="secondary" type="submit">Se déconnecter</button></form>
       {% else %}
         <a href="{% url 'identity:login' %}">Se connecter</a>
