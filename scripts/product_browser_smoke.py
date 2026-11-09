@@ -12,7 +12,7 @@ from playwright.sync_api import Browser, Page, sync_playwright
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--browser", default="/usr/bin/chromium")
-parser.add_argument("--url", default="http://127.0.0.1:8000")
+parser.add_argument("--url", default="http://localhost:8000")
 parser.add_argument("--mailpit", default="http://127.0.0.1:8025")
 args = parser.parse_args()
 Path("work").mkdir(exist_ok=True)
