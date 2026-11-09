@@ -48,6 +48,11 @@ sont éphémères (capture de développement seulement). Les logs applicatifs so
 JSON et ne conservent ni URL/jetons ni données de requête. Pas de logs d'accès
 Gunicorn. Les logs d'incidents restent volontairement succincts et sans données de requête.
 
+Le serveur local utilise deux workers Gunicorn `gthread`, quatre threads chacun,
+avec une attente keep-alive de 2 s et le watchdog conservé à 30 s. Les préconnexions
+TCP silencieuses restent dans le sélecteur, sans bloquer un worker entier.
+[Diagnostic des anciens timeouts, reproduction et limites](docs/http-timeouts.md).
+
 ## Développement hors conteneur et vérifications
 
 Installer [uv](https://docs.astral.sh/uv/) **0.13.5**, puis :

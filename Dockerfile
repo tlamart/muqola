@@ -14,4 +14,4 @@ RUN chmod -R a+rX /app \
        python manage.py collectstatic --noinput
 USER 10001:10001
 EXPOSE 8000
-CMD ["gunicorn", "config.wsgi:application", "--bind=0.0.0.0:8000", "--workers=2", "--timeout=30", "--graceful-timeout=20", "--error-logfile=-", "--log-level=warning"]
+CMD ["gunicorn", "--config=python:config.gunicorn", "config.wsgi:application"]

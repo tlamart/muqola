@@ -57,6 +57,33 @@ jobs:
           curl --fail http://127.0.0.1:8000/health/ready/
           docker compose exec -T web python manage.py send_dev_email
           curl --fail http://127.0.0.1:8025/api/v1/messages | python -c 'import json,sys; assert json.load(sys.stdin)["total"] >= 1'
+      - name: Gunicorn stays available with silent TCP preconnections
+        run: |
+          python - <<'PY'
+          import http.client
+          import socket
+          import time
+          from contextlib import ExitStack, closing
+          from config.gunicorn import timeout, workers, threads
+
+          with ExitStack() as stack:
+              for _ in range(workers * threads + 4):
+                  stack.enter_context(socket.create_connection(("127.0.0.1", 8000), timeout=2))
+              time.sleep(0.2)
+              connection = stack.enter_context(closing(http.client.HTTPConnection("127.0.0.1", 8000, timeout=2)))
+              deadline = time.monotonic() + timeout + 2
+              probes = 0
+              while time.monotonic() < deadline:
+                  for path in ("/health/live/", "/health/ready/"):
+                      connection.request("GET", path)
+                      response = connection.getresponse()
+                      response.read()
+                      assert response.status == 200
+                      probes += 1
+                  time.sleep(0.5)
+              print(f"PASS Docker HTTP: {probes} healthchecks despite silent connections beyond {timeout}s")
+          PY
+          docker compose logs --no-color web | python -c 'import sys; logs=sys.stdin.read(); assert "WORKER TIMEOUT" not in logs; assert "no URI read" not in logs'
       - name: Browser accounts journey on mobile and desktop
         run: |
           uv run --frozen --group browser python scripts/browser_smoke.py --browser "$(command -v google-chrome || command -v chromium)"
