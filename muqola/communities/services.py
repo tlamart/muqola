@@ -119,6 +119,9 @@ def remove(user: User, community_id: UUID, target_id: int) -> None:
         from muqola.inventory.services import remove_community_visibility
 
         remove_community_visibility(target_id, community_id)
+        from muqola.loans.services import close_ineligible_requests
+
+        close_ineligible_requests(user, participant_id=target_id)
         del actor
 
 

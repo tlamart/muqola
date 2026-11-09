@@ -19,7 +19,12 @@ class OwnedGame(models.Model):
 
     @property
     def available(self) -> bool:
-        return not self.withdrawn and not self.archived
+        return (
+            not self.withdrawn
+            and not self.archived
+            and not self.game.hidden
+            and not self.loans.filter(state__in=["ACCEPTED", "HANDED_OVER"]).exists()
+        )
 
 
 class GameVisibility(models.Model):

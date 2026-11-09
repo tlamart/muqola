@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.http import require_GET, require_http_methods
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from muqola.catalogue.models import Game, normalized_title
 from muqola.core.http import actor
@@ -106,3 +106,14 @@ def edit(
             "Plusieurs exemplaires d'une même fiche sont possibles.",
         },
     )
+
+
+@require_POST
+def archive(request: HttpRequest, copy_id: UUID) -> HttpResponse:
+    try:
+        services.archive(actor(request), copy_id)
+    except ValidationError as error:
+        return render(
+            request, "domain_error.html", {"message": " ".join(error.messages)}, status=400
+        )
+    return redirect("inventory:mine")

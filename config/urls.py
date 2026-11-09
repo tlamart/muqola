@@ -3,6 +3,7 @@ from django.urls import include, path
 from muqola.core.views import health_live, health_ready, home
 
 urlpatterns = [
+    path("loans/", include("muqola.loans.urls")),
     path("games/", include("muqola.catalogue.urls")),
     path("copies/", include("muqola.inventory.urls")),
     path("communities/", include("muqola.communities.urls")),

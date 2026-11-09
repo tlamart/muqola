@@ -228,3 +228,12 @@ zéro ou plusieurs communautés : sans sélection, il reste privé. Un second co
 réutilise la même fiche pour sa propre copie. **Ma collection** permet l'édition
 et le retrait du prêt. Une fiche déjà réutilisée passe par le signalement pour
 correction. [Schéma et confidentialité](docs/lot-3-catalogue.md).
+
+## Prêts (lot 4)
+
+Depuis une copie accessible, **Demander ce jeu** avec date de retour future.
+Le propriétaire accepte/refuse ; après acceptation les contacts e-mail deviennent
+visibles aux seules parties, puis le propriétaire confirme remise et retour.
+Les contacts disparaissent des réponses après clôture. Retrait de communauté ou
+de partage ne bloque pas la clôture d'un prêt déjà accepté. **Mes prêts** conserve
+l'historique privé. [Invariants et résolution opérateur](docs/lot-4-loans.md).

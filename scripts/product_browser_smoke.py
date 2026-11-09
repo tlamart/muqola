@@ -5,8 +5,10 @@ import json
 import re
 import secrets
 import time
+from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.request import urlopen
+from zoneinfo import ZoneInfo
 
 from playwright.sync_api import Browser, Page, sync_playwright
 
@@ -130,5 +132,40 @@ with sync_playwright() as playwright:
     print(
         "PASS catalogue/exemplaires : fiche réutilisée, partage choisi, "
         "copie privée, accès croisés refusés"
+    )
+    bob.get_by_role("link", name="Demander ce jeu", exact=True).click()
+    due_date = (datetime.now(ZoneInfo("Europe/Paris")).date() + timedelta(days=7)).isoformat()
+    bob.locator("input[name=due_date]").fill(due_date)
+    bob.get_by_role("button", name="Envoyer ma demande", exact=True).click()
+    loan_url = bob.url
+    check(bob.locator("a[href^='mailto:']").count() == 0, "E-mail divulgué avant acceptation")
+    alice.goto(loan_url)
+    alice.get_by_role("button", name="Accepter la demande", exact=True).click()
+    bob.reload()
+    check(bob.locator("a[href^='mailto:']").count() == 2, "Contacts actifs absents")
+    response = outsider.goto(loan_url)
+    check(response is not None and response.status == 404, "Prêt visible par un tiers")
+    alice.goto(community_url)
+    alice.get_by_text("Gérer ce membre", exact=True).first.click()
+    alice.get_by_role("button", name="Confirmer le retrait", exact=True).click()
+    response = bob.goto(copy_url)
+    check(response is not None and response.status == 404, "Accès conservé après retrait")
+    response = bob.goto(loan_url)
+    check(response is not None and response.status == 200, "Prêt accepté perdu après retrait")
+    alice.goto(loan_url)
+    alice.get_by_role("button", name="Confirmer la remise", exact=True).click()
+    alice.get_by_role("button", name="Confirmer le retour", exact=True).click()
+    bob.reload()
+    check(bob.locator("a[href^='mailto:']").count() == 0, "Contacts visibles après retour")
+    for width in (360, 768, 1280):
+        bob.set_viewport_size({"width": width, "height": 900})
+        check(
+            not bob.evaluate("document.documentElement.scrollWidth > innerWidth"),
+            "Débordement prêt",
+        )
+        bob.screenshot(path=f"work/loan-{width}.png", full_page=True)
+    print(
+        "PASS prêts : demande, acceptation, contacts temporaires, "
+        "retrait de membre, remise et retour"
     )
     browser.close()
