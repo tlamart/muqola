@@ -9,6 +9,8 @@ from muqola.identity.models import RateBucket
 
 # Fenêtres fixes, limites IP ET adresse (partagées par tous les workers).
 LIMITS = {
+    "community": (3600, 10, 10),
+    "invite": (3600, 20, 20),
     "signup": (3600, 10, 3),
     "login": (900, 30, 10),
     "resend": (3600, 10, 3),

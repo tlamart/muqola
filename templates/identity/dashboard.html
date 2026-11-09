@@ -1,3 +1,3 @@
 {% extends 'base.html' %}
 {% block title %}Mon espace — Muqola{% endblock %}
-{% block content %}<section class="account"><p class="eyebrow">Votre adresse e-mail est vérifiée</p><h1>Bienvenue, {{ user.display_name }}</h1><p>Votre compte est prêt. Les communautés et le partage de jeux seront disponibles prochainement.</p></section>{% endblock %}
+{% block content %}<section class="account"><p class="eyebrow">Votre adresse e-mail est vérifiée</p><h1>Bienvenue, {{ user.display_name }}</h1><p>Votre compte est prêt. <a href="{% url 'communities:index' %}">Créer ou retrouver mes communautés privées</a>.</p></section>{% endblock %}

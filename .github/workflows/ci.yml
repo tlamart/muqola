@@ -61,6 +61,8 @@ jobs:
         run: |
           uv run --frozen --group browser python scripts/browser_smoke.py --browser "$(command -v google-chrome || command -v chromium)"
           uv run --frozen --group browser python scripts/accounts_browser_smoke.py --browser "$(command -v google-chrome || command -v chromium)"
+      - name: Product journey
+        run: uv run --frozen --group browser python scripts/product_browser_smoke.py --browser "$(command -v google-chrome || command -v chromium)"
       - name: Validate Dev Container configuration
         run: |
           mkdir -p work

@@ -35,3 +35,10 @@ input { display: block; width: 100%; min-height: 48px; border: 1px solid var(--m
 .help { color: var(--muted); font-size: .9rem; margin: .4rem 0; }
 .errors, .errorlist { color: #8b2719; }
 @media (max-width: 480px) { header { align-items: flex-start; flex-direction: column; } nav { width: 100%; justify-content: space-between; } }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); list-style: none; padding: 0; gap: 1rem; }
+.cards > li { padding: 1.2rem; background: var(--white); border: 1px solid var(--line); border-radius: .7rem; overflow-wrap: anywhere; }
+form > div { margin: 1rem 0; }
+form label { display: block; font-weight: 650; }
+textarea, select { width: 100%; max-width: 100%; min-height: 44px; font: inherit; padding: .6rem; border: 1px solid var(--muted); border-radius: .4rem; }
+textarea { resize: vertical; }
+summary { cursor: pointer; min-height: 44px; padding: .5rem 0; }

@@ -16,10 +16,10 @@
 **Acceptation :** inscription autonome sans validation administrateur ; impossible d'accéder au métier sans vérification.
 
 ## Lot 2 — Communautés
-- [ ] Création, liste et détail privés ; rôles administrateur/membre.
-- [ ] Invitations partageables expirables/révocables ; inscription depuis invitation.
-- [ ] Adhésion confirmée après connexion/vérification (sans adhésion silencieuse), départ, retrait d'un membre, transfert minimal du rôle administrateur.
-- [ ] Tests de permissions et d'invitations invalides.
+- [x] Création, liste et détail privés ; rôles administrateur/membre.
+- [x] Invitations partageables expirables/révocables ; inscription depuis invitation.
+- [x] Adhésion confirmée après connexion/vérification (sans adhésion silencieuse), départ, retrait d'un membre, transfert minimal du rôle administrateur.
+- [x] Tests de permissions et d'invitations invalides.
 **Acceptation :** Bob rejoint la communauté d'Alice via lien ; un non-membre n'accède à rien.
 
 ## Lot 3 — Catalogue interne et exemplaires

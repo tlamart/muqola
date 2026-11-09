@@ -30,7 +30,7 @@ def issue_token(user: User, purpose: str) -> None:
     enqueue_account_email(token, raw)
 
 
-def register(email: str, display_name: str, password: str) -> None:
+def register(email: str, display_name: str, password: str, invite_digest: str = "") -> None:
     # Même travail cryptographique et même réponse pour une adresse déjà inscrite.
     password_hash = make_password(password)
     try:
@@ -39,6 +39,10 @@ def register(email: str, display_name: str, password: str) -> None:
                 email=email, display_name=display_name, password=password_hash
             )
             issue_token(user, AccountToken.Purpose.VERIFY)
+            if invite_digest:
+                from muqola.communities.services import remember
+
+                remember(user, invite_digest)
     except IntegrityError:
         # Seul le doublon attendu est neutralisé ; les autres erreurs remontent.
         if not User.objects.filter(email=email).exists():

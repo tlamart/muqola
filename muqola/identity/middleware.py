@@ -5,7 +5,7 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 
 # Toutes les futures routes métier sont fermées par défaut, y compris aux opérateurs non vérifiés.
-PUBLIC_VIEWS = {"home", "health-live", "health-ready"} | {
+PUBLIC_VIEWS = {"home", "health-live", "health-ready", "communities:receive-invite"} | {
     "identity:" + name
     for name in (
         "signup",

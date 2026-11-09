@@ -44,6 +44,7 @@ def signup(request: HttpRequest) -> HttpResponse:
             form.cleaned_data["email"],
             form.cleaned_data["display_name"],
             form.cleaned_data["password"],
+            invite_digest=str(request.session.get("community_invite", "")),
         )
         return redirect("identity:signup-done")
     return render(
@@ -64,7 +65,11 @@ def sign_in(request: HttpRequest) -> HttpResponse:
         )
         if user is not None:
             login(request, user)
-            return redirect("identity:dashboard" if user.email_verified_at else "identity:pending")
+            if not user.email_verified_at:
+                return redirect("identity:pending")
+            from muqola.communities.views import pending_digest
+
+            return redirect("communities:join" if pending_digest(request) else "identity:dashboard")
         form.add_error(None, "Adresse ou mot de passe incorrect.")
     return render(
         request,
