@@ -31,3 +31,10 @@ data/
 .DS_Store
 .idea/
 .vscode/
+
+# Artefacts du socle
+work/
+staticfiles/
+.mypy_cache/
+.ruff_cache/
+.coverage

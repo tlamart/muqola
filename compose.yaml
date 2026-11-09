@@ -1,0 +1,70 @@
+name: muqola
+x-app: &app
+  image: muqola:local
+  build: .
+  env_file: .env
+  environment:
+    APP_ENV: development
+    POSTGRES_HOST: db
+    POSTGRES_PORT: 5432
+    EMAIL_HOST: mailpit
+    EMAIL_PORT: 1025
+  init: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  read_only: true
+  tmpfs: [/tmp]
+  mem_limit: 512m
+  logging:
+    driver: json-file
+    options: {max-size: 5m, max-file: '3'}
+services:
+  db:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Copier .env.example vers .env}
+      POSTGRES_USER: ${POSTGRES_USER:?Définir POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Définir un mot de passe local}
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+    mem_limit: 768m
+    logging:
+      driver: json-file
+      options: {max-size: 5m, max-file: '3'}
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports: ['127.0.0.1:8025:8025']
+    environment:
+      MP_MAX_MESSAGES: 100
+      MP_SMTP_AUTH_ACCEPT_ANY: 'false'
+    restart: unless-stopped
+    mem_limit: 128m
+    logging:
+      driver: json-file
+      options: {max-size: 5m, max-file: '3'}
+  migrate:
+    <<: *app
+    command: [python, manage.py, migrate, --noinput]
+    restart: 'no'
+    depends_on:
+      db: {condition: service_healthy}
+  web:
+    <<: *app
+    ports: ['127.0.0.1:8000:8000']
+    restart: unless-stopped
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      mailpit: {condition: service_started}
+    healthcheck:
+      test: [CMD, python, -c, 'import urllib.request; urllib.request.urlopen("http://127.0.0.1:8000/health/ready/", timeout=4)']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+volumes:
+  postgres_data:

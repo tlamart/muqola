@@ -1,0 +1,62 @@
+name: Lot 0 checks
+on:
+  pull_request:
+  push:
+    branches: [main, 'feat/**']
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      APP_ENV: test
+      DJANGO_SECRET_KEY: ci-only-synthetic-key-00000000000000000000000000000000000000000000
+      ALLOWED_HOSTS: localhost,127.0.0.1,testserver
+      POSTGRES_DB: muqola
+      POSTGRES_USER: muqola
+      POSTGRES_PASSWORD: ci-only-local-password
+      POSTGRES_HOST: 127.0.0.1
+    services:
+      postgres:
+        image: postgres:17-bookworm
+        env:
+          POSTGRES_DB: muqola
+          POSTGRES_USER: muqola
+          POSTGRES_PASSWORD: ci-only-local-password
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U muqola -d muqola"
+          --health-interval 3s --health-timeout 3s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.13.5'
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: Check generated runtime lock
+        run: |
+          uv export --frozen --no-dev --no-emit-project --output-file requirements.txt
+          git diff --exit-code -- requirements.txt
+      - run: ./scripts/check.sh
+      - name: Django production settings check
+        run: APP_ENV=production uv run --frozen python manage.py check --deploy --fail-level WARNING
+      - name: Audit runtime dependencies
+        run: uv run --frozen pip-audit -r requirements.txt --disable-pip --no-deps --progress-spinner off
+      - name: Start a clean Compose stack (build, migration, healthcheck)
+        run: |
+          python scripts/init_dev.py
+          docker compose up --build --wait --wait-timeout 120
+          curl --fail http://127.0.0.1:8000/health/ready/
+          docker compose exec -T web python manage.py send_dev_email
+          curl --fail http://127.0.0.1:8025/api/v1/messages | python -c 'import json,sys; assert json.load(sys.stdin)["total"] >= 1'
+      - name: Cleanup local containers
+        if: always()
+        run: docker compose down
