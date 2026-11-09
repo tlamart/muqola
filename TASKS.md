@@ -3,9 +3,9 @@
 > Les durées ne sont pas des engagements. Chaque lot doit être démontrable avant de passer au suivant.
 
 ## Lot 0 — Décision technique et socle
-- [ ] Lire le kit, rédiger `docs/adr/0001-stack.md` et documenter les compromis.
-- [ ] Initialiser dépôt, monolithe modulaire, PostgreSQL, migrations, Docker Compose, capture locale des e-mails.
-- [ ] Configurer lint/format, tests, CI, `.env.example`, README et healthcheck.
+- [x] Lire le kit, rédiger `docs/adr/0001-stack.md` et documenter les compromis.
+- [x] Initialiser dépôt, monolithe modulaire, PostgreSQL, migrations, Docker Compose, capture locale des e-mails.
+- [x] Configurer lint/format, tests, CI, `.env.example`, README et healthcheck.
 **Acceptation :** une commande documentée démarre l'application et la base localement ; CI passe sur un dépôt propre. Si Docker n'est pas exécutable dans Codex Cloud, exiger la validation locale de cette commande avant fusion.
 
 ## Lot 1 — Comptes
