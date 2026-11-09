@@ -55,6 +55,10 @@ locaux à une exécution CI distante.
   du proxy via un secret BuildKit éphémère et les ports locaux de test
   PostgreSQL/SMTP. Aucun certificat de session n'entre dans Git ni dans l'image.
   Le build standard local/CI utilise le Dockerfile sans cet override.
+- La première CI distante a passé tous les contrôles Python mais révélé une
+  incohérence de priorité entre mot de passe du shell et `env_file` Compose.
+  Configuration corrigée pour partager explicitement les mêmes variables
+  PostgreSQL entre application et base ; diagnostic sans affichage des valeurs.
 - Le runtime Docker Cloud signale l'absence de cgroups : les limites mémoire
   déclarées ne sont donc pas validées ici. Pas de test de charge du VPS cible.
 - Aucun test sur téléphone physique, aucun HTTPS public, SMTP réel, sauvegarde

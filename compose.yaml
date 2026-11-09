@@ -5,6 +5,9 @@ x-app: &app
   env_file: .env
   environment:
     APP_ENV: development
+    POSTGRES_DB: ${POSTGRES_DB:?Définir POSTGRES_DB}
+    POSTGRES_USER: ${POSTGRES_USER:?Définir POSTGRES_USER}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Définir un mot de passe local}
     POSTGRES_HOST: db
     POSTGRES_PORT: 5432
     EMAIL_HOST: mailpit
