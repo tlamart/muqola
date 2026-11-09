@@ -95,9 +95,9 @@ with sync_playwright() as playwright:
     )
     title = "Jeu scénario " + secrets.token_hex(4)
     alice.goto(args.url + "/games/new/")
-    alice.get_by_label("Titre du jeu", exact=True).fill(title)
-    alice.get_by_label("Joueurs minimum", exact=True).fill("2")
-    alice.get_by_label("Joueurs maximum", exact=True).fill("4")
+    alice.get_by_label("Titre du jeu").fill(title)
+    alice.get_by_label("Joueurs minimum").fill("2")
+    alice.get_by_label("Joueurs maximum").fill("4")
     alice.get_by_role("button", name="Enregistrer", exact=True).click()
     game_url = alice.url
     alice.get_by_role("link", name="Ajouter mon exemplaire", exact=True).click()
