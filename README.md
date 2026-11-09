@@ -1,11 +1,13 @@
 # Muqola
 
-**Lot 1 — Comptes**, sur le socle du lot 0 et la stack validée : Python 3.12,
+**Lots 1 à 5 — MVP en développement**, sur le socle et la stack validés : Python 3.12,
 Django 5.2 LTS, PostgreSQL 17, HTML/CSS serveur, Gunicorn/WhiteNoise.
 Lire [l'ADR](docs/adr/0001-stack.md) et [les frontières des modules](docs/modules.md).
-Inscription libre, vérification, connexion et récupération de mot de passe disponibles.
-Communautés, exemplaires et prêts restent aux lots suivants.
-Détails : [comptes et sécurité](docs/lot-1-accounts.md).
+Comptes vérifiés, communautés privées, catalogue interne réutilisable, exemplaires
+à zéro ou plusieurs visibilités, prêts et notifications capturées sont disponibles.
+[Guide de validation sur ordinateur](docs/manual-validation.md) ;
+[comptes et sécurité](docs/lot-1-accounts.md). Les PR sont empilées, non fusionnées ;
+la branche `feat/lot-5-notifications` permet de tester l'ensemble. Lot 6 non entrepris.
 
 ## Démarrer localement
 
@@ -133,6 +135,10 @@ mémoire ne constituent pas une mesure de charge sur le VPS cible.
 | POSTGRES_DB / USER / PASSWORD | Base et identifiants locaux, aucun défaut pour le mot de passe |
 | POSTGRES_HOST / PORT | Connexion directe ; Compose impose db:5432 |
 | EMAIL_HOST / PORT | Capture SMTP seulement ; Compose impose mailpit:1025 |
+| EMAIL_FROM | Expéditeur fictif en développement |
+| EMAIL_BACKEND | Backend Django remplaçable ; SMTP par défaut |
+| EMAIL_HOST_USER / PASSWORD | Vides en dev/test, configuration réelle au lot 6 |
+| EMAIL_USE_TLS / SSL | Choisir un seul mode pour un futur transport réel |
 
 APP_BASE_URL définit l'origine de confiance des liens de compte et doit être
 HTTPS en production ; aucune origine n'est reprise du Host client. Aucune clé de fournisseur,
@@ -144,8 +150,9 @@ Ce Compose est exclusivement local. Caddy/HTTPS, fournisseur SMTP réel,
 URL publique de production, DNS SPF/DKIM/DMARC, rôle PostgreSQL à privilèges réduits,
 sauvegardes externes chiffrées/restaurées et supervision sont
 à livrer/valider avant ouverture, selon [LAUNCH_CHECKLIST.md](LAUNCH_CHECKLIST.md).
-L'outbox des comptes et son worker sont livrés ; les notifications de prêt restent
-au lot 5. Les sauvegardes de production ne sont pas encore opérationnelles.
+L'outbox des comptes/prêts et son worker sont livrés. Les sauvegardes de production
+ne sont pas encore opérationnelles. Le développement refuse les identifiants SMTP
+et hôtes non locaux pour conserver la capture Mailpit.
 
 Le déploiement futur : image identifiée → sauvegarde vérifiée → revue du plan de
 migration → migration ponctuelle → démarrage → smoke tests. Revenir à l'image
@@ -155,10 +162,10 @@ et annonce de la perte potentielle depuis la sauvegarde. Aucune migration
 destructive ni opération de production sans accord et stratégie de retour.
 Procédure exacte de production, restauration testée et incident au lot 6.
 
-Les inscriptions ouvertes et l'obligation de vérification sont livrées. Invitations
-privées, fiches réutilisables, exemplaires à zéro ou plusieurs visibilités, date de
-retour et confidentialité des e-mails restent les invariants des lots 2–5. Voir [TASKS.md](TASKS.md).
-ADR et lot 0 validés. Attendre la validation du lot 1 avant le lot 2.
+Les invariants des lots 2–5 sont testés : invitations privées, fiches réutilisables,
+exemplaires à zéro ou plusieurs visibilités, date de retour et contacts uniquement
+pendant un prêt accepté/remis. Voir [TASKS.md](TASKS.md). Arrêt après le lot 5 pour
+validation humaine ; aucune fusion ni opération de production automatique.
 
 ## Test navigateur du socle
 
@@ -172,8 +179,8 @@ uv run --frozen --group browser python scripts/browser_smoke.py --browser /usr/b
 Le script ouvre réellement l'accueil à 360 et 1280 px, vérifie HTTP/CSS, langue,
 clavier, absence de débordement et d'échec réseau. Captures locales dans `work/`
 (non versionnées). Adapter `--browser` à l'exécutable installé. Les tests métier,
-IDOR et concurrence des prêts seront ajoutés avec leurs lots ; ce smoke ne les
-couvre pas. Le résultat de la livraison est dans [docs/lot-0-validation.md](docs/lot-0-validation.md).
+IDOR et concurrence des prêts sont dans pytest et le parcours produit ; ce smoke
+se limite au socle. Résultat initial : [docs/lot-0-validation.md](docs/lot-0-validation.md).
 
 
 ## Parcours des comptes (lot 1)
@@ -237,3 +244,20 @@ visibles aux seules parties, puis le propriétaire confirme remise et retour.
 Les contacts disparaissent des réponses après clôture. Retrait de communauté ou
 de partage ne bloque pas la clôture d'un prêt déjà accepté. **Mes prêts** conserve
 l'historique privé. [Invariants et résolution opérateur](docs/lot-4-loans.md).
+
+## Notifications et ergonomie (lot 5)
+
+Le worker traite les événements de compte et de prêt avec reprise persistée,
+backoff et diagnostics en échec. Aucun contact de l'autre participant dans les
+notifications. Mon compte permet une demande de suppression enregistrée ; son
+traitement définitif et les engagements légaux restent à valider avant lancement.
+[Outbox, outils de modération et limites](docs/lot-5-notifications.md).
+
+```sh
+uv run --frozen --group browser python scripts/product_browser_smoke.py --browser /usr/bin/chromium
+```
+
+Le parcours crée trois comptes fictifs et vérifie communautés, catalogue/copies,
+prêt complet, accès croisés, notifications Mailpit et UX à 360/768/1280 px.
+Utiliser uniquement la pile locale avec son worker. Scénarios à vérifier vous-même :
+[guide ordinateur](docs/manual-validation.md).

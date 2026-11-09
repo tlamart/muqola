@@ -44,3 +44,8 @@ textarea { resize: vertical; }
 summary { cursor: pointer; min-height: 44px; padding: .5rem 0; }
 .game-placeholder { display: inline-grid; place-items: center; width: 64px; height: 64px; background: var(--cream); color: var(--green); font-size: 2rem; border-radius: .5rem; }
 input[type=checkbox] { display: inline-block; width: 22px; min-height: 22px; margin: .5rem; vertical-align: middle; }
+h1, h2, h3, p, a { overflow-wrap: anywhere; }
+.status { max-width: 1100px; margin: 1rem auto; padding: .8rem 1.2rem; background: var(--white); border-left: 3px solid var(--green); }
+.actions { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }
+textarea:focus-visible, select:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+button:disabled { opacity: .65; cursor: wait; }

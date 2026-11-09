@@ -1,6 +1,8 @@
 from uuid import UUID
 
+from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -34,7 +36,10 @@ def index(request: HttpRequest) -> HttpResponse:
     return render(
         request,
         "inventory/index.html",
-        {"form": form, "copies": copies.distinct()[:100]},
+        {
+            "form": form,
+            "copies": Paginator(copies.distinct(), 30).get_page(request.GET.get("page")),
+        },
         status=200 if form.is_valid() else 400,
     )
 
@@ -45,9 +50,12 @@ def mine(request: HttpRequest) -> HttpResponse:
         request,
         "inventory/mine.html",
         {
-            "copies": OwnedGame.objects.filter(owner=actor(request), archived=False).select_related(
-                "game"
-            )[:100]
+            "copies": Paginator(
+                OwnedGame.objects.filter(owner=actor(request), archived=False).select_related(
+                    "game"
+                ),
+                30,
+            ).get_page(request.GET.get("page"))
         },
     )
 
@@ -95,6 +103,7 @@ def edit(
         except ValidationError as error:
             form.add_error(None, " ".join(error.messages))
         else:
+            messages.success(request, "Exemplaire et partage enregistrés.")
             return redirect("inventory:detail", copy_id=saved.pk)
     return render(
         request,

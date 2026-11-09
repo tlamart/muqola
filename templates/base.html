@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Muqola, le partage gratuit de jeux entre communautés privées.">
   <title>{% block title %}Muqola — Les jeux se partagent{% endblock %}</title>
+  <script src="{% static 'app.js' %}" defer></script>
   <link rel="stylesheet" href="{% static 'app.css' %}">
 </head>
 <body>
@@ -22,6 +23,8 @@
       {% endif %}
     </nav>
   </header>
+  <div id="request-status" class="status" role="status" aria-live="polite" hidden></div>
+  {% if messages %}<div class="status" role="status" aria-live="polite">{% for message in messages %}<p>{{ message }}</p>{% endfor %}</div>{% endif %}
   <main id="contenu">{% block content %}{% endblock %}</main>
   <footer>Muqola · Identité provisoire · Version de développement</footer>
 </body>

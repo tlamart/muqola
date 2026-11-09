@@ -37,9 +37,9 @@
 **Acceptation :** prêt complet Alice/Bob ; double acceptation concurrente impossible.
 
 ## Lot 5 — Notifications et UX
-- [ ] E-mails transactionnels pour les événements prévus ; fournisseur configurable, outbox PostgreSQL, reprise des envois après erreur/redémarrage.
-- [ ] Écrans vides, erreurs, états de chargement, formulaires accessibles.
-- [ ] Vérification des parcours sur mobile, tablette et ordinateur.
+- [x] E-mails transactionnels pour les événements prévus ; fournisseur configurable, outbox PostgreSQL, reprise des envois après erreur/redémarrage.
+- [x] Écrans vides, erreurs, états de chargement, formulaires accessibles.
+- [x] Vérification des parcours sur mobile, tablette et ordinateur (Chromium 360/768/1280 px ; matériel réel à valider).
 **Acceptation :** parcours complet compréhensible sans assistance ; aucune dépendance aux e-mails réels en tests.
 
 ## Lot 6 — Préproduction et mise en ligne

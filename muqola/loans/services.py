@@ -49,13 +49,17 @@ def eligible(borrower: User, item: OwnedGame) -> bool:
 
 
 def event(loan: Loan, user: User, administrative: bool = False) -> None:
-    LoanEvent.objects.create(
+    entry = LoanEvent.objects.create(
         loan=loan,
         actor=user,
         state=loan.state,
         reason=loan.close_reason,
         administrative=administrative,
     )
+
+    from muqola.notifications.services import enqueue_loan_event
+
+    enqueue_loan_event(entry)
 
 
 def request_loan(user: User, copy_id: UUID, due_date: date, message: str = "") -> Loan:

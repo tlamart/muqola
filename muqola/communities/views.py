@@ -2,9 +2,12 @@ import re
 from uuid import UUID
 
 from django.conf import settings
+from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.core.paginator import Paginator
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
+from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from muqola.communities import services
@@ -54,10 +57,18 @@ def detail(request: HttpRequest, community_id: UUID) -> HttpResponse:
                 services.update(actor(request), community_id, **form.cleaned_data)
                 return redirect("communities:detail", community_id=community_id)
     invitations = []
+    invitation_page = None
     if admin:
-        for item in member.community.invites.order_by("-created_at")[:50]:
+        invitation_page = Paginator(member.community.invites.order_by("-created_at"), 20).get_page(
+            request.GET.get("page")
+        )
+        for item in invitation_page:
             link = ""
-            if item.revoked_at is None and item.encrypted_token:
+            if (
+                item.revoked_at is None
+                and item.expires_at > timezone.now()
+                and item.encrypted_token
+            ):
                 raw = (
                     secret_cipher("community-invite")
                     .decrypt(item.encrypted_token.encode())
@@ -77,6 +88,7 @@ def detail(request: HttpRequest, community_id: UUID) -> HttpResponse:
                 community_id=community_id, active=True
             ).select_related("user"),
             "invitations": invitations,
+            "invitation_page": invitation_page,
         },
     )
 
@@ -122,6 +134,7 @@ def join(request: HttpRequest) -> HttpResponse:
         except ValidationError:
             return render(request, "communities/invalid.html", status=400)
         request.session.pop("community_invite", None)
+        messages.success(request, "Vous avez rejoint la communauté.")
         return redirect("communities:detail", community_id=community.pk)
     return render(request, "communities/join.html", {"community": item.community})
 

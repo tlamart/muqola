@@ -1,6 +1,8 @@
 from uuid import UUID
 
+from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.core.paginator import Paginator
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_http_methods
@@ -18,7 +20,12 @@ def index(request: HttpRequest) -> HttpResponse:
     return render(
         request,
         "catalogue/index.html",
-        {"games": services.search(actor(request), title)[:100], "title_query": title},
+        {
+            "games": Paginator(services.search(actor(request), title), 30).get_page(
+                request.GET.get("page")
+            ),
+            "title_query": title,
+        },
     )
 
 
@@ -36,6 +43,7 @@ def edit(request: HttpRequest, game_id: UUID | None = None) -> HttpResponse:
         except ValidationError as error:
             form.add_error(None, " ".join(error.messages))
         else:
+            messages.success(request, "Fiche de jeu enregistrée.")
             return redirect("catalogue:detail", game_id=saved.pk)
     return render(
         request,
@@ -69,6 +77,7 @@ def report(request: HttpRequest, game_id: UUID) -> HttpResponse:
     form = ReportForm(request.POST if request.method == "POST" else None)
     if request.method == "POST" and form.is_valid():
         services.report(actor(request), game_id, form.cleaned_data["reason"])
+        messages.success(request, "Votre signalement est enregistré pour maintenance.")
         return redirect("catalogue:detail", game_id=game_id)
     return render(
         request, "domain_form.html", {"form": form, "title": "Signaler ou proposer une correction"}

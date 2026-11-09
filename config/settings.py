@@ -20,6 +20,7 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.staticfiles",
+    "django.contrib.messages",
     "muqola.identity",
     "muqola.core",
     "muqola.communities",
@@ -37,6 +38,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
     "muqola.identity.middleware.VerifiedAccountMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -50,6 +52,7 @@ TEMPLATES = [
             "context_processors": [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
             ]
         },
     }
@@ -102,11 +105,26 @@ SECURE_REFERRER_POLICY = "same-origin"
 X_FRAME_OPTIONS = "DENY"
 DATA_UPLOAD_MAX_MEMORY_SIZE = 64 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 0
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_BACKEND = os.environ.get("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "127.0.0.1")
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "1025"))
 EMAIL_TIMEOUT = 5
-DEFAULT_FROM_EMAIL = "Muqola <notifications@example.test>"
+DEFAULT_FROM_EMAIL = os.environ.get("EMAIL_FROM", "Muqola <notifications@example.test>")
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "false").lower() in {"1", "true"}
+EMAIL_USE_SSL = os.environ.get("EMAIL_USE_SSL", "false").lower() in {"1", "true"}
+if EMAIL_USE_TLS and EMAIL_USE_SSL:
+    raise ImproperlyConfigured("Choisir TLS ou SSL, pas les deux.")
+if APP_ENV != "production" and (
+    EMAIL_HOST not in {"mailpit", "localhost", "127.0.0.1"}
+    or EMAIL_HOST_USER
+    or EMAIL_HOST_PASSWORD
+):
+    raise ImproperlyConfigured(
+        "Développement : capture SMTP locale sans identifiants réels uniquement."
+    )
+MESSAGE_STORAGE = "django.contrib.messages.storage.session.SessionStorage"
 # Aucune API/clé réelle : configuration d'envoi de production au lot 6.
 LOGGING = {
     "version": 1,

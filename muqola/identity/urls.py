@@ -2,9 +2,11 @@ from django.urls import path
 
 from muqola.identity import views
 from muqola.identity.models import AccountToken
+from muqola.identity.profile import profile
 
 app_name = "identity"
 urlpatterns = [
+    path("profile/", profile, name="profile"),
     path("signup/", views.signup, name="signup"),
     path(
         "signup/done/",

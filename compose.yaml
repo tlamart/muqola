@@ -12,6 +12,7 @@ x-app: &app
     POSTGRES_PORT: 5432
     EMAIL_HOST: mailpit
     EMAIL_PORT: 1025
+  stop_grace_period: 30s
   init: true
   cap_drop: [ALL]
   security_opt: [no-new-privileges:true]

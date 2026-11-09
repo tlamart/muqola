@@ -1,6 +1,8 @@
 from uuid import UUID
 
+from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.core.paginator import Paginator
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
@@ -11,12 +13,19 @@ from muqola.identity.views import throttled
 from muqola.inventory.services import visible
 from muqola.loans import services
 from muqola.loans.forms import RequestForm
+from muqola.loans.models import Loan
 
 
 @require_GET
 def index(request: HttpRequest) -> HttpResponse:
     return render(
-        request, "loans/index.html", {"loans": services.participant_loans(actor(request))[:100]}
+        request,
+        "loans/index.html",
+        {
+            "loans": Paginator(services.participant_loans(actor(request)), 30).get_page(
+                request.GET.get("page")
+            )
+        },
     )
 
 
@@ -32,6 +41,7 @@ def request_loan(request: HttpRequest, copy_id: UUID) -> HttpResponse:
         except ValidationError as error:
             form.add_error(None, " ".join(error.messages))
         else:
+            messages.success(request, "Demande envoyée. Elle ne réserve pas le jeu.")
             return redirect("loans:detail", loan_id=loan.pk)
     return render(
         request,
@@ -66,7 +76,15 @@ def detail(request: HttpRequest, loan_id: UUID) -> HttpResponse:
             "borrower_name": loan.borrower.display_name,
             "is_owner": loan.owner_id == actor(request).pk,
             "contacts": services.contacts(actor(request), loan.pk),
-            "events": loan.events.values("state", "created_at", "reason", "administrative"),
+            "events": [
+                {
+                    "state": Loan.State(e.state).label,
+                    "created_at": e.created_at,
+                    "reason": e.reason,
+                    "administrative": e.administrative,
+                }
+                for e in loan.events.all()
+            ],
         },
     )
 
@@ -75,6 +93,7 @@ def detail(request: HttpRequest, loan_id: UUID) -> HttpResponse:
 def action(request: HttpRequest, loan_id: UUID, action: str) -> HttpResponse:
     try:
         services.transition(actor(request), loan_id, action)
+        messages.success(request, "Le prêt a été mis à jour.")
     except ValidationError as error:
         return render(
             request, "domain_error.html", {"message": " ".join(error.messages)}, status=400

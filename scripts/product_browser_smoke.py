@@ -40,7 +40,7 @@ def verification_link(email: str) -> str:
     raise RuntimeError("E-mail de vérification absent de la capture")
 
 
-def register(browser: Browser, page: Page, name: str) -> None:
+def register(browser: Browser, page: Page, name: str) -> str:
     email = "scenario-" + secrets.token_hex(6) + "@example.test"
     password = secrets.token_urlsafe(24)
     page.goto(args.url + "/accounts/signup/")
@@ -61,6 +61,7 @@ def register(browser: Browser, page: Page, name: str) -> None:
     page.locator("input[name=password]").fill(password)
     page.get_by_role("button", name="Se connecter", exact=True).click()
     page.wait_for_load_state("networkidle")
+    return email
 
 
 with sync_playwright() as playwright:
@@ -68,7 +69,8 @@ with sync_playwright() as playwright:
     alice_context = browser.new_context(viewport={"width": 360, "height": 900})
     bob_context = browser.new_context(viewport={"width": 360, "height": 900})
     alice, bob = alice_context.new_page(), bob_context.new_page()
-    register(browser, alice, "Alice")
+    alice_email = register(browser, alice, "Alice")
+    check("Aucune communauté" in alice.locator("main").inner_text(), "État vide absent")
     alice.goto(args.url + "/communities/")
     community_name = "Voisins " + secrets.token_hex(3)
     alice.get_by_label("Nom de la communauté").fill(community_name)
@@ -77,7 +79,7 @@ with sync_playwright() as playwright:
     alice.get_by_role("button", name="Créer un lien d'invitation", exact=True).click()
     invitation = alice.locator("textarea[readonly]").first.input_value()
     bob.goto(invitation)
-    register(browser, bob, "Bob")
+    bob_email = register(browser, bob, "Bob")
     bob.wait_for_url("**/communities/join/")
     bob.get_by_role("button", name="Confirmer mon adhésion", exact=True).click()
     check(bob.url == community_url, "Adhésion dans une communauté incorrecte")
@@ -167,5 +169,60 @@ with sync_playwright() as playwright:
     print(
         "PASS prêts : demande, acceptation, contacts temporaires, "
         "retrait de membre, remise et retour"
+    )
+    expected = {f"Muqola — {state}" for state in ("Demandé", "Accepté", "Remis", "Rendu")}
+    for _ in range(30):
+        with urlopen(args.mailpit + "/api/v1/messages?limit=200", timeout=5) as response:  # noqa: S310
+            messages = json.load(response)["messages"]
+        by_recipient = {
+            email: {
+                item["Subject"]
+                for item in messages
+                if any(to["Address"] == email for to in item["To"])
+            }
+            for email in (alice_email, bob_email)
+        }
+        if all(expected <= subjects for subjects in by_recipient.values()):
+            break
+        time.sleep(1)
+    else:
+        raise RuntimeError("Notifications de prêt manquantes dans Mailpit")
+    for item in messages:
+        recipient = next(
+            (to["Address"] for to in item["To"] if to["Address"] in (alice_email, bob_email)), None
+        )
+        if recipient and item["Subject"] in expected:
+            with urlopen(args.mailpit + "/api/v1/message/" + item["ID"], timeout=5) as response:  # noqa: S310
+                text = json.load(response)["Text"]
+            other = alice_email if recipient == bob_email else bob_email
+            check(other not in text, "Contact de l'autre participant dans un e-mail")
+    bob.goto(args.url + "/accounts/profile/")
+    bob.get_by_label("Je confirme demander la suppression de mon compte.").check()
+    bob.get_by_role("button", name="Enregistrer ma demande de suppression", exact=True).click()
+    check("Demande enregistrée le" in bob.locator("main").inner_text(), "Demande non persistée")
+    bob.evaluate("window.dispatchEvent(new Event('offline'))")
+    check(bob.get_by_role("status").first.is_visible(), "Erreur réseau inaccessible")
+    bob.evaluate("window.dispatchEvent(new Event('pageshow'))")
+    for width in (360, 768, 1280):
+        bob.set_viewport_size({"width": width, "height": 900})
+        check(
+            not bob.evaluate("document.documentElement.scrollWidth > innerWidth"),
+            "Débordement compte",
+        )
+        bob.screenshot(path=f"work/profile-{width}.png", full_page=True)
+    nojs_context = browser.new_context(java_script_enabled=False)
+    nojs = nojs_context.new_page()
+    nojs.goto(args.url + "/accounts/login/")
+    nojs.get_by_label("Adresse e-mail").fill("absent@example.test")
+    nojs.locator("input[name=password]").fill("mot-de-passe-fictif-invalide")
+    nojs.get_by_role("button", name="Se connecter", exact=True).click()
+    check(
+        "Adresse ou mot de passe incorrect." in nojs.locator("main").inner_text(),
+        "Formulaire sans JavaScript inutilisable",
+    )
+    nojs_context.close()
+    print(
+        "PASS notifications/UX : SMTP capturé, contacts exclus des messages, "
+        "demande de suppression, hors ligne, formulaire sans JavaScript, 3 largeurs"
     )
     browser.close()

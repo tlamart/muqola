@@ -81,6 +81,7 @@ class LoanEvent(models.Model):
     state = models.CharField(max_length=12, choices=Loan.State.choices)
     reason = models.CharField(max_length=500, blank=True)
     administrative = models.BooleanField(default=False)
+    notifications_queued = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:

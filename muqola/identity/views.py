@@ -94,7 +94,18 @@ def pending(request: HttpRequest) -> HttpResponse:
 
 @require_GET
 def dashboard(request: HttpRequest) -> HttpResponse:
-    return render(request, "identity/dashboard.html")
+    from muqola.communities.models import Membership
+    from muqola.core.http import actor
+    from muqola.inventory.services import visible
+
+    return render(
+        request,
+        "identity/dashboard.html",
+        {
+            "has_community": Membership.objects.filter(user=actor(request), active=True).exists(),
+            "copies": visible(actor(request))[:12],
+        },
+    )
 
 
 @require_http_methods(["GET", "POST"])

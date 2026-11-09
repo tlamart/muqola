@@ -9,7 +9,8 @@ class SafeJsonFormatter(logging.Formatter):
         # Liste fermée : les événements utiles seront ajoutés avec leurs fonctionnalités.
         event = (
             record.msg
-            if record.msg in {"database_unavailable", "account_email_retry"}
+            if isinstance(record.msg, str)
+            and record.msg in {"database_unavailable", "notification_retry", "notification_failed"}
             else "runtime_event"
         )
         return json.dumps({"level": record.levelname, "logger": record.name, "event": event})
