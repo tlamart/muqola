@@ -1,0 +1,28 @@
+{% load static %}
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Muqola, le partage gratuit de jeux entre communautés privées.">
+  <title>{% block title %}Muqola — Les jeux se partagent{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'app.css' %}">
+</head>
+<body>
+  <a class="skip" href="#contenu">Aller au contenu</a>
+  <header>
+    <a class="brand" href="/" aria-label="Muqola, accueil">Muqola<span aria-hidden="true">●</span></a>
+    <nav aria-label="Navigation principale">
+      {% if user.is_authenticated %}
+        {% if user.email_verified_at %}<a href="{% url 'identity:dashboard' %}">Mon espace</a>{% else %}<a href="{% url 'identity:pending' %}">Vérifier mon e-mail</a>{% endif %}
+        <form method="post" action="{% url 'identity:logout' %}">{% csrf_token %}<button class="secondary" type="submit">Se déconnecter</button></form>
+      {% else %}
+        <a href="{% url 'identity:login' %}">Se connecter</a>
+        <a class="button" href="{% url 'identity:signup' %}">S'inscrire</a>
+      {% endif %}
+    </nav>
+  </header>
+  <main id="contenu">{% block content %}{% endblock %}</main>
+  <footer>Muqola · Identité provisoire · Version de développement</footer>
+</body>
+</html>

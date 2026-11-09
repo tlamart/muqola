@@ -1,0 +1,3 @@
+{% extends 'base.html' %}
+{% block title %}Confirmer mon e-mail — Muqola{% endblock %}
+{% block content %}<section class="account"><h1>Confirmer mon adresse e-mail</h1><p>Validez pour activer l'accès à votre espace Muqola.</p><form method="post">{% csrf_token %}<button type="submit">Confirmer mon e-mail</button></form></section>{% endblock %}

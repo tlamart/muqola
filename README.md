@@ -1,9 +1,11 @@
 # Muqola
 
-Socle technique **lot 0**, stack proposée en attente de validation : Python 3.12,
+**Lot 1 — Comptes**, sur le socle du lot 0 et la stack validée : Python 3.12,
 Django 5.2 LTS, PostgreSQL 17, HTML/CSS serveur, Gunicorn/WhiteNoise.
 Lire [l'ADR](docs/adr/0001-stack.md) et [les frontières des modules](docs/modules.md).
-Aucun compte public, communauté, exemplaire ou prêt n'est encore implémenté.
+Inscription libre, vérification, connexion et récupération de mot de passe disponibles.
+Communautés, exemplaires et prêts restent aux lots suivants.
+Détails : [comptes et sécurité](docs/lot-1-accounts.md).
 
 ## Démarrer localement
 
@@ -42,7 +44,7 @@ docker compose up --build --wait --wait-timeout 120
 Ne pas utiliser `down --volumes` sur une base à conserver. Les messages Mailpit
 sont éphémères (capture de développement seulement). Les logs applicatifs sont
 JSON et ne conservent ni URL/jetons ni données de requête. Pas de logs d'accès
-Gunicorn. Les logs d'incidents restent volontairement succincts au lot 0.
+Gunicorn. Les logs d'incidents restent volontairement succincts et sans données de requête.
 
 ## Développement hors conteneur et vérifications
 
@@ -84,11 +86,12 @@ uv run --frozen pytest -q
 uv run --frozen ruff check .
 uv run --frozen ruff format --check .
 uv run --frozen mypy config muqola tests manage.py
-APP_ENV=production uv run --frozen python manage.py check --deploy --fail-level WARNING
+APP_BASE_URL=https://muqola.example.test APP_ENV=production uv run --frozen python manage.py check --deploy --fail-level WARNING
 uv run --frozen pip-audit -r requirements.txt --disable-pip --no-deps --progress-spinner off
 ```
 
-Le contrôle production conserve intentionnellement HSTS sans sous-domaines ni
+Le contrôle production nécessite une APP_BASE_URL HTTPS et conserve
+intentionnellement HSTS sans sous-domaines ni
 preload tant que le domaine n'est pas validé : seuls W005/W021 sont désactivés,
 avec justification dans settings/ADR. HTTPS réel, proxy de confiance et tests
 de cookies réels seront validés au lot 6. Ce contrôle ne vaut pas homologation.
@@ -124,23 +127,25 @@ mémoire ne constituent pas une mesure de charge sur le VPS cible.
 | Variable | Usage |
 | --- | --- |
 | APP_ENV | development/test/production ; Compose local impose development |
+| APP_BASE_URL | Origine de confiance des liens, http://localhost:8000 en dev ; HTTPS en production |
 | DJANGO_SECRET_KEY | Obligatoire, au moins 50 caractères aléatoires, serveur uniquement |
 | ALLOWED_HOSTS | Hôtes HTTP acceptés, séparés par virgules |
 | POSTGRES_DB / USER / PASSWORD | Base et identifiants locaux, aucun défaut pour le mot de passe |
 | POSTGRES_HOST / PORT | Connexion directe ; Compose impose db:5432 |
 | EMAIL_HOST / PORT | Capture SMTP seulement ; Compose impose mailpit:1025 |
 
-Pas d'URL publique requise au lot 0 : les liens d'identité/invitation et leur
-origine de confiance seront configurés au lot 1. Aucune clé de fournisseur,
+APP_BASE_URL définit l'origine de confiance des liens de compte et doit être
+HTTPS en production ; aucune origine n'est reprise du Host client. Aucune clé de fournisseur,
 identifiant VPS ou donnée réelle ne doit entrer dans ce développement.
 
 ## Limites et exploitation future
 
 Ce Compose est exclusivement local. Caddy/HTTPS, fournisseur SMTP réel,
-URL publique, DNS SPF/DKIM/DMARC, rôle PostgreSQL à privilèges réduits,
-worker d'outbox, sauvegardes externes chiffrées/restaurées et supervision sont
+URL publique de production, DNS SPF/DKIM/DMARC, rôle PostgreSQL à privilèges réduits,
+sauvegardes externes chiffrées/restaurées et supervision sont
 à livrer/valider avant ouverture, selon [LAUNCH_CHECKLIST.md](LAUNCH_CHECKLIST.md).
-Ni outbox ni sauvegarde opérationnelle ne sont simulées comme livrées.
+L'outbox des comptes et son worker sont livrés ; les notifications de prêt restent
+au lot 5. Les sauvegardes de production ne sont pas encore opérationnelles.
 
 Le déploiement futur : image identifiée → sauvegarde vérifiée → revue du plan de
 migration → migration ponctuelle → démarrage → smoke tests. Revenir à l'image
@@ -150,10 +155,10 @@ et annonce de la perte potentielle depuis la sauvegarde. Aucune migration
 destructive ni opération de production sans accord et stratégie de retour.
 Procédure exacte de production, restauration testée et incident au lot 6.
 
-Les inscriptions ouvertes, invitations privées, fiches réutilisables, exemplaires
-à zéro ou plusieurs visibilités, date de retour et confidentialité des e-mails
-restent les invariants des lots 1–5. Voir [TASKS.md](TASKS.md).
-Attendre la validation explicite de l'ADR **et** du lot 0 avant le lot 1.
+Les inscriptions ouvertes et l'obligation de vérification sont livrées. Invitations
+privées, fiches réutilisables, exemplaires à zéro ou plusieurs visibilités, date de
+retour et confidentialité des e-mails restent les invariants des lots 2–5. Voir [TASKS.md](TASKS.md).
+ADR et lot 0 validés. Attendre la validation du lot 1 avant le lot 2.
 
 ## Test navigateur du socle
 
@@ -169,3 +174,32 @@ clavier, absence de débordement et d'échec réseau. Captures locales dans `wor
 (non versionnées). Adapter `--browser` à l'exécutable installé. Les tests métier,
 IDOR et concurrence des prêts seront ajoutés avec leurs lots ; ce smoke ne les
 couvre pas. Le résultat de la livraison est dans [docs/lot-0-validation.md](docs/lot-0-validation.md).
+
+
+## Parcours des comptes (lot 1)
+
+Lancer Compose : le service `worker` traite automatiquement les e-mails en base.
+Ouvrir `/accounts/signup/`, créer un compte fictif, puis lire le lien dans Mailpit.
+Ouvrir le lien et confirmer par bouton ; connexion ensuite. Un compte non vérifié
+reste limité à l'attente/renvoi et ne peut ouvrir `/accounts/dashboard/` (403).
+Mot de passe oublié depuis la connexion ; le lien dure 1 h, la vérification 24 h.
+Un renvoi invalide le lien précédent. La déconnexion passe par un formulaire POST.
+
+```sh
+# Traiter ponctuellement la file (débogage) :
+docker compose exec web python manage.py process_outbox --once
+# Observer sans afficher les charges ou les liens :
+docker compose logs --tail=30 worker
+# Sessions expirées (à planifier quotidiennement avant production) :
+docker compose exec web python manage.py clearsessions
+# Tests du parcours complet avec navigateur installé :
+uv sync --frozen --group browser
+uv run --frozen --group browser python scripts/accounts_browser_smoke.py --browser /usr/bin/chromium
+```
+
+La commande navigateur crée des comptes fictifs @example.test dans la base de
+développement ; ne pas la lancer sur une production. Les captures sont dans
+`work/`. Les e-mails sont en file chiffrée jusqu'à envoi/reprise ; ne pas remplacer
+DJANGO_SECRET_KEY avant d'avoir vidé la file. Les liens sont hachés, à usage unique.
+Voir [le document du lot 1](docs/lot-1-accounts.md) pour contraintes, ON DELETE,
+limites de débit, rétention, compromis et limitations des tests.

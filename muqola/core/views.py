@@ -28,3 +28,15 @@ def health_ready(request: HttpRequest) -> JsonResponse:
         logger.warning("database_unavailable")
         return JsonResponse({"status": "unavailable"}, status=503)
     return JsonResponse({"status": "ok"})
+
+
+def csrf_failure(request: HttpRequest, reason: str = "") -> HttpResponse:
+    return render(
+        request,
+        "identity/message.html",
+        {
+            "title": "Formulaire expiré",
+            "message": "Rechargez la page et réessayez. Aucune modification n'a été effectuée.",
+        },
+        status=403,
+    )

@@ -9,10 +9,10 @@
 **Acceptation :** une commande documentée démarre l'application et la base localement ; CI passe sur un dépôt propre. Si Docker n'est pas exécutable dans Codex Cloud, exiger la validation locale de cette commande avant fusion.
 
 ## Lot 1 — Comptes
-- [ ] Inscription ouverte, validation serveur, hachage des mots de passe, nom d'affichage.
-- [ ] Vérification d'e-mail obligatoire, lien expirant/usage unique, renvoi limité ; lien après inscription utilisable même sans avoir de compte connecté.
-- [ ] Connexion, déconnexion, récupération de mot de passe, sessions sûres.
-- [ ] Protection contre abus et énumération ; tests des liens expirés et non vérifiés.
+- [x] Inscription ouverte, validation serveur, hachage des mots de passe, nom d'affichage.
+- [x] Vérification d'e-mail obligatoire, lien expirant/usage unique, renvoi limité ; lien après inscription utilisable même sans avoir de compte connecté.
+- [x] Connexion, déconnexion, récupération de mot de passe, sessions sûres.
+- [x] Protection contre abus et énumération ; tests des liens expirés et non vérifiés.
 **Acceptation :** inscription autonome sans validation administrateur ; impossible d'accéder au métier sans vérification.
 
 ## Lot 2 — Communautés

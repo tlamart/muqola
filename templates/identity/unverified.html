@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block title %}Vérifiez votre e-mail — Muqola{% endblock %}
+{% block content %}
+<section class="account"><h1>Vérifiez votre adresse e-mail</h1>
+<p>Confirmez votre adresse avec le lien reçu dans votre messagerie. Votre espace reste fermé jusqu'à cette vérification.</p>
+<p>Le lien expire après 24 heures. Pensez à consulter vos courriers indésirables.</p>
+<a class="button" href="{% url 'identity:resend' %}">Recevoir un nouveau lien</a></section>
+{% endblock %}

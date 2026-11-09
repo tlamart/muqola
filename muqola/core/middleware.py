@@ -14,4 +14,5 @@ class SecurityHeadersMiddleware:
             "form-action 'self'; frame-ancestors 'none'; base-uri 'none'"
         )
         response["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        response["Cache-Control"] = "no-store"
         return response

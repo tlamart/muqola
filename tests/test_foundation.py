@@ -16,13 +16,13 @@ from muqola.core.logging import SafeJsonFormatter
 from muqola.identity.models import User
 
 
-def test_public_home_is_french_and_discloses_foundation_scope(client: Client) -> None:
+def test_public_home_is_french_and_discloses_current_scope(client: Client) -> None:
     response = client.get("/")
     assert response.status_code == 200
     assert b'lang="fr"' in response.content
-    assert "pas encore de créer un compte" in response.content.decode()
+    assert "Les comptes sont ouverts" in response.content.decode()
     assert response["X-Frame-Options"] == "DENY"
-    assert response["Referrer-Policy"] == "no-referrer"
+    assert response["Referrer-Policy"] == "same-origin"
     assert "default-src 'none'" in response["Content-Security-Policy"]
     assert response["X-Content-Type-Options"] == "nosniff"
 
@@ -62,9 +62,7 @@ def test_custom_user_and_database_sessions() -> None:
     assert SessionStore(session.session_key)["synthetic"] == user.pk
 
 
-@pytest.mark.parametrize(
-    "path", ["/admin/", "/accounts/signup/", "/communities/", "/games/", "/loans/"]
-)
+@pytest.mark.parametrize("path", ["/admin/", "/communities/", "/games/", "/loans/"])
 def test_no_business_routes_are_exposed(client: Client, path: str) -> None:
     response = client.get(path)
     assert response.status_code == 404
