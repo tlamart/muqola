@@ -1,0 +1,33 @@
+# Secrets (conserver les exemples versionnés)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Dépendances et environnements locaux
+node_modules/
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+.next/
+dist/
+build/
+coverage/
+
+# Données, exports et sauvegardes locaux
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.sql.gz
+backups/
+data/
+
+# Éditeurs et système
+.DS_Store
+.idea/
+.vscode/
