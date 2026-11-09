@@ -203,3 +203,11 @@ développement ; ne pas la lancer sur une production. Les captures sont dans
 DJANGO_SECRET_KEY avant d'avoir vidé la file. Les liens sont hachés, à usage unique.
 Voir [le document du lot 1](docs/lot-1-accounts.md) pour contraintes, ON DELETE,
 limites de débit, rétention, compromis et limitations des tests.
+
+## Tester sur Android avec GitHub Codespaces
+
+Le [guide Android pas à pas](docs/codespaces-android.md) explique la création du
+Codespace, l'ouverture des deux URL HTTPS privées, la capture Mailpit, le test
+d'inscription/vérification/connexion et l'arrêt. La configuration `.devcontainer`
+réutilise Compose avec un profil de développement isolé et vérifie la visibilité
+privée des ports avant de démarrer les services. PostgreSQL n'est pas publié.

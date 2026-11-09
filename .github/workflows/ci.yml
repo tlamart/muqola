@@ -61,6 +61,26 @@ jobs:
         run: |
           uv run --frozen --group browser python scripts/browser_smoke.py --browser "$(command -v google-chrome || command -v chromium)"
           uv run --frozen --group browser python scripts/accounts_browser_smoke.py --browser "$(command -v google-chrome || command -v chromium)"
+      - name: Validate Dev Container configuration
+        run: |
+          mkdir -p work
+          npx --yes @devcontainers/cli@0.90.0 read-configuration --workspace-folder "$GITHUB_WORKSPACE" > work/devcontainer-configuration.json
+      - name: Codespaces HTTPS profile behind the forwarding proxy
+        env:
+          CODESPACES: 'true'
+          CODESPACE_NAME: muqola-ci-preview
+          GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN: app.github.dev
+          APP_ENV: development
+        run: |
+          docker compose down
+          docker image tag muqola:local muqola:codespaces
+          docker compose --project-name muqola-codespaces -f compose.yaml -f .devcontainer/compose.codespaces.yaml up --no-build --wait --wait-timeout 120
+          uv run --frozen python -m scripts.codespaces_https_smoke
+      - name: Cleanup Codespaces profile
+        if: always()
+        env:
+          CODESPACE_NAME: muqola-ci-preview
+        run: docker compose --project-name muqola-codespaces -f compose.yaml -f .devcontainer/compose.codespaces.yaml down
       - name: Compose diagnostics on failure
         if: failure()
         run: docker compose logs --no-color --tail=60
