@@ -1,7 +1,8 @@
 # Tester Muqola depuis Android avec un Codespace privé
 
-Ce profil utilise le lot 1 et les mêmes Django/PostgreSQL/Mailpit/worker que
-`compose.yaml`. C'est une prévisualisation de développement, avec des données
+Ce profil utilise la version intégrée dans `main` (lots 1 à 5) et les mêmes
+Django/PostgreSQL/Mailpit/worker que `compose.yaml`. C'est une prévisualisation
+de développement, avec des données
 fictives et sans VPS, fournisseur d'e-mails réel ni déploiement de production.
 L'authentification GitHub protège l'accès au Codespace ; les comptes Muqola à
 l'intérieur gardent leur propre inscription/vérification/connexion.
@@ -13,8 +14,8 @@ l'intérieur gardent leur propre inscription/vérification/connexion.
 2. Vérifiez votre quota gratuit Codespaces et désactivez toute dépense au-delà
    de ce quota. La configuration ne provisionne aucun service payant ; ne
    souscrivez pas d'offre payante si GitHub indique que le quota est épuisé.
-3. Ouvrez [la création du Codespace sur la branche de prévisualisation](https://github.com/codespaces/new?repo=1451197982&ref=feat%2Fcodespaces-preview).
-   Vérifiez dépôt `tlamart/muqola`, branche **feat/codespaces-preview**, puis
+3. Ouvrez [la création du Codespace sur main](https://github.com/codespaces/new?repo=1451197982&ref=main).
+   Vérifiez dépôt `tlamart/muqola`, branche **main**, puis
    sélectionnez la machine **2 cœurs** et créez le Codespace.
 4. Attendez la construction du conteneur. Elle installe Python 3.12, Docker
    Compose v2 dans un Docker de développement isolé, et GitHub CLI. Les données
@@ -24,11 +25,10 @@ l'intérieur gardent leur propre inscription/vérification/connexion.
    **Muqola prête — accès privé avec votre compte GitHub** et les deux URL.
    Le premier build et les migrations peuvent prendre plusieurs minutes.
 
-Il n'est pas nécessaire de fusionner la PR de prévisualisation pour créer ce
-Codespace sur sa branche. Cette branche contient le lot 1 sans modifier sa PR 2.
-La PR de configuration cible temporairement la branche du lot 1 pour afficher
-uniquement son propre diff ; la recibler vers main après fusion de la PR 2,
-sans la fusionner dans la branche du lot 1.
+Les comptes, communautés, catalogue, exemplaires et prêts sont disponibles
+dans cette version. Pour valider une PR non fusionnée, choisir explicitement
+sa branche à la création du Codespace plutôt qu'une ancienne branche de lot.
+Noter le commit testé avec `git rev-parse HEAD` dans le terminal.
 
 ## 2. Si GitHub CLI demande une autorisation
 
@@ -98,9 +98,12 @@ script réapplique et vérifie Private à chaque démarrage/réouverture d'édit
 4. Touchez le lien HTTPS du message. Il doit revenir sur **le port 8000 du même
    Codespace**, puis touchez **Confirmer mon e-mail**. Un compte Muqola déjà
    connecté n'est pas requis ; l'accès GitHub au port privé reste requis.
-5. Connectez-vous à Muqola : vous devez voir **Bienvenue, Camille**. Vous pouvez
-   alors vous déconnecter puis vous reconnecter. Les communautés et prêts ne
-   sont pas encore disponibles.
+5. Connectez-vous à Muqola : vous devez accéder au tableau de bord privé. Vous
+   pouvez alors vous déconnecter puis vous reconnecter. Pour les communautés,
+   exemplaires et prêts, suivre les sections 2 à 5 du
+   [guide de validation manuelle](manual-validation.md), en conservant les URL
+   HTTPS privées de ce Codespace. Les commandes Compose locales du guide
+   ordinateur ne s'appliquent pas au profil Codespaces.
 6. Facultatif : testez **Mot de passe oublié**. Lisez le nouveau message dans
    Mailpit, choisissez un autre mot de passe fictif puis reconnectez-vous.
 
@@ -118,14 +121,26 @@ L'arrêt conserve l'espace et le volume PostgreSQL ; le stockage reste soumis au
 quota de votre compte. Supprimez le Codespace pour supprimer aussi cet espace de
 test lorsque vous n'en avez plus besoin.
 
-Pour reprendre, rouvrez le Codespace : le démarrage est relancé. Au besoin :
+Rouvrir un Codespace relance son démarrage, mais ne met pas à jour son code.
+Pour valider `main` à jour dans un Codespace existant, arrêter d'abord les
+services, puis exécuter depuis la racine du dépôt :
 
 ```sh
+docker compose --project-name muqola-codespaces -f compose.yaml -f .devcontainer/compose.codespaces.yaml stop &&
+git fetch origin &&
+git switch main &&
+git pull --ff-only origin main &&
+git rev-parse HEAD &&
 bash .devcontainer/start.sh
 ```
 
-Cette commande conserve `.env` et le volume, ne crée pas de nouveaux secrets à
-chaque ouverture et ne réinitialise pas les comptes. La réouverture de l'éditeur
+Si Git refuse le changement de branche ou la mise à jour, arrêter la procédure
+et résoudre la divergence sans forcer ni effacer les modifications. Pour une
+PR, remplacer explicitement `main` par sa branche. Noter le commit affiché avec
+les résultats ; les URL HTTPS privées restent celles de ce Codespace.
+
+Le script de démarrage conserve `.env` et le volume, ne crée pas de nouveaux
+secrets à chaque ouverture et ne réinitialise pas les comptes. La réouverture de l'éditeur
 ne coupe pas un Mailpit déjà sain. Les messages Mailpit restent éphémères :
 un arrêt réel du service peut les effacer ; demandez alors un nouveau lien.
 Ne changez pas le secret serveur avec une file d'e-mails encore en attente.

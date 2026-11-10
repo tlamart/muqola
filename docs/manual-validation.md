@@ -2,17 +2,25 @@
 
 Utiliser uniquement des comptes et jeux fictifs. Aucun SMTP externe, paiement
 ou VPS nécessaire. Docker Desktop/Engine + Compose v2, Git et Python 3.12 requis.
-Les PR sont empilées et non fusionnées : la branche du lot 5 contient les précédentes.
+Les lots 1 à 5 et le correctif Gunicorn sont intégrés dans `main`. Depuis une
+copie de développement sans modification non enregistrée, récupérer cette version :
 
 ```sh
-git fetch origin
-git switch feat/lot-5-notifications
-python3 scripts/init_dev.py
+git fetch origin &&
+git switch main &&
+git pull --ff-only origin main &&
+git rev-parse HEAD &&
+python3 scripts/init_dev.py &&
 docker compose up --build --wait --wait-timeout 120
 ```
 
-Si la branche n'existe pas encore localement :
-`git switch --track origin/feat/lot-5-notifications`.
+Si `main` n'existe pas encore localement : `git switch --track origin/main`,
+puis reprendre à `git pull --ff-only origin main`. Si Git refuse le changement
+de branche ou la mise à jour, arrêter la procédure et résoudre la divergence
+sans forcer ni effacer les modifications. Noter le commit affiché avec les
+résultats de validation. Pour tester une PR non fusionnée, sélectionner
+explicitement sa branche à la place de `main` et noter son commit.
+
 Application http://localhost:8000 ; Mailpit http://localhost:8025.
 Conserver **localhost** partout pour ne pas mélanger les cookies avec 127.0.0.1.
 La base et SMTP ne sont pas publiés ; les ports HTTP écoutent sur la boucle locale.
@@ -104,6 +112,11 @@ annoncé (inscription : 10 tentatives/heure/IP). Ne pas les désactiver pour val
 
 ## Vérifications reproductibles et arrêt
 
+Avant ces contrôles sur l'hôte, suivre la préparation de
+[Développement hors conteneur et vérifications du README](../README.md#développement-hors-conteneur-et-vérifications) :
+environnement uv, chargement du `.env` local et accès PostgreSQL par le port
+local documenté. Le démarrage Compose seul ne publie pas PostgreSQL sur l'hôte.
+
 ```sh
 # Avec uv 0.13.5 ; base locale exposée uniquement à la boucle locale selon README :
 ./scripts/check.sh
@@ -118,4 +131,5 @@ Les scripts navigateur créent des données fictives ; ne jamais les lancer en
 production. `docker compose down` conserve la base, `down --volumes` la détruit :
 ne pas l'utiliser pour cette validation. Aucun déploiement de production à ce stade.
 Pour Android, le [guide Codespaces](codespaces-android.md) reste applicable en
-choisissant cette branche ; aucune nouvelle ressource n'a été créée ici.
+choisissant `main` ; conserver les URL HTTPS privées et les commandes du profil
+Codespaces décrites dans ce guide.
