@@ -1,0 +1,3 @@
+{% extends 'base.html' %}
+{% block title %}Lien indisponible — Muqola{% endblock %}
+{% block content %}<section class="account"><h1>Ce lien n'est plus utilisable</h1><p>Il peut avoir expiré, avoir déjà été utilisé ou avoir été remplacé. Demandez un nouveau lien.</p><p><a href="{% url 'identity:resend' %}">Vérifier mon e-mail</a></p><p><a href="{% url 'identity:reset-request' %}">Réinitialiser mon mot de passe</a></p></section>{% endblock %}

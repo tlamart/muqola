@@ -1,0 +1,3 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} — Muqola{% endblock %}
+{% block content %}<section class="account"><h1>{{ title }}</h1><p role="status">{{ message }}</p><p><a href="{% url 'identity:login' %}">Se connecter</a></p><p><a href="/">Revenir à l'accueil</a></p></section>{% endblock %}

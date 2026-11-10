@@ -1,0 +1,21 @@
+# Complément de développement uniquement ; compose.yaml reste la référence locale.
+x-codespaces: &codespaces
+  image: muqola:codespaces
+  restart: 'no'
+  environment:
+    DJANGO_SETTINGS_MODULE: config.codespaces
+    APP_ENV: development
+    CODESPACES: 'true'
+    CODESPACE_NAME: ${CODESPACE_NAME:?Créer un Codespace GitHub}
+    GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN: ${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}
+services:
+  web:
+    <<: *codespaces
+  migrate:
+    <<: *codespaces
+  worker:
+    <<: *codespaces
+  mailpit:
+    restart: 'no'
+  db:
+    restart: 'no'

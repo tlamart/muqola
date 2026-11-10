@@ -2,30 +2,28 @@
 
 | Module | Possède | Livraison |
 | --- | --- | --- |
-| core | Accueil, healthchecks, headers, logs sans données sensibles | 0 |
-| identity | User technique (0), inscription, vérification, sessions, jetons | 1 |
+| core | Accueil, healthchecks, headers, logs sans données sensibles | 0, UX au 5 |
+| identity | User, inscription, vérification, sessions, jetons, compte privé | 1, UX au 5 |
 | communities | Appartenances, rôles, invitations, retraits | 2 |
-| catalogue | Fiches génériques Game et réemploi | 3 |
-| inventory | OwnedGame, GameVisibility, retrait | 3 |
-| loans | Transitions atomiques et accès des participants | 4 |
-| notifications | SMTP de développement (0), outbox et reprise | 5 ; persistance des liens dès 1 |
-| operations | Commandes de modération/audit, procédures d'exploitation | 6 |
+| catalogue | Fiches génériques Game, réemploi et signalements | 3 |
+| inventory | OwnedGame, GameVisibility, retrait et archivage | 3 |
+| loans | Transitions atomiques et accès des participants, historique minimal | 4 |
+| notifications | Outbox chiffrée PostgreSQL, SMTP local, reprise/rétention | 1 et 5 |
+| operations | Console de confiance, audit, demandes de suppression | 4 et 5 ; préproduction au 6 |
 
-Une seule base PostgreSQL. Le lot 0 ne crée que l'utilisateur technique et les
-migrations standard Django (auth, permissions, content types, sessions).
-Le schéma technique contient des tables de jointure utilisateur/permissions avec
-suppression en cascade standard Django ; aucun lien métier n'existe encore.
-Email unique, display_name limité à 80 caractères, vérification nullable.
-La normalisation stricte et ses contraintes pour toutes les voies d'écriture
-seront complétées/testées avec le lot 1 ; ne pas insérer de comptes réels ici.
-Pas de console admin web. Aucun compte opérateur créé automatiquement.
+Une seule base PostgreSQL. Écritures dans les services du module propriétaire,
+lectures filtrées par acteur, jamais une autorisation fondée sur le seul ID client.
+`core.transactions.domain_write` coordonne les mutations métier (verrou transactionnel
+PostgreSQL commun) ; `loans` revalide les droits et les invariants à chaque transition.
+Index uniques partiels PostgreSQL pour l'exclusivité active et les demandes en double.
+L'outbox est créée dans la transaction métier, livrée par un worker séparé sans broker.
+Les contraintes FK/ON DELETE et compromis sont détaillés dans les documents de lots :
+[comptes](lot-1-accounts.md), [communautés](lot-2-communities.md),
+[catalogue/copies](lot-3-catalogue.md), [prêts](lot-4-loans.md),
+[notifications/UX](lot-5-notifications.md).
 
-Pour les lots suivants : services d'écriture dans le module propriétaire,
-requêtes de lecture filtrées par acteur, pas d'autorisation à partir d'un ID
-client seul. `loans` coordonnera les verrouillages communs aux retraits et aux
-acceptations ; outbox dans la même transaction. Les contraintes FK/ON DELETE,
-l'indexation et l'anonymisation seront documentées avant chaque migration métier.
-
-Plan : un lot, une branche, une PR vérifiable ; validation du lot 0/ADR avant
-le lot 1. Ensuite comptes → communautés → catalogue/exemplaires → prêts →
-notifications/UX → préproduction validée. Pas de progression automatique.
+Aucune console admin web, aucun opérateur créé automatiquement, aucune donnée réelle.
+Plan autorisé : lots successifs 2 à 5, branche/PR dédiée et empilée pour chacun,
+sans fusion automatique. Arrêt au lot 5 pour validation. La préproduction, les
+engagements réels de suppression/anonymisation et la rétention des historiques
+exigent le lot 6 et une validation avant ouverture publique.

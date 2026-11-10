@@ -1,9 +1,13 @@
 # Muqola
 
-Socle technique **lot 0**, stack proposée en attente de validation : Python 3.12,
+**Lots 1 à 5 — MVP en développement**, sur le socle et la stack validés : Python 3.12,
 Django 5.2 LTS, PostgreSQL 17, HTML/CSS serveur, Gunicorn/WhiteNoise.
 Lire [l'ADR](docs/adr/0001-stack.md) et [les frontières des modules](docs/modules.md).
-Aucun compte public, communauté, exemplaire ou prêt n'est encore implémenté.
+Comptes vérifiés, communautés privées, catalogue interne réutilisable, exemplaires
+à zéro ou plusieurs visibilités, prêts et notifications capturées sont disponibles.
+[Guide de validation sur ordinateur](docs/manual-validation.md) ;
+[comptes et sécurité](docs/lot-1-accounts.md). Les PR sont empilées, non fusionnées ;
+la branche `feat/lot-5-notifications` permet de tester l'ensemble. Lot 6 non entrepris.
 
 ## Démarrer localement
 
@@ -42,7 +46,12 @@ docker compose up --build --wait --wait-timeout 120
 Ne pas utiliser `down --volumes` sur une base à conserver. Les messages Mailpit
 sont éphémères (capture de développement seulement). Les logs applicatifs sont
 JSON et ne conservent ni URL/jetons ni données de requête. Pas de logs d'accès
-Gunicorn. Les logs d'incidents restent volontairement succincts au lot 0.
+Gunicorn. Les logs d'incidents restent volontairement succincts et sans données de requête.
+
+Le serveur local utilise deux workers Gunicorn `gthread`, quatre threads chacun,
+avec une attente keep-alive de 2 s et le watchdog conservé à 30 s. Les préconnexions
+TCP silencieuses restent dans le sélecteur, sans bloquer un worker entier.
+[Diagnostic des anciens timeouts, reproduction et limites](docs/http-timeouts.md).
 
 ## Développement hors conteneur et vérifications
 
@@ -84,11 +93,12 @@ uv run --frozen pytest -q
 uv run --frozen ruff check .
 uv run --frozen ruff format --check .
 uv run --frozen mypy config muqola tests manage.py
-APP_ENV=production uv run --frozen python manage.py check --deploy --fail-level WARNING
+APP_BASE_URL=https://muqola.example.test APP_ENV=production uv run --frozen python manage.py check --deploy --fail-level WARNING
 uv run --frozen pip-audit -r requirements.txt --disable-pip --no-deps --progress-spinner off
 ```
 
-Le contrôle production conserve intentionnellement HSTS sans sous-domaines ni
+Le contrôle production nécessite une APP_BASE_URL HTTPS et conserve
+intentionnellement HSTS sans sous-domaines ni
 preload tant que le domaine n'est pas validé : seuls W005/W021 sont désactivés,
 avec justification dans settings/ADR. HTTPS réel, proxy de confiance et tests
 de cookies réels seront validés au lot 6. Ce contrôle ne vaut pas homologation.
@@ -124,23 +134,30 @@ mémoire ne constituent pas une mesure de charge sur le VPS cible.
 | Variable | Usage |
 | --- | --- |
 | APP_ENV | development/test/production ; Compose local impose development |
+| APP_BASE_URL | Origine de confiance des liens, http://localhost:8000 en dev ; HTTPS en production |
 | DJANGO_SECRET_KEY | Obligatoire, au moins 50 caractères aléatoires, serveur uniquement |
 | ALLOWED_HOSTS | Hôtes HTTP acceptés, séparés par virgules |
 | POSTGRES_DB / USER / PASSWORD | Base et identifiants locaux, aucun défaut pour le mot de passe |
 | POSTGRES_HOST / PORT | Connexion directe ; Compose impose db:5432 |
 | EMAIL_HOST / PORT | Capture SMTP seulement ; Compose impose mailpit:1025 |
+| EMAIL_FROM | Expéditeur fictif en développement |
+| EMAIL_BACKEND | Backend Django remplaçable ; SMTP par défaut |
+| EMAIL_HOST_USER / PASSWORD | Vides en dev/test, configuration réelle au lot 6 |
+| EMAIL_USE_TLS / SSL | Choisir un seul mode pour un futur transport réel |
 
-Pas d'URL publique requise au lot 0 : les liens d'identité/invitation et leur
-origine de confiance seront configurés au lot 1. Aucune clé de fournisseur,
+APP_BASE_URL définit l'origine de confiance des liens de compte et doit être
+HTTPS en production ; aucune origine n'est reprise du Host client. Aucune clé de fournisseur,
 identifiant VPS ou donnée réelle ne doit entrer dans ce développement.
 
 ## Limites et exploitation future
 
 Ce Compose est exclusivement local. Caddy/HTTPS, fournisseur SMTP réel,
-URL publique, DNS SPF/DKIM/DMARC, rôle PostgreSQL à privilèges réduits,
-worker d'outbox, sauvegardes externes chiffrées/restaurées et supervision sont
+URL publique de production, DNS SPF/DKIM/DMARC, rôle PostgreSQL à privilèges réduits,
+sauvegardes externes chiffrées/restaurées et supervision sont
 à livrer/valider avant ouverture, selon [LAUNCH_CHECKLIST.md](LAUNCH_CHECKLIST.md).
-Ni outbox ni sauvegarde opérationnelle ne sont simulées comme livrées.
+L'outbox des comptes/prêts et son worker sont livrés. Les sauvegardes de production
+ne sont pas encore opérationnelles. Le développement refuse les identifiants SMTP
+et hôtes non locaux pour conserver la capture Mailpit.
 
 Le déploiement futur : image identifiée → sauvegarde vérifiée → revue du plan de
 migration → migration ponctuelle → démarrage → smoke tests. Revenir à l'image
@@ -150,10 +167,10 @@ et annonce de la perte potentielle depuis la sauvegarde. Aucune migration
 destructive ni opération de production sans accord et stratégie de retour.
 Procédure exacte de production, restauration testée et incident au lot 6.
 
-Les inscriptions ouvertes, invitations privées, fiches réutilisables, exemplaires
-à zéro ou plusieurs visibilités, date de retour et confidentialité des e-mails
-restent les invariants des lots 1–5. Voir [TASKS.md](TASKS.md).
-Attendre la validation explicite de l'ADR **et** du lot 0 avant le lot 1.
+Les invariants des lots 2–5 sont testés : invitations privées, fiches réutilisables,
+exemplaires à zéro ou plusieurs visibilités, date de retour et contacts uniquement
+pendant un prêt accepté/remis. Voir [TASKS.md](TASKS.md). Arrêt après le lot 5 pour
+validation humaine ; aucune fusion ni opération de production automatique.
 
 ## Test navigateur du socle
 
@@ -167,5 +184,85 @@ uv run --frozen --group browser python scripts/browser_smoke.py --browser /usr/b
 Le script ouvre réellement l'accueil à 360 et 1280 px, vérifie HTTP/CSS, langue,
 clavier, absence de débordement et d'échec réseau. Captures locales dans `work/`
 (non versionnées). Adapter `--browser` à l'exécutable installé. Les tests métier,
-IDOR et concurrence des prêts seront ajoutés avec leurs lots ; ce smoke ne les
-couvre pas. Le résultat de la livraison est dans [docs/lot-0-validation.md](docs/lot-0-validation.md).
+IDOR et concurrence des prêts sont dans pytest et le parcours produit ; ce smoke
+se limite au socle. Résultat initial : [docs/lot-0-validation.md](docs/lot-0-validation.md).
+
+
+## Parcours des comptes (lot 1)
+
+Lancer Compose : le service `worker` traite automatiquement les e-mails en base.
+Ouvrir `/accounts/signup/`, créer un compte fictif, puis lire le lien dans Mailpit.
+Ouvrir le lien et confirmer par bouton ; connexion ensuite. Un compte non vérifié
+reste limité à l'attente/renvoi et ne peut ouvrir `/accounts/dashboard/` (403).
+Mot de passe oublié depuis la connexion ; le lien dure 1 h, la vérification 24 h.
+Un renvoi invalide le lien précédent. La déconnexion passe par un formulaire POST.
+
+```sh
+# Traiter ponctuellement la file (débogage) :
+docker compose exec web python manage.py process_outbox --once
+# Observer sans afficher les charges ou les liens :
+docker compose logs --tail=30 worker
+# Sessions expirées (à planifier quotidiennement avant production) :
+docker compose exec web python manage.py clearsessions
+# Tests du parcours complet avec navigateur installé :
+uv sync --frozen --group browser
+uv run --frozen --group browser python scripts/accounts_browser_smoke.py --browser /usr/bin/chromium
+```
+
+La commande navigateur crée des comptes fictifs @example.test dans la base de
+développement ; ne pas la lancer sur une production. Les captures sont dans
+`work/`. Les e-mails sont en file chiffrée jusqu'à envoi/reprise ; ne pas remplacer
+DJANGO_SECRET_KEY avant d'avoir vidé la file. Les liens sont hachés, à usage unique.
+Voir [le document du lot 1](docs/lot-1-accounts.md) pour contraintes, ON DELETE,
+limites de débit, rétention, compromis et limitations des tests.
+
+## Tester sur Android avec GitHub Codespaces
+
+Le [guide Android pas à pas](docs/codespaces-android.md) explique la création du
+Codespace, l'ouverture des deux URL HTTPS privées, la capture Mailpit, le test
+d'inscription/vérification/connexion et l'arrêt. La configuration `.devcontainer`
+réutilise Compose avec un profil de développement isolé et vérifie la visibilité
+privée des ports avant de démarrer les services. PostgreSQL n'est pas publié.
+
+## Communautés privées (lot 2)
+
+Depuis **Mes communautés**, créer une communauté, générer un lien et le partager
+avec un second compte fictif vérifié. L'adhésion doit être confirmée ; les liens
+sont multiusages, expirables et révocables. Transférer l'administration avant le
+départ du dernier administrateur. Les détails et membres restent privés.
+[Schéma, permissions, concurrence et vérifications](docs/lot-2-communities.md).
+
+## Catalogue et collection (lot 3)
+
+**Ajouter un jeu** commence par la recherche d'une fiche existante ; sinon créer
+une fiche générique manuellement. **Ajouter mon exemplaire** sélectionne ensuite
+zéro ou plusieurs communautés : sans sélection, il reste privé. Un second compte
+réutilise la même fiche pour sa propre copie. **Ma collection** permet l'édition
+et le retrait du prêt. Une fiche déjà réutilisée passe par le signalement pour
+correction. [Schéma et confidentialité](docs/lot-3-catalogue.md).
+
+## Prêts (lot 4)
+
+Depuis une copie accessible, **Demander ce jeu** avec date de retour future.
+Le propriétaire accepte/refuse ; après acceptation les contacts e-mail deviennent
+visibles aux seules parties, puis le propriétaire confirme remise et retour.
+Les contacts disparaissent des réponses après clôture. Retrait de communauté ou
+de partage ne bloque pas la clôture d'un prêt déjà accepté. **Mes prêts** conserve
+l'historique privé. [Invariants et résolution opérateur](docs/lot-4-loans.md).
+
+## Notifications et ergonomie (lot 5)
+
+Le worker traite les événements de compte et de prêt avec reprise persistée,
+backoff et diagnostics en échec. Aucun contact de l'autre participant dans les
+notifications. Mon compte permet une demande de suppression enregistrée ; son
+traitement définitif et les engagements légaux restent à valider avant lancement.
+[Outbox, outils de modération et limites](docs/lot-5-notifications.md).
+
+```sh
+uv run --frozen --group browser python scripts/product_browser_smoke.py --browser /usr/bin/chromium
+```
+
+Le parcours crée trois comptes fictifs et vérifie communautés, catalogue/copies,
+prêt complet, accès croisés, notifications Mailpit et UX à 360/768/1280 px.
+Utiliser uniquement la pile locale avec son worker. Scénarios à vérifier vous-même :
+[guide ordinateur](docs/manual-validation.md).

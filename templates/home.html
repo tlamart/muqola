@@ -1,27 +1,12 @@
-{% load static %}
-<!doctype html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Muqola, le partage de jeux entre communautés privées.">
-  <title>Muqola — Les jeux se partagent</title>
-  <link rel="stylesheet" href="{% static 'app.css' %}">
-</head>
-<body>
-  <a class="skip" href="#contenu">Aller au contenu</a>
-  <header><a class="brand" href="/" aria-label="Muqola, accueil">Muqola<span aria-hidden="true">●</span></a><span class="badge">En préparation</span></header>
-  <main id="contenu">
-    <p class="eyebrow">Des jeux, des liens, de bons moments.</p>
-    <h1>Vos jeux méritent<br>une nouvelle partie.</h1>
-    <p class="intro">Prêtez et empruntez gratuitement des jeux de société entre amis, voisins ou collègues, dans vos communautés privées.</p>
-    <ol class="steps">
-      <li><span class="number" aria-hidden="true">01</span><h2>Créez votre communauté</h2><p>Un espace privé pour les personnes avec qui vous aimez jouer.</p></li>
-      <li><span class="number" aria-hidden="true">02</span><h2>Partagez vos jeux</h2><p>Choisissez les exemplaires et les communautés avec lesquels les partager.</p></li>
-      <li><span class="number" aria-hidden="true">03</span><h2>Empruntez entre vous</h2><p>Convenez d’un retour et organisez votre prochaine partie.</p></li>
-    </ol>
-    <aside aria-label="État du projet"><strong>Muqola se prépare.</strong> Ce socle de développement ne permet pas encore de créer un compte ou de gérer des prêts.</aside>
-  </main>
-  <footer>Muqola · Identité provisoire · Développement, lot 0</footer>
-</body>
-</html>
+{% extends 'base.html' %}
+{% block content %}
+  <p class="eyebrow">Des jeux, des liens, de bons moments.</p>
+  <h1>Vos jeux méritent<br>une nouvelle partie.</h1>
+  <p class="intro">Prêtez et empruntez gratuitement des jeux de société entre amis, voisins ou collègues, dans vos communautés privées.</p>
+  <ol class="steps">
+    <li><span class="number" aria-hidden="true">01</span><h2>Créez votre communauté</h2><p>Un espace privé pour les personnes avec qui vous aimez jouer.</p></li>
+    <li><span class="number" aria-hidden="true">02</span><h2>Partagez vos jeux</h2><p>Choisissez les exemplaires et les communautés avec lesquels les partager.</p></li>
+    <li><span class="number" aria-hidden="true">03</span><h2>Empruntez entre vous</h2><p>Convenez d’un retour et organisez votre prochaine partie.</p></li>
+  </ol>
+  <aside><strong>Les comptes sont ouverts.</strong> Créez votre communauté privée, invitez vos proches et partagez vos exemplaires.</aside>
+{% endblock %}

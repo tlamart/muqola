@@ -1,0 +1,1 @@
+{% extends 'base.html' %}{% block content %}<section class="account"><h1>Rejoindre {{ community.name }}</h1><p>{{ community.description }}</p><p>Votre adhésion n'est pas automatique. Confirmez pour devenir membre de cette communauté privée.</p><form method="post">{% csrf_token %}<button type="submit">Confirmer mon adhésion</button></form></section>{% endblock %}

@@ -1,7 +1,7 @@
 # ADR 0001 — Stack du MVP Muqola
 
 - Date : 9 novembre 2026
-- Statut : **proposée, en attente de validation du propriétaire avec le lot 0**
+- Statut : **acceptée par le propriétaire après validation du lot 0 et fusion de la PR 1**
 - Sources lues entièrement : SPEC.md, DESIGN.md, ARCHITECTURE.md, AGENTS.md,
   TASKS.md et LAUNCH_CHECKLIST.md.
 
@@ -106,3 +106,12 @@ HSTS sera d'abord court (1 heure), sans `includeSubDomains` ni `preload` :
 ces engagements concernent un domaine encore inconnu. W005/W021 sont les seuls
 avertissements Django explicitement désactivés pour cette raison ; tous les
 autres avertissements de sécurité font échouer le contrôle CI.
+
+
+Précision au lot 1 : la politique de référent est `no-referrer` sur la redirection
+qui porte le jeton, puis `same-origin` sur les pages propres. Chromium produisait
+`Origin: null` avec `no-referrer` global sur les POST de formulaires ; ce découpage
+préserve la protection du secret et permet CSRF, sans accepter d'origine nulle.
+L'outbox minimale des comptes est désormais persistée et traitée ; sa charge est
+chiffrée par Fernet (`cryptography`, version corrigée verrouillée), avec une clé
+dérivée du secret serveur. Notifications métier complètes toujours au lot 5.
