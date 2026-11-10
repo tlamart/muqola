@@ -4,7 +4,7 @@
 Construire un MVP exploitable de Muqola, application web de prêt gratuit de jeux de société entre membres de communautés privées. Lire **SPEC.md**, **DESIGN.md**, **ARCHITECTURE.md** et **TASKS.md** avant toute modification. Les décisions produit de ces documents prévalent sur les préférences de framework.
 
 ## Mode de travail
-1. Commencer par choisir et justifier la stack dans `docs/adr/0001-stack.md` ; signaler les arbitrages majeurs.
+1. Conserver la stack Django validée dans `docs/adr/0001-stack.md` ; signaler les arbitrages majeurs. Ne réexaminer ce choix que si la tâche le demande explicitement.
 2. Travailler par lots petits, testables et indépendamment vérifiables selon TASKS.md. **Dans Codex Cloud, préférer une branche et une pull request par lot**, sans pousser directement sur `main`.
 3. Pour chaque lot : expliquer brièvement le plan, implémenter, écrire/adapter les tests, exécuter lint/tests/build, puis résumer fichiers modifiés, commandes exécutées, résultats et points restant à traiter.
 4. Ne pas annoncer une fonctionnalité terminée sans preuve de test. Ne jamais inventer une exécution ou un résultat. Si l'environnement Codex Cloud ne permet pas Docker ou un test navigateur, le signaler et fournir des commandes exactes à lancer localement avant validation.
@@ -26,6 +26,3 @@ Construire un MVP exploitable de Muqola, application web de prêt gratuit de jeu
 
 ## Définition de « terminé »
 Une tâche est terminée si son comportement correspond à SPEC.md, ses critères TASKS.md passent, les tests automatisés pertinents sont présents et exécutés, les migrations et la documentation sont à jour, et aucune régression évidente n'est connue.
-
-## Première action demandée
-Lire le kit, proposer la stack avec ADR, établir un plan de réalisation en lots et initialiser **uniquement le lot 0** sur une branche. Ne pas tenter de livrer tout le produit en une seule modification massive. Présenter la PR du lot 0 pour validation de la stack et des commandes avant de passer au lot 1.
