@@ -43,5 +43,5 @@
 <h2>Historique privé</h2>
 <ol class="history">{% for event in events %}<li>
 <strong>{{ event.state }}{% if event.administrative %} · Résolution administrative{% endif %}</strong>
-<time>{{ event.created_at|date:'d/m/Y H:i' }} UTC</time>{% if event.reason %}<p>{{ event.reason }}</p>{% endif %}</li>{% endfor %}</ol>
+<time datetime="{{ event.created_at|date:'c' }}">{{ event.created_at|date:'d/m/Y H:i' }} UTC</time>{% if event.reason %}<p>{{ event.reason }}</p>{% endif %}</li>{% endfor %}</ol>
 </section>{% endblock %}
