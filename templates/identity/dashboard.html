@@ -1,51 +1,52 @@
 {% extends 'base.html' %}{% block title %}Accueil — Muqola{% endblock %}
+{% block page_class %}home-page{% endblock %}
 {% block content %}
-<section class="hero" aria-labelledby="welcome-title">
-  <h1 id="welcome-title">Bonjour {{ user.display_name }} <span aria-hidden="true">👋</span>
-</h1>
-  <p>Envie d’une nouvelle partie ?</p>
-  <div class="actions">
-<a class="button button--accent" href="{% url 'inventory:index' %}">Explorer les jeux</a>
-</div>
+<section class="share-hero" aria-labelledby="share-title">
+  <div class="share-hero__inner">
+    <div class="share-hero__content">
+      <p class="hero-greeting">Bonjour {{ user.display_name }}</p>
+      <h1 id="share-title">Partagez vos<br>jeux de société</h1>
+      <p>Entre amis, collègues ou voisins,<br>dans vos communautés privées.</p>
+      <div class="actions">
+        <a class="button button--accent" href="{% url 'catalogue:index' %}">{% include 'components/icon.html' with name='plus' %}Ajouter un jeu</a>
+        <a class="button button--outline" href="{% url 'inventory:index' %}">{% include 'components/icon.html' with name='search' %}Explorer les jeux</a>
+      </div>
+    </div>
+    <div class="hero-play" aria-hidden="true">
+      <span class="play-frame"></span>
+      <div class="play-die play-die--purple"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="play-die play-die--white"><i></i><i></i><i></i></div>
+      <span class="play-pawn"></span>
+    </div>
+  </div>
 </section>
-{% if has_community %}
-<div class="community-strip" aria-label="Vos communautés">
-<span>Vos communautés</span>{% for member in memberships %}<a href="{% url 'communities:detail' member.community_id %}">{{ member.community.name }}</a>{% endfor %}{% if memberships|length == 6 %}<a href="{% url 'communities:index' %}">Toutes mes communautés</a>{% endif %}</div>
-{% else %}
-<aside class="empty-state" aria-labelledby="no-community">
-<h2 id="no-community">Aucune communauté pour le moment</h2>
-<p>Créez un groupe privé ou ouvrez le lien reçu d’un proche. Vous pouvez déjà ajouter un exemplaire à votre collection privée.</p>
-<div class="actions">
-<a href="{% url 'communities:index' %}">Créer une communauté</a>
-<a href="{% url 'catalogue:index' %}">Ajouter un jeu</a>
-</div>
-</aside>
-{% endif %}
-<div class="section-heading">
-<h2>Vos jeux accessibles</h2>
-<a href="{% url 'inventory:index' %}">Tout explorer <span aria-hidden="true">→</span>
-</a>
-</div>
-<div class="dashboard-grid">
-  <ul class="game-grid" aria-label="Jeux accessibles">{% for copy in copies %}<li>{% include 'components/copy_card.html' %}</li>{% empty %}<li class="empty-state">
-<h3>Une collection à faire vivre</h3>
-<p>Aucun jeu accessible pour le moment. Recherchez une fiche ou créez-la pour ajouter votre exemplaire.</p>
-<a href="{% url 'catalogue:index' %}">Ajouter mon premier jeu</a>
-</li>{% endfor %}</ul>
-  <aside class="loan-panel" aria-labelledby="current-loans">
-<h2 id="current-loans">Mes prêts en cours</h2>
-    {% if attention_count %}<p class="badge">{{ attention_count }} demande{{ attention_count|pluralize }} à examiner</p>{% endif %}
-    <ul class="loan-snippets">{% for loan in current_loans %}<li>
-<a href="{% url 'loans:detail' loan.id %}">{{ loan.title }}</a>
-<p>{% if loan.needs_reply %}Demande à examiner{% elif loan.overdue %}Retour attendu{% else %}{{ loan.state }}{% endif %} · {{ loan.due_date|date:'d/m/Y' }}</p>
-</li>{% empty %}<li>
-<p>Aucun prêt à suivre. Et si vous prépariez votre prochaine partie ?</p>
-</li>{% endfor %}</ul>
-    <a class="button secondary" href="{% url 'loans:index' %}">Voir mes prêts</a>
-  </aside>
-</div>
-<div class="actions collection-actions">
-<a class="button" href="{% url 'catalogue:index' %}">Ajouter un jeu</a>
-<a href="{% url 'inventory:mine' %}">Ma collection</a>
+<div class="home-body">
+  <header class="mobile-welcome"><h1>Bonjour {{ user.display_name }}</h1><p class="muted">Une nouvelle partie commence ici.</p></header>
+  <nav class="quick-actions" aria-label="Accès rapides">
+    <a class="quick-action quick-action--explore" href="{% url 'inventory:index' %}">{% include 'components/icon.html' with name='search' %}<span><strong>Explorer</strong><small>les jeux</small></span>{% include 'components/icon.html' with name='arrow' %}</a>
+    <a class="quick-action quick-action--games" href="{% url 'inventory:mine' %}">{% include 'components/icon.html' with name='games' %}<span><strong>Mes jeux</strong><small>{{ collection_count }} exemplaire{{ collection_count|pluralize }}</small></span>{% include 'components/icon.html' with name='arrow' %}</a>
+    <a class="quick-action quick-action--loans" href="{% url 'loans:index' %}">{% include 'components/icon.html' with name='loans' %}<span><strong>Mes prêts</strong><small>{{ loan_count }} à suivre</small></span>{% include 'components/icon.html' with name='arrow' %}</a>
+    <a class="quick-action quick-action--groups" href="{% url 'communities:index' %}">{% include 'components/icon.html' with name='community' %}<span><strong>Mes communautés</strong><small>{{ community_count }} groupe{{ community_count|pluralize }} privé{{ community_count|pluralize }}</small></span>{% include 'components/icon.html' with name='arrow' %}</a>
+  </nav>
+  <div class="dashboard-grid">
+    <section class="home-discovery" aria-labelledby="discovery-title">
+      <div class="section-heading"><h2 id="discovery-title">Découvrir des jeux</h2><a href="{% url 'inventory:index' %}">Voir tout <span aria-hidden="true">→</span></a></div>
+      <nav class="discovery-filters" aria-label="Découvrir par filtre">
+        <a class="filter-pill filter-pill--active" href="{% url 'inventory:index' %}">Tous</a>
+        <a class="filter-pill" href="{% url 'inventory:index' %}?only_available=on">Disponibles</a>
+        <a class="filter-pill" href="{% url 'inventory:index' %}?filters=community#community-filters">Par communauté</a>
+      </nav>
+      <ul class="game-grid" aria-label="Jeux accessibles">{% for copy in copies %}<li>{% include 'components/copy_card.html' %}</li>{% empty %}<li class="empty-state"><h3>Une collection à faire vivre</h3><p>Aucun jeu accessible pour le moment. Recherchez une fiche ou créez-la pour ajouter votre exemplaire.</p><a href="{% url 'catalogue:index' %}">Ajouter mon premier jeu</a></li>{% endfor %}</ul>
+    </section>
+    <aside class="loan-panel" aria-labelledby="current-loans">
+      <h2 id="current-loans">Ma prochaine action</h2>
+      {% if attention_count %}<p class="badge">{{ attention_count }} demande{{ attention_count|pluralize }} à examiner</p>{% endif %}
+      <ul class="loan-snippets">{% for loan in current_loans %}<li><a href="{% url 'loans:detail' loan.id %}"><span class="loan-snippet__icon">{% include 'components/icon.html' with name='games' %}</span><span><strong>{{ loan.title }}</strong><small>{% if loan.needs_reply %}Demande à examiner{% elif loan.overdue %}Retour attendu{% else %}{{ loan.state }}{% endif %} · {{ loan.due_date|date:'d/m/Y' }}</small></span>{% include 'components/icon.html' with name='arrow' %}</a></li>{% empty %}<li><p>Aucun prêt à suivre pour le moment. Explorez les jeux pour préparer votre prochaine partie.</p></li>{% endfor %}</ul>
+      <a class="loan-panel__all" href="{% url 'loans:index' %}">Voir mes prêts <span aria-hidden="true">→</span></a>
+    </aside>
+  </div>
+  {% if has_community %}<div class="community-strip" aria-label="Vos communautés"><span>Vos communautés</span>{% for member in memberships %}<a href="{% url 'communities:detail' member.community_id %}">{{ member.community.name }}</a>{% endfor %}{% if memberships|length == 6 %}<a href="{% url 'communities:index' %}">Toutes mes communautés</a>{% endif %}</div>
+  {% else %}<aside class="empty-state collection-actions" aria-labelledby="no-community"><h2 id="no-community">Aucune communauté pour le moment</h2><p>Créez un groupe privé ou ouvrez le lien reçu d’un proche. Vous pouvez déjà ajouter un exemplaire à votre collection privée.</p><div class="actions"><a href="{% url 'communities:index' %}">Créer une communauté</a><a href="{% url 'catalogue:index' %}">Ajouter un jeu</a></div></aside>{% endif %}
+  <div class="actions collection-actions"><a class="button" href="{% url 'catalogue:index' %}">{% include 'components/icon.html' with name='plus' %}Ajouter un jeu</a><a href="{% url 'inventory:mine' %}">Ma collection</a></div>
 </div>
 {% endblock %}

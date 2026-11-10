@@ -80,7 +80,7 @@ with sync_playwright() as playwright:
         page.wait_for_url("**/accounts/dashboard/")
         page.goto(args.url + "/")
         page.wait_for_url("**/accounts/dashboard/")
-        if not page.get_by_role("heading", name="Bonjour Camille").is_visible():
+        if not page.get_by_text("Bonjour Camille", exact=True).filter(visible=True).is_visible():
             raise RuntimeError("Espace vérifié absent")
         page.screenshot(path=f"work/account-{width}.png", full_page=True)
         page.goto(args.url + "/accounts/reset/")

@@ -5,9 +5,11 @@
 <div class="detail-grid">
   {% include 'components/game_cover.html' with large=True %}
   <section class="detail-content" aria-labelledby="game-title">
+    <header class="game-summary">
     <h1 id="game-title">{{ game.title }}</h1>
     <p class="game-metadata muted">{% include 'components/game_metadata.html' %}</p>
     {% if has_available %}<span class="badge badge--available">Disponible</span>{% elif copies %}<span class="badge">Aucun exemplaire disponible</span>{% else %}<span class="badge badge--private">Aucun exemplaire accessible</span>{% endif %}
+    </header>
     <h2>Exemplaires à emprunter</h2>
     <ul class="copy-list">{% for row in copy_rows %}{% with copy=row.copy %}<li class="copy-panel">
       <h3>{{ copy.owner.display_name }}{% if row.communities %} · {{ row.communities|join:', ' }}{% elif copy.owner_id == user.pk %} · Collection privée{% endif %}</h3>

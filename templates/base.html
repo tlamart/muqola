@@ -23,11 +23,11 @@
         {% with current=request.resolver_match.view_name app=request.resolver_match.app_name %}
         {% if user.is_authenticated %}
           {% if user.email_verified_at %}
-            <a href="{% url 'identity:dashboard' %}"{% if current == 'identity:dashboard' %} aria-current="page"{% endif %}>Accueil</a>
-            <a href="{% url 'inventory:index' %}"{% if current == 'inventory:index' or app == 'catalogue' or current == 'inventory:detail' %} aria-current="page"{% endif %}>Explorer les jeux</a>
-            <a href="{% url 'inventory:mine' %}"{% if current == 'inventory:mine' or current == 'inventory:edit' %} aria-current="page"{% endif %}>Mes jeux</a>
-            <a href="{% url 'loans:index' %}"{% if app == 'loans' or current == 'inventory:request' %} aria-current="page"{% endif %}>Mes prêts</a>
-            <a href="{% url 'communities:index' %}"{% if app == 'communities' %} aria-current="page"{% endif %}>Communautés</a>
+            <a href="{% url 'identity:dashboard' %}"{% if current == 'identity:dashboard' %} aria-current="page"{% endif %}>{% include 'components/icon.html' with name='home' %}<span>Accueil</span></a>
+            <a href="{% url 'inventory:index' %}"{% if current == 'inventory:index' or app == 'catalogue' or current == 'inventory:detail' %} aria-current="page"{% endif %}>{% include 'components/icon.html' with name='search' %}<span>Explorer les jeux</span></a>
+            <a href="{% url 'inventory:mine' %}"{% if current == 'inventory:mine' or current == 'inventory:edit' %} aria-current="page"{% endif %}>{% include 'components/icon.html' with name='games' %}<span>Mes jeux</span></a>
+            <a href="{% url 'loans:index' %}"{% if app == 'loans' or current == 'inventory:request' %} aria-current="page"{% endif %}>{% include 'components/icon.html' with name='loans' %}<span>Mes prêts</span></a>
+            <a href="{% url 'communities:index' %}"{% if app == 'communities' %} aria-current="page"{% endif %}>{% include 'components/icon.html' with name='community' %}<span>Communautés</span></a>
             <details class="account-menu">
               <summary>
 <span class="avatar" aria-hidden="true">{{ user.display_name|first|upper }}</span>Compte</summary>
@@ -44,7 +44,7 @@
 </form>
           {% endif %}
         {% else %}
-          <a href="/"{% if current == 'home' %} aria-current="page"{% endif %}>Accueil</a>
+          <a href="/"{% if current == 'home' %} aria-current="page"{% endif %}>{% include 'components/icon.html' with name='home' %}<span>Accueil</span></a>
           <a href="{% url 'identity:login' %}"{% if current == 'identity:login' %} aria-current="page"{% endif %}>Se connecter</a>
           <a class="button" href="{% url 'identity:signup' %}">S'inscrire</a>
         {% endif %}

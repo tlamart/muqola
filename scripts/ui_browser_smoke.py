@@ -89,6 +89,10 @@ def navigation(page: Page, width: int) -> None:
         expect(nav).to_be_hidden()
         menu.focus()
         page.keyboard.press("Enter")
+        check(
+            page.locator(":focus").evaluate("el => getComputedStyle(el).outlineStyle") != "none",
+            "Focus clavier invisible",
+        )
         expect(menu).to_have_attribute("aria-expanded", "true")
         expect(nav).to_be_visible()
         page.keyboard.press("Tab")
@@ -185,6 +189,16 @@ with sync_playwright() as playwright:
             f"PASS UI {width}px : trois écrans, navigation clavier/tactile, menu et compte",
             flush=True,
         )
+    # Les raccourcis colorés utilisent les routes et compteurs réels du compte.
+    alice.set_viewport_size({"width": 390, "height": 844})
+    alice.goto(routes["accueil"])
+    expect(alice.locator(".quick-actions > a")).to_have_count(4)
+    expect(alice.locator(".quick-actions")).to_contain_text("4 exemplaires")
+    expect(alice.locator(".quick-actions")).to_contain_text("1 à suivre")
+    expect(alice.locator(".quick-actions")).to_contain_text("1 groupe privé")
+    alice.get_by_role("link", name="Par communauté", exact=True).click()
+    expect(alice.locator(".filter-disclosure")).to_have_attribute("open", "")
+    expect(alice.get_by_label("Communauté", exact=True)).to_be_visible()
     # Resize avec le menu ouvert : aucune navigation cachée par un ancien état mobile.
     bob.set_viewport_size({"width": 390, "height": 844})
     bob.locator(".menu-toggle").click()
@@ -222,6 +236,8 @@ with sync_playwright() as playwright:
     expect(nojs.locator("#site-navigation")).to_be_visible()
     expect(nojs.locator(".menu-toggle")).to_be_hidden()
     geometry(nojs)
+    nojs.get_by_role("link", name="Par communauté", exact=True).click()
+    expect(nojs.get_by_label("Communauté", exact=True)).to_be_visible()
     nojs.goto(routes["explorer"])
     nojs.get_by_label("Rechercher un jeu par titre").fill("Cascadia")
     nojs.get_by_role("button", name="Rechercher", exact=True).click()

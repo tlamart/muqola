@@ -123,6 +123,9 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         "identity/dashboard.html",
         {
             "has_community": memberships.exists(),
+            "community_count": memberships.count(),
+            "collection_count": visible(user).filter(owner=user).count(),
+            "loan_count": current_loans.count(),
             "memberships": memberships[:6],
             "copies": visible(user)[:3],
             "current_loans": loan_summaries,

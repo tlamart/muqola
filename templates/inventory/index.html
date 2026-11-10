@@ -16,8 +16,8 @@
     <a href="{% querystring only_available=None page=None %}"{% if not form.only_available.value %} aria-current="true"{% endif %}>Tous les jeux</a>
     <div class="filter-choice">{{ form.only_available }}<label for="{{ form.only_available.id_for_label }}">Disponibles</label>
 </div>
-    <details class="filter-disclosure"{% if form.community.value or form.players.value %} open{% endif %}>
-<summary aria-label="Mes communautés et joueurs">Mes communautés</summary>
+    <details id="community-filters" class="filter-disclosure"{% if form.community.value or form.players.value or request.GET.filters == 'community' %} open{% endif %}>
+<summary aria-label="Mes communautés et joueurs">Communautés et joueurs</summary>
 <div class="filter-fields">
 <div>
 <label for="{{ form.community.id_for_label }}">Communauté</label>{{ form.community }}{{ form.community.errors }}</div>

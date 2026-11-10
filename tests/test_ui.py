@@ -58,6 +58,9 @@ def test_dashboard_summaries_use_only_accessible_copies_memberships_and_loans(
     assert "Cercle secret" not in body and hidden_game.title not in body
     assert len(response.context["current_loans"]) == 1
     assert response.context["attention_count"] == 0
+    assert response.context["community_count"] == 1
+    assert response.context["collection_count"] == 0
+    assert response.context["loan_count"] == 1
     assert alice.email not in body and clara.email not in body
     client.force_login(alice)
     response = client.get(reverse("identity:dashboard"))
