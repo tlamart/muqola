@@ -181,12 +181,16 @@ def retry_failed() -> int:
 def purge_notifications() -> None:
     now = timezone.now()
     # Échec visible, pas de disparition silencieuse d'un envoi non remis.
-    for item in EmailOutbox.objects.filter(
+    # PostgreSQL revérifie le statut après l'attente d'un verrou de livraison.
+    expired = EmailOutbox.objects.filter(
         status=EmailOutbox.Status.PENDING, created_at__lt=now - timedelta(days=7)
-    ):
-        item.status, item.last_error_code = EmailOutbox.Status.FAILED, "delivery_deadline_exceeded"
-        item.completed_at, item.encrypted_payload = now, ""
-        item.save()
+    ).update(
+        status=EmailOutbox.Status.FAILED,
+        last_error_code="delivery_deadline_exceeded",
+        completed_at=now,
+        encrypted_payload="",
+    )
+    for _ in range(expired):
         logger.error("notification_failed")
     EmailOutbox.objects.filter(
         status=EmailOutbox.Status.FAILED, created_at__lt=now - timedelta(days=7)

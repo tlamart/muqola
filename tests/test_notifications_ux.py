@@ -1,9 +1,10 @@
 import json
 import runpy
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor
 from datetime import timedelta
 from io import StringIO
-from threading import Barrier, Lock
+from threading import Barrier, Event, Lock
+from time import monotonic
 from unittest.mock import patch
 
 import pytest
@@ -11,7 +12,7 @@ from django.core import mail
 from django.core.exceptions import ImproperlyConfigured, PermissionDenied, ValidationError
 from django.core.management import call_command
 from django.core.management.base import CommandError
-from django.db import connections, transaction
+from django.db import connection, connections, transaction
 from django.test import Client, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -162,6 +163,74 @@ def test_parallel_workers_do_not_send_the_same_row_twice() -> None:
             assert sum(pool.map(worker, [1, 2])) == 2
     assert len(ids) == len(set(ids)) == 2
     assert EmailOutbox.objects.filter(status="sent").count() == 2
+
+
+@pytest.mark.django_db(transaction=True)
+def test_concurrent_purge_preserves_successful_delivery() -> None:
+    assert connection.vendor == "postgresql"
+    _, bob, _, _, copy = scenario()
+    loans.request_loan(bob, copy.pk, loans.today() + timedelta(days=7))
+    item = EmailOutbox.objects.get(recipient=bob)
+    EmailOutbox.objects.exclude(pk=item.pk).delete()
+    EmailOutbox.objects.filter(pk=item.pk).update(created_at=timezone.now() - timedelta(days=8))
+    sending, resume_delivery = Event(), Event()
+    purge_pid: Future[int] = Future()
+
+    def deliver(**kwargs: object) -> int:
+        sending.set()
+        assert resume_delivery.wait(timeout=30)
+        return 1
+
+    def send() -> int:
+        try:
+            return services.send_due(limit=1)
+        finally:
+            connections.close_all()
+
+    def purge() -> None:
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT pg_backend_pid()")
+                row = cursor.fetchone()
+                assert row is not None
+                purge_pid.set_result(row[0])
+            services.purge_notifications()
+        finally:
+            connections.close_all()
+
+    with (
+        patch("muqola.notifications.services.EmailMessage.send", side_effect=deliver) as transport,
+        ThreadPoolExecutor(max_workers=2) as pool,
+    ):
+        delivery = pool.submit(send)
+        try:
+            assert sending.wait(timeout=10)
+            purging = pool.submit(purge)
+            pid = purge_pid.result(timeout=10)
+            deadline = monotonic() + 10
+            # Attendre un vrai conflit de verrou PostgreSQL, sans simuler l'ORM.
+            while monotonic() < deadline:
+                with connection.cursor() as cursor:
+                    cursor.execute("SELECT pg_blocking_pids(%s)", [pid])
+                    row = cursor.fetchone()
+                    assert row is not None
+                if row[0]:
+                    break
+                resume_delivery.wait(0.01)
+            else:
+                pytest.fail("La purge n'a pas attendu le verrou de livraison.")
+        finally:
+            resume_delivery.set()
+        assert delivery.result(timeout=10) == 1
+        purging.result(timeout=10)
+
+        item.refresh_from_db()
+        assert item.status == EmailOutbox.Status.SENT
+        assert item.attempts == 1 and item.completed_at is not None
+        assert item.encrypted_payload == item.last_error_code == ""
+        assert services.retry_failed() == 0
+        assert services.send_due() == 0
+        assert transport.call_count == 1
 
 
 def test_operator_permissions_audit_and_preservation_of_active_loan() -> None:
