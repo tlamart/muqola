@@ -97,13 +97,36 @@ def dashboard(request: HttpRequest) -> HttpResponse:
     from muqola.communities.models import Membership
     from muqola.core.http import actor
     from muqola.inventory.services import visible
+    from muqola.loans.models import Loan
+    from muqola.loans.services import participant_loans, today
+
+    user = actor(request)
+    memberships = Membership.objects.filter(user=user, active=True).select_related("community")
+    current_loans = participant_loans(user).filter(
+        state__in=[Loan.State.REQUESTED, Loan.State.ACCEPTED, Loan.State.HANDED_OVER]
+    )
+    # Présentation privée : ne transmettre ni adresses ni objets User des autres parties.
+    loan_summaries = [
+        {
+            "id": loan.pk,
+            "title": loan.owned_game.game.title,
+            "state": loan.get_state_display(),
+            "due_date": loan.due_date,
+            "needs_reply": loan.owner_id == user.pk and loan.state == Loan.State.REQUESTED,
+            "overdue": loan.state != Loan.State.REQUESTED and loan.due_date < today(),
+        }
+        for loan in current_loans[:3]
+    ]
 
     return render(
         request,
         "identity/dashboard.html",
         {
-            "has_community": Membership.objects.filter(user=actor(request), active=True).exists(),
-            "copies": visible(actor(request))[:12],
+            "has_community": memberships.exists(),
+            "memberships": memberships[:6],
+            "copies": visible(user)[:3],
+            "current_loans": loan_summaries,
+            "attention_count": current_loans.filter(owner=user, state=Loan.State.REQUESTED).count(),
         },
     )
 

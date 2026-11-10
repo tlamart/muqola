@@ -266,3 +266,22 @@ Le parcours crée trois comptes fictifs et vérifie communautés, catalogue/copi
 prêt complet, accès croisés, notifications Mailpit et UX à 360/768/1280 px.
 Utiliser uniquement la pile locale avec son worker. Scénarios à vérifier vous-même :
 [guide ordinateur](docs/manual-validation.md).
+
+## Interface responsive issue de Figma
+
+La [refonte et sa comparaison avec les six frames](docs/ui-redesign.md) couvrent
+l’accueil connecté, Explorer, la fiche de jeu et les parcours existants.
+Navigation mobile au clavier/tactile, sans framework frontend et avec police Inter
+locale ; les formulaires restent utilisables sans JavaScript.
+
+```sh
+uv sync --frozen --group browser
+uv run --frozen --group browser python scripts/ui_browser_smoke.py --browser /usr/bin/chromium
+```
+
+Lancer la pile Compose avec son worker et Mailpit avant ce script. Il crée deux
+comptes fictifs et leurs jeux via les vrais formulaires, puis vérifie 360, 390, 768,
+1200 et 1280 px, menu, filtres, contenus longs et mode sans JS. Captures dans
+`work/ui-redesign/screenshots/` ; six exemples sont versionnés dans la documentation.
+Les tests serveur vérifient aussi les limites de visibilité des nouvelles présentations.
+Aucun changement des règles métier, de Gunicorn, ni démarrage du lot 6.

@@ -1,4 +1,51 @@
-{% extends 'base.html' %}{% block title %}Mon espace — Muqola{% endblock %}
-{% block content %}<p class="eyebrow">Votre adresse e-mail est vérifiée</p><h1>Bienvenue, {{ user.display_name }}</h1><p><a class="button" href="{% url 'catalogue:index' %}">Ajouter un jeu</a> <a href="{% url 'inventory:mine' %}">Ma collection</a> · <a href="{% url 'identity:profile' %}">Mon compte</a></p>
-{% if not has_community %}<aside><h2>Aucune communauté pour le moment</h2><p><a href="{% url 'communities:index' %}">Créez votre communauté privée</a> ou ouvrez un lien reçu d'un proche. Vous pouvez déjà ajouter vos exemplaires en collection privée.</p></aside>{% endif %}
-<h2>Vos jeux accessibles</h2><ul class="cards">{% for copy in copies %}<li><h3><a href="{% url 'inventory:detail' copy.pk %}">{{ copy.game.title }}</a></h3><p>{{ copy.owner.display_name }} · {% if copy.available %}Disponible{% else %}Indisponible{% endif %}</p></li>{% empty %}<li>Aucun jeu accessible. Recherchez une fiche ou créez-la manuellement pour ajouter votre exemplaire.</li>{% endfor %}</ul><p><a href="{% url 'inventory:index' %}">Trouver un jeu</a> · <a href="{% url 'communities:index' %}">Mes communautés</a> · <a href="{% url 'loans:index' %}">Mes demandes et prêts</a></p>{% endblock %}
+{% extends 'base.html' %}{% block title %}Accueil — Muqola{% endblock %}
+{% block content %}
+<section class="hero" aria-labelledby="welcome-title">
+  <h1 id="welcome-title">Bonjour {{ user.display_name }} <span aria-hidden="true">👋</span>
+</h1>
+  <p>Envie d’une nouvelle partie ?</p>
+  <div class="actions">
+<a class="button button--accent" href="{% url 'inventory:index' %}">Explorer les jeux</a>
+</div>
+</section>
+{% if has_community %}
+<div class="community-strip" aria-label="Vos communautés">
+<span>Vos communautés</span>{% for member in memberships %}<a href="{% url 'communities:detail' member.community_id %}">{{ member.community.name }}</a>{% endfor %}{% if memberships|length == 6 %}<a href="{% url 'communities:index' %}">Toutes mes communautés</a>{% endif %}</div>
+{% else %}
+<aside class="empty-state" aria-labelledby="no-community">
+<h2 id="no-community">Aucune communauté pour le moment</h2>
+<p>Créez un groupe privé ou ouvrez le lien reçu d’un proche. Vous pouvez déjà ajouter un exemplaire à votre collection privée.</p>
+<div class="actions">
+<a href="{% url 'communities:index' %}">Créer une communauté</a>
+<a href="{% url 'catalogue:index' %}">Ajouter un jeu</a>
+</div>
+</aside>
+{% endif %}
+<div class="section-heading">
+<h2>Vos jeux accessibles</h2>
+<a href="{% url 'inventory:index' %}">Tout explorer <span aria-hidden="true">→</span>
+</a>
+</div>
+<div class="dashboard-grid">
+  <ul class="game-grid" aria-label="Jeux accessibles">{% for copy in copies %}<li>{% include 'components/copy_card.html' %}</li>{% empty %}<li class="empty-state">
+<h3>Une collection à faire vivre</h3>
+<p>Aucun jeu accessible pour le moment. Recherchez une fiche ou créez-la pour ajouter votre exemplaire.</p>
+<a href="{% url 'catalogue:index' %}">Ajouter mon premier jeu</a>
+</li>{% endfor %}</ul>
+  <aside class="loan-panel" aria-labelledby="current-loans">
+<h2 id="current-loans">Mes prêts en cours</h2>
+    {% if attention_count %}<p class="badge">{{ attention_count }} demande{{ attention_count|pluralize }} à examiner</p>{% endif %}
+    <ul class="loan-snippets">{% for loan in current_loans %}<li>
+<a href="{% url 'loans:detail' loan.id %}">{{ loan.title }}</a>
+<p>{% if loan.needs_reply %}Demande à examiner{% elif loan.overdue %}Retour attendu{% else %}{{ loan.state }}{% endif %} · {{ loan.due_date|date:'d/m/Y' }}</p>
+</li>{% empty %}<li>
+<p>Aucun prêt à suivre. Et si vous prépariez votre prochaine partie ?</p>
+</li>{% endfor %}</ul>
+    <a class="button secondary" href="{% url 'loans:index' %}">Voir mes prêts</a>
+  </aside>
+</div>
+<div class="actions collection-actions">
+<a class="button" href="{% url 'catalogue:index' %}">Ajouter un jeu</a>
+<a href="{% url 'inventory:mine' %}">Ma collection</a>
+</div>
+{% endblock %}

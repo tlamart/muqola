@@ -38,6 +38,8 @@ class SearchForm(forms.Form):
 
     def __init__(self, *args: Any, user: User, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
+        self.fields["title"].widget.attrs["placeholder"] = "Rechercher un jeu…"
+        self.fields["only_available"].widget.attrs["aria-label"] = "Disponibles uniquement"
         self.fields["community"].choices = [("", "Toutes mes communautés")] + [  # type: ignore[attr-defined]
             (str(m.community_id), m.community.name)
             for m in Membership.objects.filter(user=user, active=True).select_related("community")

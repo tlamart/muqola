@@ -1,1 +1,2 @@
-{% if page.has_other_pages %}<nav aria-label="Pagination"><span>Page {{ page.number }} sur {{ page.paginator.num_pages }}</span>{% if page.has_previous %}<a href="{% querystring page=page.previous_page_number %}">Page précédente</a>{% endif %}{% if page.has_next %}<a href="{% querystring page=page.next_page_number %}">Page suivante</a>{% endif %}</nav>{% endif %}
+{% if page.has_other_pages %}<nav class="pagination" aria-label="Pagination">
+<span>Page {{ page.number }} sur {{ page.paginator.num_pages }}</span>{% if page.has_previous %}<a href="{% querystring page=page.previous_page_number %}">Page précédente</a>{% endif %}{% if page.has_next %}<a href="{% querystring page=page.next_page_number %}">Page suivante</a>{% endif %}</nav>{% endif %}

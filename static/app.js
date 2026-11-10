@@ -26,3 +26,49 @@ document.addEventListener('submit', event => {
     button.dataset.submitting = 'true';
   }), 0);
 });
+
+// Amélioration progressive : sans JS, la navigation reste entièrement visible.
+const navigation = document.getElementById('site-navigation');
+const menuButton = document.querySelector('.menu-toggle');
+if (navigation && menuButton) {
+  const mobileNavigation = window.matchMedia('(max-width: 1023px)');
+  const menuLabel = menuButton.querySelector('.menu-label');
+  let menuOpen = false;
+  function synchronizeNavigation() {
+    const wasFocused = navigation.contains(document.activeElement);
+    const buttonWasFocused = document.activeElement === menuButton;
+    menuButton.hidden = !mobileNavigation.matches;
+    navigation.hidden = mobileNavigation.matches && !menuOpen;
+    menuButton.setAttribute('aria-expanded', String(menuOpen && mobileNavigation.matches));
+    if (menuLabel) menuLabel.textContent = menuOpen ? 'Fermer le menu' : 'Ouvrir le menu';
+    if (navigation.hidden && wasFocused) menuButton.focus();
+    if (!mobileNavigation.matches && buttonWasFocused) navigation.querySelector('a')?.focus();
+  }
+  menuButton.addEventListener('click', () => {
+    menuOpen = !menuOpen;
+    synchronizeNavigation();
+  });
+  mobileNavigation.addEventListener('change', () => {
+    menuOpen = false;
+    synchronizeNavigation();
+  });
+  navigation.addEventListener('click', event => {
+    if (mobileNavigation.matches && event.target instanceof Element && event.target.closest('a')) {
+      menuOpen = false;
+      synchronizeNavigation();
+    }
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key !== 'Escape') return;
+    const accountMenu = navigation.querySelector('details[open]');
+    if (accountMenu) {
+      accountMenu.open = false;
+      accountMenu.querySelector('summary')?.focus();
+    } else if (menuOpen) {
+      menuOpen = false;
+      synchronizeNavigation();
+      menuButton.focus();
+    }
+  });
+  synchronizeNavigation();
+}

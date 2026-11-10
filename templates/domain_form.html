@@ -1,3 +1,10 @@
 {% extends 'base.html' %}
 {% block title %}{{ title }} — Muqola{% endblock %}
-{% block content %}<section class="account"><h1>{{ title }}</h1>{% if notice %}<p>{{ notice }}</p>{% endif %}<form method="post">{% csrf_token %}{% if form.errors %}<p role="alert">Vérifiez les champs indiqués.</p>{% endif %}{{ form.as_div }}<button type="submit">{{ submit|default:'Enregistrer' }}</button></form><p><a href="{% url 'identity:dashboard' %}">Mon espace</a></p></section>{% endblock %}
+{% block content %}<section class="account">
+<p class="eyebrow">Votre espace de partage</p>
+<h1>{{ title }}</h1>{% if notice %}<p class="muted">{{ notice }}</p>{% endif %}<form method="post">{% csrf_token %}{% if form.errors %}<p role="alert">Vérifiez les champs indiqués.</p>{% endif %}{{ form.as_div }}<button type="submit">{{ submit|default:'Enregistrer' }}</button>
+</form>
+<p>
+<a href="{% url 'identity:dashboard' %}">Mon espace</a>
+</p>
+</section>{% endblock %}

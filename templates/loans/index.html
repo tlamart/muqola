@@ -1,1 +1,21 @@
-{% extends 'base.html' %}{% block content %}<h1>Mes demandes et prêts</h1><ul class="cards">{% for loan in loans %}<li><h2><a href="{% url 'loans:detail' loan.pk %}">{{ loan.owned_game.game.title }}</a></h2><p>{{ loan.get_state_display }} · retour souhaité le {{ loan.due_date|date:'d/m/Y' }}</p><p>{{ loan.owner.display_name }} → {{ loan.borrower.display_name }}</p></li>{% empty %}<li>Aucune demande ni prêt. <a href="{% url 'inventory:index' %}">Trouver un jeu</a>.</li>{% endfor %}</ul>{% include "pagination.html" with page=loans %}{% endblock %}
+{% extends 'base.html' %}{% block title %}Mes prêts — Muqola{% endblock %}
+{% block content %}<header class="page-heading">
+<p class="eyebrow">Vos échanges, en confiance</p>
+<h1>Mes demandes et prêts</h1>
+<p class="intro">Retrouvez les demandes reçues, vos emprunts et leur historique privé.</p>
+</header>
+<ul class="cards">{% for loan in loans %}<li>
+<span class="badge badge--{{ loan.state|lower }}">{{ loan.get_state_display }}</span>
+<h2>
+<a href="{% url 'loans:detail' loan.pk %}">{{ loan.owned_game.game.title }}</a>
+</h2>
+<p class="muted">Retour souhaité le <time datetime="{{ loan.due_date|date:'Y-m-d' }}">{{ loan.due_date|date:'d/m/Y' }}</time>
+</p>
+<p>{{ loan.owner.display_name }} <span aria-hidden="true">→</span>
+<span class="visually-hidden">prête à</span> {{ loan.borrower.display_name }}</p>
+<a href="{% url 'loans:detail' loan.pk %}">Suivre ce prêt</a>
+</li>{% empty %}<li class="empty-state">
+<h2>Une prochaine partie à organiser ?</h2>
+<p>Aucune demande ni prêt pour le moment.</p>
+<a href="{% url 'inventory:index' %}">Explorer les jeux</a>
+</li>{% endfor %}</ul>{% include 'pagination.html' with page=loans %}{% endblock %}

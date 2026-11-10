@@ -1,1 +1,22 @@
-{% load static %}<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Muqola — Page indisponible</title><link rel="stylesheet" href="{% static 'app.css' %}"></head><body><header><a class="brand" href="/">Muqola</a></header><main>{% block content %}{% endblock %}<p><a href="/">Revenir à l'accueil</a></p></main></body></html>
+{% load static %}<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Muqola — Page indisponible</title>
+<link rel="stylesheet" href="{% static 'app.css' %}">
+</head>
+<body>
+<header class="site-header">
+<div class="header-inner">
+<a class="brand" href="/">Muqola</a>
+</div>
+</header>
+<main class="page">
+<section class="account">{% block content %}{% endblock %}<p>
+<a href="/">Revenir à l'accueil</a>
+</p>
+</section>
+</main>
+</body>
+</html>

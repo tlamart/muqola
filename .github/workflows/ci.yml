@@ -90,6 +90,18 @@ jobs:
           uv run --frozen --group browser python scripts/accounts_browser_smoke.py --browser "$(command -v google-chrome || command -v chromium)"
       - name: Product journey
         run: uv run --frozen --group browser python scripts/product_browser_smoke.py --browser "$(command -v google-chrome || command -v chromium)"
+      - name: Responsive UI, navigation, filters and no-JavaScript journey
+        run: uv run --frozen --group browser python scripts/ui_browser_smoke.py --browser "$(command -v google-chrome || command -v chromium)"
+      - name: Preserve responsive screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: muqola-responsive-screenshots
+          path: |
+            work/ui-redesign/screenshots/*.png
+            work/ui-redesign/result.json
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Validate Dev Container configuration
         run: |
           mkdir -p work
