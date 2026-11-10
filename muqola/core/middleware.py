@@ -11,6 +11,7 @@ class SecurityHeadersMiddleware:
         response = self.get_response(request)
         response["Content-Security-Policy"] = (
             "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; "
+            "font-src 'self'; "
             "form-action 'self'; frame-ancestors 'none'; base-uri 'none'"
         )
         response["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"

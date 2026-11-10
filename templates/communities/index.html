@@ -1,2 +1,20 @@
 {% extends 'base.html' %}{% block title %}Mes communautés — Muqola{% endblock %}
-{% block content %}<h1>Mes communautés</h1><ul class="cards">{% for member in memberships %}<li><h2><a href="{% url 'communities:detail' member.community_id %}">{{ member.community.name }}</a></h2><p>{{ member.get_role_display }}</p></li>{% empty %}<li><h2>Aucune communauté pour le moment</h2><p>Créez la vôtre ou ouvrez un lien d'invitation reçu d'un proche.</p></li>{% endfor %}</ul><section class="account"><h2>Créer une communauté privée</h2><form method="post">{% csrf_token %}{{ form.as_div }}<button type="submit">Créer ma communauté</button></form></section>{% endblock %}
+{% block content %}<header class="page-heading">
+<p class="eyebrow">Vos cercles de jeu</p>
+<h1>Mes communautés</h1>
+<p class="intro">Un espace privé pour chaque groupe. Invitez vos proches et partagez à votre rythme.</p>
+</header>
+<ul class="cards">{% for member in memberships %}<li>
+<h2>
+<a href="{% url 'communities:detail' member.community_id %}">{{ member.community.name }}</a>
+</h2>
+<p>{{ member.get_role_display }}</p>
+</li>{% empty %}<li>
+<h2>Aucune communauté pour le moment</h2>
+<p>Créez la vôtre ou ouvrez un lien d'invitation reçu d'un proche.</p>
+</li>{% endfor %}</ul>
+<section class="account">
+<h2>Créer une communauté privée</h2>
+<form method="post">{% csrf_token %}{% if form.errors %}<p role="alert">Vérifiez les champs indiqués.</p>{% endif %}{{ form.as_div }}<button type="submit">Créer ma communauté</button>
+</form>
+</section>{% endblock %}

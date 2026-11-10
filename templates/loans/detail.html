@@ -1,7 +1,47 @@
-{% extends 'base.html' %}{% block content %}<h1>{{ title }}</h1><p><strong>{{ state_label }}</strong> · Retour souhaité le <strong>{{ due_date|date:'d/m/Y' }}</strong></p><p>Propriétaire : {{ owner_name }} · Emprunteur : {{ borrower_name }}</p><p>{{ message }}</p>{% if reason %}<p role="status">{{ reason }}</p>{% endif %}
-{% if contacts %}<section><h2>Coordonner l'échange</h2><p>Adresses partagées uniquement pendant le prêt accepté ou remis.</p><p>Propriétaire : <a href="mailto:{{ contacts.owner|urlencode }}">{{ contacts.owner }}</a></p><p>Emprunteur : <a href="mailto:{{ contacts.borrower|urlencode }}">{{ contacts.borrower }}</a></p></section>{% endif %}
-<div class="actions">{% if state == 'REQUESTED' %}{% if is_owner %}<form method="post" action="{% url 'loans:action' loan_id 'accept' %}">{% csrf_token %}<button type="submit">Accepter la demande</button></form><form method="post" action="{% url 'loans:action' loan_id 'decline' %}">{% csrf_token %}<button class="secondary" type="submit">Refuser la demande</button></form>{% endif %}{% endif %}
-{% if state == 'ACCEPTED' and is_owner %}<form method="post" action="{% url 'loans:action' loan_id 'handover' %}">{% csrf_token %}<button type="submit">Confirmer la remise</button></form>{% endif %}
-{% if state == 'HANDED_OVER' and is_owner %}<form method="post" action="{% url 'loans:action' loan_id 'return' %}">{% csrf_token %}<button type="submit">Confirmer le retour</button></form>{% endif %}
-{% if state == 'REQUESTED' or state == 'ACCEPTED' %}<details><summary>Annuler cette demande ou ce prêt</summary><form method="post" action="{% url 'loans:action' loan_id 'cancel' %}">{% csrf_token %}<button class="secondary" type="submit">Confirmer l'annulation</button></form></details>{% endif %}</div>
-<h2>Historique privé</h2><ol>{% for event in events %}<li>{{ event.created_at|date:'d/m/Y H:i' }} UTC · {{ event.state }}{% if event.administrative %} · Résolution administrative{% endif %}{% if event.reason %} · {{ event.reason }}{% endif %}</li>{% endfor %}</ol><p><a href="{% url 'loans:index' %}">Mes prêts</a></p>{% endblock %}
+{% extends 'base.html' %}{% block title %}{{ title }} · Prêt — Muqola{% endblock %}
+{% block content %}<a class="detail-back" href="{% url 'loans:index' %}">
+<span aria-hidden="true">←&nbsp;</span> Mes prêts</a>
+<header class="page-heading">
+<p class="eyebrow">Un échange privé</p>
+<h1>{{ title }}</h1>
+<span class="badge badge--{{ state|lower }}">{{ state_label }}</span>
+</header>
+<section class="panel">
+<div class="loan-summary">
+<p>Propriétaire : <strong>{{ owner_name }}</strong>
+<br>Emprunteur : <strong>{{ borrower_name }}</strong>
+</p>
+<p>Retour souhaité le<br>
+<strong>
+<time datetime="{{ due_date|date:'Y-m-d' }}">{{ due_date|date:'d/m/Y' }}</time>
+</strong>
+</p>
+</div>{% if message %}<p class="game-description">{{ message }}</p>{% endif %}{% if reason %}<p role="status">{{ reason }}</p>{% endif %}
+<div class="actions">{% if state == 'REQUESTED' and is_owner %}<form method="post" action="{% url 'loans:action' loan_id 'accept' %}">{% csrf_token %}<button class="button--accent" type="submit">Accepter la demande</button>
+</form>
+<form method="post" action="{% url 'loans:action' loan_id 'decline' %}">{% csrf_token %}<button class="secondary" type="submit">Refuser la demande</button>
+</form>{% endif %}
+{% if state == 'ACCEPTED' and is_owner %}<form method="post" action="{% url 'loans:action' loan_id 'handover' %}">{% csrf_token %}<button class="button--accent" type="submit">Confirmer la remise</button>
+</form>{% endif %}
+{% if state == 'HANDED_OVER' and is_owner %}<form method="post" action="{% url 'loans:action' loan_id 'return' %}">{% csrf_token %}<button class="button--accent" type="submit">Confirmer le retour</button>
+</form>{% endif %}
+{% if state == 'REQUESTED' or state == 'ACCEPTED' %}<details>
+<summary>Annuler cette demande ou ce prêt</summary>
+<form method="post" action="{% url 'loans:action' loan_id 'cancel' %}">{% csrf_token %}<button class="secondary" type="submit">Confirmer l'annulation</button>
+</form>
+</details>{% endif %}</div>
+</section>
+{% if contacts %}<section class="panel">
+<h2>Coordonner l’échange</h2>
+<p class="muted">Adresses partagées uniquement pendant le prêt accepté ou remis.</p>
+<p>Propriétaire : <a href="mailto:{{ contacts.owner|urlencode }}">{{ contacts.owner }}</a>
+</p>
+<p>Emprunteur : <a href="mailto:{{ contacts.borrower|urlencode }}">{{ contacts.borrower }}</a>
+</p>
+</section>{% endif %}
+<section class="panel">
+<h2>Historique privé</h2>
+<ol class="history">{% for event in events %}<li>
+<strong>{{ event.state }}{% if event.administrative %} · Résolution administrative{% endif %}</strong>
+<time datetime="{{ event.created_at|date:'c' }}">{{ event.created_at|date:'d/m/Y H:i' }} UTC</time>{% if event.reason %}<p>{{ event.reason }}</p>{% endif %}</li>{% endfor %}</ol>
+</section>{% endblock %}

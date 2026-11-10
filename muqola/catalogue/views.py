@@ -10,7 +10,9 @@ from django.views.decorators.http import require_GET, require_http_methods
 from muqola.catalogue import services
 from muqola.catalogue.forms import GameForm, ReportForm
 from muqola.catalogue.models import Game
+from muqola.communities.models import Membership
 from muqola.core.http import actor
+from muqola.inventory.models import GameVisibility
 from muqola.inventory.services import visible
 
 
@@ -60,12 +62,30 @@ def edit(request: HttpRequest, game_id: UUID | None = None) -> HttpResponse:
 @require_GET
 def detail(request: HttpRequest, game_id: UUID) -> HttpResponse:
     game = get_object_or_404(services.search(actor(request)), pk=game_id)
+    copies = list(visible(actor(request)).filter(game=game))
+    # Les noms de communautés sont eux-mêmes privés : seulement celles du lecteur.
+    shared = GameVisibility.objects.filter(
+        owned_game__in=copies,
+        community_id__in=Membership.objects.filter(user=actor(request), active=True).values(
+            "community_id"
+        ),
+    ).select_related("community")
+    copy_rows = [
+        {
+            "copy": item,
+            "available": item.available,
+            "communities": [v.community.name for v in shared if v.owned_game_id == item.pk],
+        }
+        for item in copies
+    ]
     return render(
         request,
         "catalogue/detail.html",
         {
             "game": game,
-            "copies": visible(actor(request)).filter(game=game),
+            "copies": copies,
+            "copy_rows": copy_rows,
+            "has_available": any(row["available"] for row in copy_rows),
             "can_edit": game.created_by_id == actor(request).pk and not game.ever_reused,
         },
     )

@@ -1,1 +1,12 @@
-{% extends 'base.html' %}{% block content %}<h1>Ma collection</h1><p><a class="button" href="{% url 'catalogue:index' %}">Ajouter un jeu</a></p><ul class="cards">{% for copy in copies %}<li><h2><a href="{% url 'inventory:detail' copy.pk %}">{{ copy.game.title }}</a></h2><p>{% if copy.withdrawn %}Retiré du prêt{% elif copy.available %}Disponible{% else %}Indisponible{% endif %}</p></li>{% empty %}<li>Votre collection est vide. Vous pouvez ajouter un exemplaire, même sans communauté.</li>{% endfor %}</ul>{% include "pagination.html" with page=copies %}{% endblock %}
+{% extends 'base.html' %}{% block title %}Mes jeux — Muqola{% endblock %}
+{% block content %}<header class="page-heading">
+<p class="eyebrow">Votre collection</p>
+<h1>Mes jeux</h1>
+<p class="intro">Privés ou partagés, vos exemplaires restent les vôtres.</p>
+<a class="button button--accent" href="{% url 'catalogue:index' %}">Ajouter un jeu</a>
+</header>
+<h2 class="visually-hidden">Les jeux de votre collection</h2>
+<ul class="game-grid">{% for copy in copies %}<li>{% include 'components/copy_card.html' with collection=True %}</li>{% empty %}<li class="empty-state">
+<h2>Votre collection commence ici</h2>
+<p>Ajoutez votre premier exemplaire, même sans communauté. Sans partage sélectionné, il reste privé.</p>
+</li>{% endfor %}</ul>{% include 'pagination.html' with page=copies %}{% endblock %}

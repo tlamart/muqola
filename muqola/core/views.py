@@ -2,14 +2,20 @@ import logging
 
 from django.db import DatabaseError, connection
 from django.http import HttpRequest, HttpResponse, JsonResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.views.decorators.http import require_safe
+
+from muqola.core.http import actor
 
 logger = logging.getLogger(__name__)
 
 
 @require_safe
 def home(request: HttpRequest) -> HttpResponse:
+    if request.user.is_authenticated:
+        return redirect(
+            "identity:dashboard" if actor(request).email_verified_at else "identity:pending"
+        )
     return render(request, "home.html")
 
 

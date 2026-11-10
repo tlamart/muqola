@@ -1,1 +1,9 @@
-{% extends 'base.html' %}{% block content %}<section class="account"><h1>Mon compte</h1><p>{{ user.display_name }} · {{ user.email }}</p><p>Adresse vérifiée. Le changement d'adresse e-mail n'est pas disponible.</p><h2>Demander la suppression</h2><p>La clôture doit préserver la résolution des prêts actifs. Une demande n'efface donc pas immédiatement le compte.</p>{% if active_loans %}<p role="status">Vous avez un prêt actif à clôturer avant la suppression définitive.</p>{% endif %}{% if deletion %}<p role="status">Demande enregistrée le {{ deletion.created_at|date:'d/m/Y' }}. Traitement en attente.</p>{% endif %}<form method="post">{% csrf_token %}{{ form.as_div }}<button class="secondary" type="submit">Enregistrer ma demande de suppression</button></form></section>{% endblock %}
+{% extends 'base.html' %}{% block content %}<section class="account">
+<p class="eyebrow">Votre espace personnel</p>
+<h1>Mon compte</h1>
+<p>{{ user.display_name }} · {{ user.email }}</p>
+<p>Adresse vérifiée. Le changement d'adresse e-mail n'est pas disponible.</p>
+<h2>Demander la suppression</h2>
+<p>La clôture doit préserver la résolution des prêts actifs. Une demande n'efface donc pas immédiatement le compte.</p>{% if active_loans %}<p role="status">Vous avez un prêt actif à clôturer avant la suppression définitive.</p>{% endif %}{% if deletion %}<p role="status">Demande enregistrée le {{ deletion.created_at|date:'d/m/Y' }}. Traitement en attente.</p>{% endif %}<form method="post">{% csrf_token %}{% if form.errors %}<p role="alert">Confirmez votre demande et vérifiez les champs.</p>{% endif %}{{ form.as_div }}<button class="secondary" type="submit">Enregistrer ma demande de suppression</button>
+</form>
+</section>{% endblock %}

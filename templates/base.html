@@ -6,26 +6,56 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Muqola, le partage gratuit de jeux entre communautés privées.">
   <title>{% block title %}Muqola — Les jeux se partagent{% endblock %}</title>
-  <script src="{% static 'app.js' %}" defer></script>
+  <script src="{% static 'app.js' %}" defer>
+</script>
   <link rel="stylesheet" href="{% static 'app.css' %}">
 </head>
 <body>
   <a class="skip" href="#contenu">Aller au contenu</a>
-  <header>
-    <a class="brand" href="/" aria-label="Muqola, accueil">Muqola<span aria-hidden="true">●</span></a>
-    <nav aria-label="Navigation principale">
-      {% if user.is_authenticated %}
-        {% if user.email_verified_at %}<a href="{% url 'identity:dashboard' %}">Mon espace</a><a href="{% url 'communities:index' %}">Mes communautés</a><a href="{% url 'inventory:index' %}">Trouver un jeu</a><a href="{% url 'loans:index' %}">Mes prêts</a>{% else %}<a href="{% url 'identity:pending' %}">Vérifier mon e-mail</a>{% endif %}
-        <form method="post" action="{% url 'identity:logout' %}">{% csrf_token %}<button class="secondary" type="submit">Se déconnecter</button></form>
-      {% else %}
-        <a href="{% url 'identity:login' %}">Se connecter</a>
-        <a class="button" href="{% url 'identity:signup' %}">S'inscrire</a>
-      {% endif %}
-    </nav>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="{% if user.is_authenticated and user.email_verified_at %}{% url 'identity:dashboard' %}{% else %}/{% endif %}" aria-label="Muqola, accueil">Muqola<span aria-hidden="true">●</span>
+</a>
+      <button class="menu-toggle" type="button" hidden aria-expanded="false" aria-controls="site-navigation">
+<span class="visually-hidden menu-label">Ouvrir le menu</span>
+</button>
+      <nav id="site-navigation" class="site-nav" aria-label="Navigation principale">
+        {% with current=request.resolver_match.view_name app=request.resolver_match.app_name %}
+        {% if user.is_authenticated %}
+          {% if user.email_verified_at %}
+            <a href="{% url 'identity:dashboard' %}"{% if current == 'identity:dashboard' %} aria-current="page"{% endif %}>{% include 'components/icon.html' with name='home' %}<span>Accueil</span></a>
+            <a href="{% url 'inventory:index' %}"{% if current == 'inventory:index' or app == 'catalogue' or current == 'inventory:detail' %} aria-current="page"{% endif %}>{% include 'components/icon.html' with name='search' %}<span>Explorer les jeux</span></a>
+            <a href="{% url 'inventory:mine' %}"{% if current == 'inventory:mine' or current == 'inventory:edit' %} aria-current="page"{% endif %}>{% include 'components/icon.html' with name='games' %}<span>Mes jeux</span></a>
+            <a href="{% url 'loans:index' %}"{% if app == 'loans' or current == 'inventory:request' %} aria-current="page"{% endif %}>{% include 'components/icon.html' with name='loans' %}<span>Mes prêts</span></a>
+            <a href="{% url 'communities:index' %}"{% if app == 'communities' %} aria-current="page"{% endif %}>{% include 'components/icon.html' with name='community' %}<span>Communautés</span></a>
+            <details class="account-menu">
+              <summary>
+<span class="avatar" aria-hidden="true">{{ user.display_name|first|upper }}</span>Compte</summary>
+              <div class="account-menu__panel">
+                <p class="muted">{{ user.display_name }}</p>
+                <a href="{% url 'identity:profile' %}"{% if current == 'identity:profile' %} aria-current="page"{% endif %}>Mon compte</a>
+                <form method="post" action="{% url 'identity:logout' %}">{% csrf_token %}<button class="secondary" type="submit">Se déconnecter</button>
+</form>
+              </div>
+            </details>
+          {% else %}
+            <a href="{% url 'identity:pending' %}">Vérifier mon e-mail</a>
+            <form method="post" action="{% url 'identity:logout' %}">{% csrf_token %}<button class="button" type="submit">Se déconnecter</button>
+</form>
+          {% endif %}
+        {% else %}
+          <a href="/"{% if current == 'home' %} aria-current="page"{% endif %}>{% include 'components/icon.html' with name='home' %}<span>Accueil</span></a>
+          <a href="{% url 'identity:login' %}"{% if current == 'identity:login' %} aria-current="page"{% endif %}>Se connecter</a>
+          <a class="button" href="{% url 'identity:signup' %}">S'inscrire</a>
+        {% endif %}
+        {% endwith %}
+      </nav>
+    </div>
   </header>
-  <div id="request-status" class="status" role="status" aria-live="polite" hidden></div>
+  <div id="request-status" class="status" role="status" aria-live="polite" hidden>
+</div>
   {% if messages %}<div class="status" role="status" aria-live="polite">{% for message in messages %}<p>{{ message }}</p>{% endfor %}</div>{% endif %}
-  <main id="contenu">{% block content %}{% endblock %}</main>
-  <footer>Muqola · Identité provisoire · Version de développement</footer>
+  <main id="contenu" class="page {% block page_class %}{% endblock %}" tabindex="-1">{% block content %}{% endblock %}</main>
+  <footer class="site-footer">Muqola · Des jeux, des liens, de bons moments.<br>Identité provisoire · Version de développement</footer>
 </body>
 </html>

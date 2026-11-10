@@ -1,0 +1,9 @@
+{% with available=copy.available %}<article class="game-card">
+  <a class="game-card__link" href="{% if collection or copy.game.hidden %}{% url 'inventory:detail' copy.pk %}{% else %}{% url 'catalogue:detail' copy.game_id %}{% endif %}">
+    {% include 'components/game_cover.html' with game=copy.game %}
+    <h3>{{ copy.game.title }}</h3>
+  </a>
+  <p class="game-card__metadata">{% include 'components/game_metadata.html' with game=copy.game %}</p>
+  <p class="game-card__owner">{% if copy.owner_id == user.pk %}Votre exemplaire{% else %}Exemplaire de {{ copy.owner.display_name }}{% endif %}</p>
+  {% if copy.withdrawn %}<span class="badge badge--withdrawn">Retiré du prêt</span>{% elif available %}<span class="badge badge--available">Disponible</span>{% else %}<span class="badge badge--unavailable">Indisponible</span>{% endif %}
+</article>{% endwith %}

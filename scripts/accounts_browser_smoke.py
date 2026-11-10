@@ -66,6 +66,8 @@ with sync_playwright() as playwright:
         page.wait_for_url("**/accounts/signup/done/")
         login_form(page, email, password)
         page.wait_for_url("**/accounts/pending/")
+        page.goto(args.url + "/")
+        page.wait_for_url("**/accounts/pending/")
         response = page.goto(args.url + "/accounts/dashboard/")
         if response is None or response.status != 403:
             raise RuntimeError("Un compte non vérifié accède au tableau de bord")
@@ -76,7 +78,9 @@ with sync_playwright() as playwright:
         confirmation.wait_for_url("**/accounts/verify/done/")
         login_form(page, email, password)
         page.wait_for_url("**/accounts/dashboard/")
-        if not page.get_by_role("heading", name="Bienvenue, Camille").is_visible():
+        page.goto(args.url + "/")
+        page.wait_for_url("**/accounts/dashboard/")
+        if not page.get_by_text("Bonjour Camille", exact=True).filter(visible=True).is_visible():
             raise RuntimeError("Espace vérifié absent")
         page.screenshot(path=f"work/account-{width}.png", full_page=True)
         page.goto(args.url + "/accounts/reset/")
@@ -91,6 +95,9 @@ with sync_playwright() as playwright:
         page.wait_for_url("**/accounts/login/")
         login_form(page, email, new_password)
         page.wait_for_url("**/accounts/dashboard/")
+        if page.get_by_role("button", name="Ouvrir le menu").is_visible():
+            page.get_by_role("button", name="Ouvrir le menu").click()
+        page.locator(".account-menu > summary").click()
         page.get_by_role("button", name="Se déconnecter").click()
         page.wait_for_url(args.url + "/")
         verification_context.close()

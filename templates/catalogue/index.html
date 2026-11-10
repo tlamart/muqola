@@ -1,1 +1,29 @@
-{% extends 'base.html' %}{% block content %}<h1>Fiches de jeux</h1><p>Des métadonnées génériques réutilisables, visibles à tous les comptes vérifiés. Aucun exemplaire privé n'est révélé ici.</p><form method="get"><label for="title">Rechercher par titre avant de créer</label><input id="title" name="title" maxlength="120" value="{{ title_query }}"><button type="submit">Rechercher une fiche</button></form><ul class="cards">{% for game in games %}<li><span class="game-placeholder" aria-hidden="true">♟</span><h2><a href="{% url 'catalogue:detail' game.pk %}">{{ game.title }}</a></h2><p>{{ game.publisher }}</p></li>{% empty %}<li>Aucune fiche ne correspond. Vous pouvez en créer une manuellement.</li>{% endfor %}</ul><a class="button" href="{% url 'catalogue:create' %}">Créer une fiche manuellement</a>{% include "pagination.html" with page=games %}{% endblock %}
+{% extends 'base.html' %}{% block title %}Ajouter un jeu — Muqola{% endblock %}
+{% block content %}<header class="page-heading">
+<p class="eyebrow">Ajouter un jeu · Étape 1</p>
+<h1>Trouvez sa fiche</h1>
+<p class="intro">Recherchez d’abord dans le catalogue interne. Vous pourrez ensuite ajouter votre propre exemplaire et choisir son partage.</p>
+<p class="help">Les fiches contiennent uniquement des métadonnées génériques. Aucun exemplaire privé n’est révélé ici.</p>
+</header>
+<form method="get" class="search-form">
+<label for="title">Rechercher par titre avant de créer</label>
+<div class="search-bar search-bar--catalogue">
+<span aria-hidden="true">⌕</span>
+<input id="title" name="title" maxlength="120" value="{{ title_query }}" placeholder="Le nom de votre jeu">
+<button type="submit">Rechercher une fiche</button>
+</div>
+</form>
+<h2 class="visually-hidden">Fiches correspondantes</h2>
+<ul class="game-grid">{% for game in games %}<li>
+<article class="game-card">
+<a class="game-card__link" href="{% url 'catalogue:detail' game.pk %}">{% include 'components/game_cover.html' %}<h3>{{ game.title }}</h3>
+</a>
+<p class="game-card__metadata">{% include 'components/game_metadata.html' %}</p>{% if game.publisher %}<p class="game-card__metadata">{{ game.publisher }}</p>{% endif %}</article>
+</li>{% empty %}<li class="empty-state">
+<h2>Cette fiche reste à créer</h2>
+<p>Aucune fiche ne correspond. Vous pouvez la créer manuellement, sans catalogue externe.</p>
+</li>{% endfor %}</ul>
+{% include 'pagination.html' with page=games %}<div class="actions">
+<a class="button" href="{% url 'catalogue:create' %}">Créer une fiche manuellement</a>
+<a href="{% url 'inventory:mine' %}">Revenir à mes jeux</a>
+</div>{% endblock %}

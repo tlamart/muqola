@@ -30,7 +30,7 @@ with sync_playwright() as playwright:
         if page.locator(":focus").inner_text() != "Aller au contenu":
             raise RuntimeError("Lien d'évitement clavier inaccessible")
         page.keyboard.press("Enter")
-        if page.evaluate("getComputedStyle(document.body).backgroundColor") != "rgb(250, 247, 239)":
+        if page.evaluate("getComputedStyle(document.body).backgroundColor") != "rgb(248, 247, 252)":
             raise RuntimeError("Feuille CSS non chargée")
         if failures:
             raise RuntimeError(str(failures))
