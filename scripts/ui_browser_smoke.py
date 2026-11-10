@@ -162,7 +162,7 @@ with sync_playwright() as playwright:
     bob.get_by_role("button", name="Envoyer ma demande", exact=True).click()
     bob.wait_for_url("**/loans/*/")
     routes = {
-        "accueil": args.url + "/accounts/dashboard/",
+        "accueil": args.url + "/",
         "explorer": args.url + "/copies/",
         "jeu": game_urls["Régicide"],
     }

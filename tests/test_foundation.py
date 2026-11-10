@@ -11,9 +11,11 @@ from django.core.management.base import CommandError
 from django.db import DatabaseError, connection
 from django.db.migrations.executor import MigrationExecutor
 from django.test import Client, override_settings
+from django.urls import reverse
 
 from muqola.core.logging import SafeJsonFormatter
 from muqola.identity.models import User
+from tests.helpers import member
 
 
 def test_public_home_is_french_and_discloses_current_scope(client: Client) -> None:
@@ -25,6 +27,24 @@ def test_public_home_is_french_and_discloses_current_scope(client: Client) -> No
     assert response["Referrer-Policy"] == "same-origin"
     assert "default-src 'none'" in response["Content-Security-Policy"]
     assert response["X-Content-Type-Options"] == "nosniff"
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("verified", [True, False])
+def test_home_routes_authenticated_accounts_to_their_own_space(
+    client: Client, verified: bool
+) -> None:
+    client.force_login(member(verified=verified))
+    response = client.get(reverse("home"), follow=True)
+    destination = reverse("identity:dashboard" if verified else "identity:pending")
+    assert response.redirect_chain == [(destination, 302)]
+    assert response.status_code == 200
+    assert 'href="/accounts/signup/"' not in response.content.decode()
+    assert 'href="/accounts/login/"' not in response.content.decode()
+    if verified:
+        assert "Bonjour Alice" in response.content.decode()
+    else:
+        assert "Vérifiez votre adresse e-mail" in response.content.decode()
 
 
 def test_live_does_not_access_database(client: Client) -> None:

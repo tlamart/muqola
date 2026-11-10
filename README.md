@@ -271,6 +271,8 @@ Utiliser uniquement la pile locale avec son worker. Scénarios à vérifier vous
 
 La [refonte et sa comparaison avec les six frames](docs/ui-redesign.md) couvrent
 l’accueil connecté, Explorer, la fiche de jeu et les parcours existants.
+L’URL `/` affiche l’accueil public aux visiteurs et redirige les comptes connectés
+vers leur tableau de bord (ou la vérification d’e-mail si nécessaire).
 Navigation mobile au clavier/tactile, sans framework frontend et avec police Inter
 locale ; les formulaires restent utilisables sans JavaScript.
 

@@ -51,10 +51,19 @@ Le menu est une amélioration JavaScript : sans JS, tous les liens restent visib
 - Les contenus longs augmentent la hauteur des cartes et formulaires.
 - Aucune modification des modèles, migrations, services métier ou de Gunicorn.
 
+## Accueil selon la session
+
+La route `/` redirige les comptes connectés et vérifiés vers `identity:dashboard`,
+et les comptes connectés non vérifiés vers `identity:pending`. La présentation
+publique avec inscription/connexion est réservée aux visiteurs anonymes. Deux
+tests serveur couvrent les redirections ; les parcours comptes et responsive
+ouvrent explicitement `/` pour éviter de masquer une régression via un lien direct
+vers le tableau de bord.
+
 ## Validation exécutée
 
 - `./scripts/check.sh` : Ruff lint/format, mypy, Django, migrations/statiques,
-  **133 tests PostgreSQL réussis**, dont 10 tests ciblant les présentations, la
+  **135 tests PostgreSQL réussis**, dont 10 tests ciblant les présentations, la
   navigation selon vérification, les communautés filtrées et les actions des copies.
 - `scripts/browser_smoke.py` : accueil public, CSS, français, clavier, 360/1280.
 - `scripts/accounts_browser_smoke.py` : inscription, SMTP capturé, vérification
