@@ -6,8 +6,8 @@ Lire [l'ADR](docs/adr/0001-stack.md) et [les frontières des modules](docs/modul
 Comptes vérifiés, communautés privées, catalogue interne réutilisable, exemplaires
 à zéro ou plusieurs visibilités, prêts et notifications capturées sont disponibles.
 [Guide de validation sur ordinateur](docs/manual-validation.md) ;
-[comptes et sécurité](docs/lot-1-accounts.md). Les PR sont empilées, non fusionnées ;
-la branche `feat/lot-5-notifications` permet de tester l'ensemble. Lot 6 non entrepris.
+[comptes et sécurité](docs/lot-1-accounts.md). Les lots 1 à 5 et le correctif
+Gunicorn sont intégrés dans `main` depuis la fusion de la PR #8. Lot 6 non entrepris.
 
 ## Démarrer localement
 
@@ -77,7 +77,7 @@ services:
 
 ```sh
 docker compose -f compose.yaml -f work/host.compose.yaml up -d db mailpit
-export POSTGRES_PORT=55432 EMAIL_PORT=11025
+export POSTGRES_HOST=127.0.0.1 POSTGRES_PORT=55432 EMAIL_PORT=11025 PYTHONPATH="$PWD"
 ./scripts/check.sh
 ```
 
