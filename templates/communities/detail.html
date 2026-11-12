@@ -24,9 +24,10 @@
 <form method="post">{% csrf_token %}<input type="hidden" name="action" value="invite">{% if invite_form.errors %}<p role="alert">Vérifiez la durée de l’invitation.</p>{% endif %}{{ invite_form.as_div }}<button type="submit">Créer un lien d'invitation</button>
 </form>
 </section>
-<ul class="cards">{% for invitation, link in invitations %}<li>
-<p>Expiration : {{ invitation.expires_at|date:'d/m/Y H:i' }} UTC{% if invitation.revoked_at %} · Révoquée{% endif %}</p>{% if link %}<label for="invite-{{ invitation.pk }}">Lien à copier et partager</label>
+<ul class="cards">{% for invitation, link, active in invitations %}<li>
+<p>Expiration : {{ invitation.expires_at|date:'d/m/Y H:i' }} UTC{% if invitation.revoked_at %} · Révoquée{% endif %}</p>{% if active %}{% if link %}<label for="invite-{{ invitation.pk }}">Lien à copier et partager</label>
 <textarea id="invite-{{ invitation.pk }}" readonly rows="3">{{ link }}</textarea>
+{% else %}<p role="status">Ce lien ne peut plus être affiché. Révoquez cette invitation et créez-en une nouvelle. Un lien déjà partagé reste valable jusqu'à révocation ou expiration.</p>{% endif %}
 <form method="post" action="{% url 'communities:revoke' community.pk invitation.pk %}">{% csrf_token %}<button class="secondary" type="submit">Révoquer ce lien</button>
 </form>{% endif %}</li>{% empty %}<li>Aucune invitation créée.</li>{% endfor %}</ul>{% include "pagination.html" with page=invitation_page %}{% endif %}
 <details>

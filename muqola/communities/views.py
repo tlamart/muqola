@@ -1,6 +1,7 @@
 import re
 from uuid import UUID
 
+from cryptography.fernet import InvalidToken
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ValidationError
@@ -64,18 +65,20 @@ def detail(request: HttpRequest, community_id: UUID) -> HttpResponse:
         )
         for item in invitation_page:
             link = ""
-            if (
-                item.revoked_at is None
-                and item.expires_at > timezone.now()
-                and item.encrypted_token
-            ):
-                raw = (
-                    secret_cipher("community-invite")
-                    .decrypt(item.encrypted_token.encode())
-                    .decode()
-                )
-                link = f"{settings.APP_BASE_URL}/communities/invite/{raw}/"
-            invitations.append((item, link))
+            active = item.revoked_at is None and item.expires_at > timezone.now()
+            if active and item.encrypted_token:
+                try:
+                    raw = (
+                        secret_cipher("community-invite")
+                        .decrypt(item.encrypted_token.encode())
+                        .decode()
+                    )
+                except InvalidToken:
+                    # Une rotation de clé ne doit pas bloquer la révocation du lien.
+                    pass
+                else:
+                    link = f"{settings.APP_BASE_URL}/communities/invite/{raw}/"
+            invitations.append((item, link, active))
     return render(
         request,
         "communities/detail.html",

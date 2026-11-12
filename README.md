@@ -212,9 +212,37 @@ uv run --frozen --group browser python scripts/accounts_browser_smoke.py --brows
 La commande navigateur crée des comptes fictifs @example.test dans la base de
 développement ; ne pas la lancer sur une production. Les captures sont dans
 `work/`. Les e-mails sont en file chiffrée jusqu'à envoi/reprise ; ne pas remplacer
-DJANGO_SECRET_KEY avant d'avoir vidé la file. Les liens sont hachés, à usage unique.
+DJANGO_SECRET_KEY avant d'avoir traité les charges encore chiffrées, y compris
+les échecs. Les liens de compte sont hachés, à usage unique.
 Voir [le document du lot 1](docs/lot-1-accounts.md) pour contraintes, ON DELETE,
 limites de débit, rétention, compromis et limitations des tests.
+
+## Rotation du secret Django
+
+`DJANGO_SECRET_KEY` sert aussi à chiffrer les invitations récupérables. Vider
+l'outbox ne suffit donc pas à préparer une rotation. Répéter cette procédure
+avec des données fictives avant toute intervention réelle autorisée :
+
+1. Avec l'ancienne clé, faire révoquer les invitations actives à remplacer par
+   leurs administrateurs et prévenir les destinataires des liens.
+   Conserver les sauvegardes et secrets nécessaires séparément, hors Git et logs.
+2. Suspendre les nouvelles écritures (arrêter le service web) et laisser le
+   worker traiter les e-mails en attente ou en échec avec l'ancienne clé.
+   Vérifier qu'aucune charge chiffrée ne reste à envoyer ; ce correctif ne
+   récupère pas une outbox chiffrée avec une clé perdue.
+3. Arrêter les processus web/worker, remplacer le secret dans leur environnement,
+   puis les redémarrer avec la même nouvelle valeur, sans afficher cette valeur.
+4. Se reconnecter : la rotation peut invalider les anciennes sessions. Vérifier
+   que les pages de communauté restent utilisables. Une invitation illisible
+   affiche un message et conserve son bouton de révocation ; la révoquer puis
+   créer et partager un nouveau lien, chiffré avec la nouvelle clé.
+5. Vérifier avec un autre compte fictif que le nouveau lien permet l'adhésion
+   explicite et que le lien révoqué est refusé.
+
+La rotation seule ne révoque pas les liens déjà partagés : leurs digests restent
+valides jusqu'à révocation explicite ou expiration. Un GET ne modifie ni les
+invitations ni les appartenances. Aucun ancien secret n'est consulté pour
+déchiffrer les invitations ; les liens illisibles sont remplacés explicitement.
 
 ## Tester sur Android avec GitHub Codespaces
 
