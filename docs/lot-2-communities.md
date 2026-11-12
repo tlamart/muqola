@@ -9,6 +9,9 @@ Les jetons ont 256 bits d'entropie, un digest SHA-256 unique et une copie Fernet
 chiffrée avec contexte distinct pour que l'administrateur retrouve le lien.
 Expiration 7 jours par défaut, 1–30 jours au formulaire. Aucune journalisation
 ni référent depuis les URL à secret ; redirection immédiate vers URL propre.
+Après rotation de clé, un lien illisible reste révocable depuis la page admin,
+sans révocation automatique sur GET. Suivre la
+[procédure de rotation du README](../README.md#rotation-du-secret-django).
 Les noms ne sont révélés qu'aux comptes vérifiés ayant le lien valide ou membres.
 L'intention d'adhésion est conservée comme digest en session et, pour une nouvelle
 inscription, dans PendingJoin. Elle survit à une vérification dans un autre

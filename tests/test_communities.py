@@ -7,7 +7,7 @@ import pytest
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import connections
 from django.http import Http404
-from django.test import Client
+from django.test import Client, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -18,6 +18,7 @@ from muqola.identity.models import User
 from tests.helpers import member
 
 pytestmark = pytest.mark.django_db
+ROTATED_KEY = "rotated-test-only-key-" + "0" * 64
 
 
 def raw(item: CommunityInvite) -> str:
@@ -45,6 +46,97 @@ def test_create_multiuse_invite_join_explicit_and_unique(client: Client) -> None
     services.join(bob, invitation.digest)
     services.join(clara, invitation.digest)
     assert Membership.objects.filter(community=community, active=True).count() == 3
+
+
+def test_key_rotation_keeps_invitation_management_usable(
+    client: Client, caplog: pytest.LogCaptureFixture
+) -> None:
+    alice, bob, outsider = member(), member("Bob"), member("Clara")
+    community = services.create(alice, "Communauté privée")
+    invitation = services.invite(alice, community.pk)
+    old_token = raw(invitation)
+    detail = reverse("communities:detail", args=[community.pk])
+    revoke = reverse("communities:revoke", args=[community.pk, invitation.pk])
+
+    with override_settings(SECRET_KEY=ROTATED_KEY):
+        # Se reconnecter après rotation : les anciennes sessions peuvent être invalides.
+        client.force_login(alice)
+        response = client.get(detail)
+        assert response.status_code == 200
+        body = response.content.decode()
+        assert "Ce lien ne peut plus être affiché." in body
+        assert revoke in body
+        assert old_token not in body and invitation.encrypted_token not in body
+        invitation.refresh_from_db()
+        assert invitation.revoked_at is None
+        assert services.valid_invite(invitation.digest) is not None
+
+        assert client.post(detail, {"action": "invite", "days": 7}).status_code == 302
+        replacement = community.invites.exclude(pk=invitation.pk).get()
+        new_token = raw(replacement)
+        assert new_token in client.get(detail).content.decode()
+        assert client.post(revoke).status_code == 302
+        invitation.refresh_from_db()
+        assert invitation.revoked_at is not None and invitation.encrypted_token == ""
+
+        client.force_login(bob)
+        client.get(reverse("communities:receive-invite", args=[old_token]))
+        assert client.post(reverse("communities:join")).status_code == 400
+        client.get(reverse("communities:receive-invite", args=[new_token]))
+        assert not Membership.objects.filter(user=bob, community=community).exists()
+        assert client.post(reverse("communities:join")).status_code == 302
+        member_page = client.get(detail)
+        assert member_page.status_code == 200
+        assert new_token not in member_page.content.decode()
+        assert "Ce lien ne peut plus être affiché." not in member_page.content.decode()
+        assert client.post(revoke).status_code == 404
+
+        client.force_login(outsider)
+        assert client.get(detail).status_code == 404
+        assert client.post(revoke).status_code == 404
+
+    for secret in (ROTATED_KEY, old_token, new_token):
+        assert secret not in caplog.text
+
+
+@pytest.mark.parametrize("payload", ["not-a-fernet-token", ""])
+def test_unreadable_invitation_can_be_explicitly_revoked(client: Client, payload: str) -> None:
+    alice = member()
+    community = services.create(alice, "Amis")
+    invitation = services.invite(alice, community.pk)
+    CommunityInvite.objects.filter(pk=invitation.pk).update(encrypted_token=payload)
+    client.force_login(alice)
+    detail = reverse("communities:detail", args=[community.pk])
+    revoke = reverse("communities:revoke", args=[community.pk, invitation.pk])
+    response = client.get(detail)
+    assert response.status_code == 200
+    assert "Ce lien ne peut plus être affiché." in response.content.decode()
+    assert revoke in response.content.decode()
+    assert client.post(revoke).status_code == 302
+    assert services.valid_invite(invitation.digest) is None
+
+
+@pytest.mark.parametrize("state", ["expired", "revoked"])
+def test_rotation_does_not_reactivate_terminal_invitations(client: Client, state: str) -> None:
+    alice = member()
+    community = services.create(alice, "Amis")
+    invitation = services.invite(alice, community.pk)
+    if state == "expired":
+        CommunityInvite.objects.filter(pk=invitation.pk).update(
+            created_at=timezone.now() - timedelta(days=8),
+            expires_at=timezone.now() - timedelta(days=1),
+        )
+    else:
+        services.revoke(alice, community.pk, invitation.pk)
+    with override_settings(SECRET_KEY=ROTATED_KEY):
+        client.force_login(alice)
+        response = client.get(reverse("communities:detail", args=[community.pk]))
+        assert response.status_code == 200
+        assert "Ce lien ne peut plus être affiché." not in response.content.decode()
+        assert reverse("communities:revoke", args=[community.pk, invitation.pk]) not in (
+            response.content.decode()
+        )
+        assert services.valid_invite(invitation.digest) is None
 
 
 def test_foreign_community_and_admin_actions_are_hidden(client: Client) -> None:
