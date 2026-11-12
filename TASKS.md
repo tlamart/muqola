@@ -43,12 +43,16 @@
 **Acceptation :** parcours complet compréhensible sans assistance ; aucune dépendance aux e-mails réels en tests.
 
 ## Lot 6 — Préproduction et mise en ligne
-- [ ] Préparer Caddy, HTTPS, configuration DNS et Docker Compose de production.
-- [ ] Installer un fournisseur d'e-mails et vérifier la délivrabilité de base.
-- [ ] Mettre en place sauvegarde externe + test de restauration, supervision minimale, journalisation.
-- [ ] Compléter mentions légales, politique de confidentialité, CGU adaptées, contact, demande de suppression de compte et politique de conservation, avec données réelles de l'exploitant.
-- [ ] Vérifier limites de débit, permissions intercommunautés, transitions, erreurs, secrets, migration et rollback.
-- [ ] Déployer après validation humaine et exécuter un test de fumée en production.
+
+**État initial (après PR #22) :** Django 5.2/PostgreSQL 17, Compose **local**, Gunicorn/WhiteNoise, outbox et worker, logs JSON, CI, contrôles Django, catalogue interne, ajout rapide et commande d'import CSV local existent déjà. Ne pas les réimplémenter. Le lot 6 livre leur **configuration et validation de production**, sans modifier le développement local.
+
+- [ ] Préparer Caddy, HTTPS, configuration DNS et **Compose de production distinct** (ne pas déployer `compose.yaml` local : `APP_ENV=development`, Mailpit et ports loopback). Configurer `APP_ENV=production`, `APP_BASE_URL` HTTPS, hôtes/CSRF, proxy de confiance, cookies, secrets distincts, PostgreSQL persistant à privilèges minimaux, services non exposés et limites adaptées au VPS.
+- [ ] Configurer un fournisseur SMTP transactionnel réel **sur l'outbox et le worker existants**, DNS SPF/DKIM/DMARC, et vérifier délivrabilité, liens de vérification et réinitialisation ; ne pas utiliser Mailpit en production.
+- [ ] Mettre en place sauvegardes PostgreSQL **externes, chiffrées, à rétention définie** (incluant les fiches importées), et tester une restauration isolée ; ajouter supervision, alertes, suivi du worker, disque et sauvegardes en réutilisant les logs JSON existants.
+- [ ] Compléter mentions légales, politique de confidentialité, CGU, contact, conservation et procédure **effective** de traitement des demandes de suppression de compte existantes, avec données réelles de l'exploitant ; décider explicitement des conditions d'accès des mineurs.
+- [ ] Vérifier limites de débit, permissions intercommunautés, transitions et prêts concurrents, erreurs, secrets, proxy/HTTPS et cookies réels, migrations, sauvegarde avant migration et rollback documenté. Exécuter CI, `check --deploy`, tests navigateur et parcours avec deux comptes.
+- [ ] Vérifier **avant tout import public** les droits de stockage et d'affichage des données BGG. La commande `import_games` de la PR #22 reste manuelle, sans import au démarrage/déploiement, sans CSV réel dans Git ni l'image Docker. Le lancement peut se faire avec un catalogue manuel ou des données autorisées.
+- [ ] Déployer **uniquement après validation humaine explicite** et exécuter un test de fumée en production ; ne pas provisionner ni déployer pendant la préparation documentaire.
 **Acceptation :** site HTTPS public ; un nouveau compte peut être créé et vérifié ; un prêt complet fonctionne ; sauvegarde restaurable ; aucun problème de sécurité bloquant connu.
 
 ## Scénarios E2E incontournables
@@ -62,4 +66,4 @@
 8. Réinitialisation de mot de passe, suppression de compte, erreur réseau et affichage mobile.
 
 ## Après le MVP — uniquement sur décision explicite
-Catalogue externe, upload d'images enrichi, rappels automatiques, chat, événements, notation, objets autres que jeux, applications natives, paiement/dons.
+Intégration/synchronisation automatique à un catalogue externe (l'import CSV local manuel existe depuis la PR #22), upload d'images enrichi, rappels automatiques, chat, événements, notation, objets autres que jeux, applications natives, paiement/dons.
