@@ -23,8 +23,15 @@ class OwnedGame(models.Model):
             not self.withdrawn
             and not self.archived
             and not self.game.hidden
-            and not self.loans.filter(state__in=["ACCEPTED", "HANDED_OVER"]).exists()
+            and not self._has_active_loan()
         )
+
+    def _has_active_loan(self) -> bool:
+        # Les lectures en liste réutilisent Exists ; les instances isolées gardent
+        # une lecture fraîche des prêts (notamment dans les transactions métier).
+        if "has_active_loan" in self.__dict__:
+            return bool(self.__dict__["has_active_loan"])
+        return self.loans.filter(state__in=["ACCEPTED", "HANDED_OVER"]).exists()
 
 
 class GameVisibility(models.Model):
