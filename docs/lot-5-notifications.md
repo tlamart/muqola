@@ -83,6 +83,38 @@ inéligibles, sans effacer les prêts actifs. Une désactivation peut nécessite
 tracées (ainsi que la reprise manuelle de la file) dans `OperatorAction` (opérateur PROTECT, cible, motif limité, date UTC).
 Ne jamais mettre de secret ou d'adresse de contact dans un motif.
 
+## Reprise opérateur
+
+La désactivation du seul administrateur ne promeut personne automatiquement.
+Si aucun administrateur de la communauté n'a à la fois une appartenance active
+et un compte actif et vérifié, l'opérateur peut désigner explicitement un membre
+existant, actif et vérifié. Si un administrateur utilisable existe encore, passer
+par le transfert d'administration habituel ; la reprise opérateur est refusée.
+
+Après validation humaine de la communauté et du membre à promouvoir, avec les
+identifiants exacts et un motif non sensible de 1 à 500 caractères :
+
+```sh
+docker compose exec web python manage.py ops recover-community-admin --operator operateur@example.test --community-id UUID --user-id ID --reason 'Reprise validée après désactivation du seul administrateur'
+```
+
+Comme les autres actions de cette console privée, cette commande exige un accès
+OS de confiance et un opérateur de plateforme actif, vérifié et superuser.
+Un membre, un administrateur de communauté ou un compte seulement `is_staff`
+ne peut pas l'exécuter. Elle ne crée ni ne réactive une appartenance ou un compte,
+ne donne aucun privilège global et ne réactive pas l'ancien administrateur.
+Elle ne donne pas à l'opérateur accès aux pages privées de la communauté ou aux
+prêts. Sans membre éligible, elle refuse la reprise.
+
+La promotion et sa trace `OperatorAction` sont atomiques : action
+`recover_community_admin`, opérateur, cible `UUID-communauté:ID-utilisateur`,
+motif et date UTC. Un échec de journalisation annule la promotion. Le verrou
+transactionnel métier PostgreSQL sérialise aussi les reprises concurrentes ;
+une seconde reprise est refusée dès qu'un administrateur utilisable existe.
+Les prêts, exemplaires et autres appartenances ne sont pas modifiés.
+L'opérateur doit vérifier le choix du membre avant l'action ; cette procédure
+ne remplace pas le contrôle humain et ne configure aucun accès de production.
+
 ## UX et suppression
 
 Tableau de bord sans communauté avec accès à la collection privée, confirmations

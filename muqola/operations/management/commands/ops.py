@@ -26,12 +26,14 @@ class Command(BaseCommand):
                 "reports",
                 "deletion-requests",
                 "disable-user",
+                "recover-community-admin",
                 "hide-game",
                 "correct-game",
             ],
         )
         parser.add_argument("--operator", required=True)
         parser.add_argument("--user-id", type=int)
+        parser.add_argument("--community-id", type=UUID)
         parser.add_argument("--game-id", type=UUID)
         parser.add_argument("--metadata-file", type=Path)
         parser.add_argument("--reason", default="")
@@ -68,6 +70,12 @@ class Command(BaseCommand):
             try:
                 if action == "disable-user" and options["user_id"]:
                     services.disable_user(user, options["user_id"], options["reason"])
+                elif action == "recover-community-admin":
+                    if options["community_id"] is None or options["user_id"] is None:
+                        raise CommandError("--community-id et --user-id sont obligatoires.")
+                    services.recover_community_admin(
+                        user, options["community_id"], options["user_id"], options["reason"]
+                    )
                 elif action in {"hide-game", "correct-game"} and options["game_id"]:
                     metadata = None
                     if action == "correct-game":

@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from muqola.catalogue.models import Game, GameReport, normalized_title
 from muqola.catalogue.services import FIELDS
+from muqola.communities.models import Membership
 from muqola.core.transactions import domain_write, verified
 from muqola.identity.models import User
 from muqola.inventory.models import OwnedGame
@@ -39,6 +40,36 @@ def disable_user(user: User, target_id: int, reason: str) -> None:
         target.save()
         OwnedGame.objects.filter(owner=target).update(withdrawn=True)
         close_ineligible_requests(user, participant_id=target.pk)
+
+
+def recover_community_admin(user: User, community_id: UUID, target_id: int, reason: str) -> None:
+    with domain_write(user):
+        operator(user)
+        if Membership.objects.filter(
+            community_id=community_id,
+            active=True,
+            role=Membership.Role.ADMIN,
+            user__is_active=True,
+            user__email_verified_at__isnull=False,
+        ).exists():
+            raise ValidationError(
+                "La communauté possède déjà un administrateur actif et vérifié. "
+                "Utilisez le transfert d'administration."
+            )
+        target = Membership.objects.filter(
+            community_id=community_id,
+            user_id=target_id,
+            active=True,
+            user__is_active=True,
+            user__email_verified_at__isnull=False,
+        ).first()
+        if target is None:
+            raise ValidationError(
+                "Membre cible actif et vérifié introuvable dans cette communauté."
+            )
+        target.role = Membership.Role.ADMIN
+        target.save(update_fields=["role"])
+        audit(user, "recover_community_admin", f"{community_id}:{target_id}", reason)
 
 
 def moderate_game(
