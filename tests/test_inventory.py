@@ -1,3 +1,4 @@
+from datetime import timedelta
 from uuid import uuid4
 
 import pytest
@@ -12,8 +13,11 @@ from muqola.catalogue.services import report, search, write_game
 from muqola.communities import services as communities
 from muqola.communities.models import Membership
 from muqola.inventory.models import GameVisibility, OwnedGame
-from muqola.inventory.services import visible, write_copy
+from muqola.inventory.services import archive, available, visible, write_copy
+from muqola.loans import services as loans
+from muqola.operations.services import moderate_game
 from tests.helpers import member
+from tests.test_loans import scenario
 
 pytestmark = pytest.mark.django_db
 
@@ -141,3 +145,154 @@ def test_generic_html_and_copy_notes_are_escaped(client: Client) -> None:
     response = client.get(reverse("inventory:detail", args=[item.pk]))
     assert b"<script>" not in response.content and b"&lt;script&gt;" in response.content
     assert b"<img src=x" not in response.content
+
+
+def hide_game(item: OwnedGame) -> None:
+    operator = member("Operateur")
+    operator.is_superuser = True
+    operator.save(update_fields=["is_superuser"])
+    moderate_game(operator, item.game_id, "Fiche abusive")
+
+
+def test_hidden_copy_notes_can_change_without_restoring_visibility_or_lending() -> None:
+    alice, bob, clara, community, item = scenario()
+    other = communities.create(alice, "Autre")
+    Membership.objects.create(community=other, user=clara)
+    loan = loans.request_loan(bob, item.pk, loans.today() + timedelta(days=7))
+    hide_game(item)
+
+    saved = write_copy(
+        alice,
+        item.game_id,
+        "  Notes après modération  ",
+        [community.pk, other.pk],
+        withdrawn=False,
+        copy_id=item.pk,
+    )
+    item.refresh_from_db()
+    item.game.refresh_from_db()
+    assert saved.pk == item.pk and item.notes == "Notes après modération"
+    assert item.game.hidden and item.withdrawn and not item.available
+    assert visible(alice).get() == item
+    assert not available(visible(alice)).exists()
+    for user in (bob, clara):
+        assert not visible(user).exists() and not search(user).exists()
+        with pytest.raises(Http404):
+            loans.request_loan(user, item.pk, loans.today() + timedelta(days=7))
+    loan.refresh_from_db()
+    assert loan.state == "CANCELLED"
+    with pytest.raises(ValidationError):
+        loans.transition(alice, loan.pk, "accept")
+    assert item.loans.count() == 1
+
+
+@pytest.mark.parametrize("hidden", [False, True])
+def test_copy_edit_form_saves_notes_and_respects_moderation(client: Client, hidden: bool) -> None:
+    alice, bob, clara, community, item = scenario()
+    write_game(alice, {"title": "Exemplaire de régression MUQ-04"}, item.game_id)
+    if hidden:
+        hide_game(item)
+    client.force_login(alice)
+    url = reverse("inventory:edit", args=[item.pk])
+    assert client.get(url).status_code == 200
+    response = client.post(url, {"notes": "Notes corrigées", "communities": [str(community.pk)]})
+    assert response.status_code == 302
+    assert response["Location"] == reverse("inventory:detail", args=[item.pk])
+    assert "Notes corrigées" in client.get(response["Location"]).content.decode()
+    item.refresh_from_db()
+    item.game.refresh_from_db()
+    assert item.notes == "Notes corrigées" and item.game.hidden == hidden
+    assert item.withdrawn == hidden and item.available == (not hidden)
+    assert item.visibilities.get().community_id == community.pk
+
+    if hidden:
+        for user in (bob, clara):
+            client.force_login(user)
+            for name, pk in (("catalogue:detail", item.game_id), ("inventory:detail", item.pk)):
+                assert client.get(reverse(name, args=[pk])).status_code == 404
+            for name in ("catalogue:index", "inventory:index", "inventory:mine"):
+                assert item.game.title not in client.get(reverse(name)).content.decode()
+            request_url = reverse("inventory:request", args=[item.pk])
+            assert client.get(request_url).status_code == 404
+            assert (
+                client.post(
+                    request_url, {"due_date": loans.today() + timedelta(days=7)}
+                ).status_code
+                == 404
+            )
+        assert not item.loans.exists()
+
+
+def test_hidden_game_rejects_new_copies_in_service_and_form(client: Client) -> None:
+    alice, bob, _, _, item = scenario()
+    hide_game(item)
+    count = OwnedGame.objects.count()
+    for user in (alice, bob):
+        with pytest.raises(Http404):
+            write_copy(user, item.game_id, "Nouvel exemplaire", [])
+        client.force_login(user)
+        url = reverse("catalogue:add-copy", args=[item.game_id])
+        assert client.get(url).status_code == 404
+        assert client.post(url, {"notes": "Nouvel exemplaire"}).status_code == 404
+    assert OwnedGame.objects.count() == count
+
+
+def test_hidden_copy_edit_remains_owner_only(client: Client) -> None:
+    _, bob, clara, _, item = scenario()
+    hide_game(item)
+    for user in (bob, clara):
+        with pytest.raises(Http404):
+            write_copy(user, item.game_id, "Intrusion", [], copy_id=item.pk)
+        client.force_login(user)
+        url = reverse("inventory:edit", args=[item.pk])
+        assert client.get(url).status_code == 404
+        assert client.post(url, {"notes": "Intrusion"}).status_code == 404
+    item.refresh_from_db()
+    assert item.notes == "Notes" and item.owner.display_name == "Alice"
+
+
+@pytest.mark.parametrize("hidden", [False, True])
+def test_archived_copy_cannot_be_edited_even_if_game_is_hidden(
+    client: Client, hidden: bool
+) -> None:
+    alice, _, _, _, item = scenario()
+    if hidden:
+        hide_game(item)
+    archive(alice, item.pk)
+    with pytest.raises(Http404):
+        write_copy(alice, item.game_id, "Tentative", [], copy_id=item.pk)
+    client.force_login(alice)
+    url = reverse("inventory:edit", args=[item.pk])
+    assert client.get(url).status_code == 404
+    assert client.post(url, {"notes": "Tentative"}).status_code == 404
+    item.refresh_from_db()
+    assert item.archived and item.notes == "Notes" and not item.visibilities.exists()
+
+
+@pytest.mark.parametrize("hidden", [False, True])
+def test_copy_edit_cannot_replace_its_game_or_share_to_foreign_community(hidden: bool) -> None:
+    alice, bob, _, community, item = scenario()
+    if hidden:
+        hide_game(item)
+    other_game = write_game(alice, {"title": "Autre fiche"})
+    with pytest.raises(ValidationError, match="ne peut pas être remplacée"):
+        write_copy(alice, other_game.pk, "Tentative", [], copy_id=item.pk)
+    foreign = communities.create(bob, "Étrangère")
+    with pytest.raises(ValidationError, match="vos communautés actuelles"):
+        write_copy(alice, item.game_id, "Tentative", [foreign.pk], copy_id=item.pk)
+    item.refresh_from_db()
+    assert item.notes == "Notes" and item.visibilities.get().community_id == community.pk
+
+
+def test_hidden_copy_edit_preserves_accepted_loan_and_its_completion() -> None:
+    alice, bob, _, _, item = scenario()
+    loan = loans.request_loan(bob, item.pk, loans.today() + timedelta(days=7))
+    loans.transition(alice, loan.pk, "accept")
+    hide_game(item)
+    write_copy(alice, item.game_id, "Notes privées", [], copy_id=item.pk)
+    loan.refresh_from_db()
+    assert loan.state == "ACCEPTED"
+    assert loans.contacts(bob, loan.pk) == {"owner": alice.email, "borrower": bob.email}
+    loans.transition(alice, loan.pk, "handover")
+    loans.transition(alice, loan.pk, "return")
+    assert loans.contacts(bob, loan.pk) is None

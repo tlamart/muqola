@@ -271,6 +271,9 @@ zéro ou plusieurs communautés : sans sélection, il reste privé. Un second co
 réutilise la même fiche pour sa propre copie. **Ma collection** permet l'édition
 et le retrait du prêt. Une fiche déjà réutilisée passe par le signalement pour
 correction. [Schéma et confidentialité](docs/lot-3-catalogue.md).
+Après masquage d'une fiche par modération, le propriétaire peut encore modifier
+son exemplaire non archivé. La fiche reste masquée et l'exemplaire retiré du prêt ;
+aucun nouvel exemplaire de cette fiche ne peut être créé.
 
 ## Prêts (lot 4)
 
