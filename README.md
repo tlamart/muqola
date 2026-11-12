@@ -271,6 +271,9 @@ zéro ou plusieurs communautés : sans sélection, il reste privé. Un second co
 réutilise la même fiche pour sa propre copie. **Ma collection** permet l'édition
 et le retrait du prêt. Une fiche déjà réutilisée passe par le signalement pour
 correction. [Schéma et confidentialité](docs/lot-3-catalogue.md).
+Après masquage d'une fiche par modération, le propriétaire peut encore modifier
+son exemplaire non archivé. La fiche reste masquée et l'exemplaire retiré du prêt ;
+aucun nouvel exemplaire de cette fiche ne peut être créé.
 
 ## Prêts (lot 4)
 
@@ -341,3 +344,14 @@ Le mode normal conserve les données longues valides. Chaque parcours crée deux
 nouveaux comptes fictifs ; les limites de débit locales restent applicables.
 `work/ui-redesign/result.json` est supprimé au démarrage et écrit uniquement si
 tout le parcours réussit ; les captures de référence précèdent les contenus longs.
+
+## Comptage SQL (MUQ-05)
+
+Explorer, Mes jeux et le détail de fiche réutilisent une annotation de prêt actif.
+Le détail affiche au plus 30 exemplaires autorisés par page, avec navigation ;
+son badge de disponibilité couvre tous les exemplaires accessibles.
+[Mesures avant/après et protocole](docs/muq-05-sql.md).
+
+```sh
+uv run --frozen pytest tests/test_inventory_sql.py -q -s
+```

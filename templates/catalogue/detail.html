@@ -19,6 +19,7 @@
     </li>{% endwith %}{% empty %}<li class="empty-state">
 <p>Aucun exemplaire accessible. Vous pouvez ajouter le vôtre à cette fiche, même sans communauté.</p>
 </li>{% endfor %}</ul>
+    {% include 'pagination.html' with page=copies %}
     {% if game.publisher or game.year or game.description %}<section class="collection-actions">
 <h2>À propos du jeu</h2>
 <p class="muted">{{ game.publisher }}{% if game.year %} · {{ game.year }}{% endif %}</p>
