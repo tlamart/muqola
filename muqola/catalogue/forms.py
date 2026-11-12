@@ -1,8 +1,9 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from django import forms
 
 from muqola.catalogue.models import Game
+from muqola.inventory.forms import CopyForm
 
 if TYPE_CHECKING:
     GameModelForm = forms.ModelForm[Game]
@@ -40,3 +41,19 @@ class ReportForm(forms.Form):
         max_length=1000,
         widget=forms.Textarea,
     )
+
+
+class QuickAddForm(CopyForm):
+    game_id = forms.UUIDField(required=False, widget=forms.HiddenInput)
+    title = forms.CharField(label="Titre du jeu", max_length=120, required=False)
+    distinct_edition = forms.BooleanField(
+        label="Il s'agit d'un autre jeu ou d'une autre édition", required=False
+    )
+
+    def clean(self) -> dict[str, Any]:
+        data = super().clean() or {}
+        if not data.get("game_id") and not data.get("title"):
+            raise forms.ValidationError("Sélectionnez un jeu ou indiquez le titre du jeu absent.")
+        if data.get("game_id") and data.get("title"):
+            raise forms.ValidationError("Choisissez un jeu existant ou un nouveau titre.")
+        return data

@@ -102,6 +102,30 @@ def remove_community_visibility(user_id: int, community_id: UUID) -> None:
     GameVisibility.objects.filter(owned_game__owner_id=user_id, community_id=community_id).delete()
 
 
+def add_to_collection(
+    user: User,
+    game_id: UUID | None,
+    title: str,
+    notes: str,
+    community_ids: list[UUID],
+    distinct_edition: bool = False,
+) -> OwnedGame:
+    from muqola.catalogue.models import normalized_title
+    from muqola.catalogue.services import write_game
+
+    with domain_write(user):
+        if game_id is None:
+            if (
+                not distinct_edition
+                and Game.objects.filter(hidden=False, title_key=normalized_title(title)).exists()
+            ):
+                raise ValidationError(
+                    "Un jeu de ce nom existe déjà. Sélectionnez-le ou confirmez une autre édition."
+                )
+            game_id = write_game(user, {"title": title}).pk
+        return write_copy(user, game_id, notes, community_ids)
+
+
 def archive(user: User, copy_id: UUID) -> None:
     with domain_write(user):
         item = get_object_or_404(

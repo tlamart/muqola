@@ -265,15 +265,132 @@ permet de promouvoir un membre existant ; aucune promotion automatique.
 
 ## Catalogue et collection (lot 3)
 
-**Ajouter un jeu** commence par la recherche d'une fiche existante ; sinon créer
-une fiche générique manuellement. **Ajouter mon exemplaire** sélectionne ensuite
-zéro ou plusieurs communautés : sans sélection, il reste privé. Un second compte
-réutilise la même fiche pour sa propre copie. **Ma collection** permet l'édition
-et le retrait du prêt. Une fiche déjà réutilisée passe par le signalement pour
-correction. [Schéma et confidentialité](docs/lot-3-catalogue.md).
+**Ajouter un jeu** permet de rechercher un titre (casse et accents ignorés),
+choisir un résultat, renseigner les notes et les communautés, puis **Ajouter à ma
+collection** sur la même page. Le parcours fonctionne sans JavaScript, avec 10
+résultats par page et les titres exacts en premier. Année, éditeur et nombre de joueurs distinguent les éditions.
+Aucune communauté sélectionnée : exemplaire privé. Plusieurs exemplaires d'un
+même jeu sont possibles ; le catalogue n'expose ni propriétaires ni quantités privées.
+
+**Mon jeu n’est pas dans la liste** préremplit le titre recherché et propose les
+correspondances avant création. Le titre est le seul renseignement obligatoire ;
+jeu et exemplaire sont enregistrés atomiquement. Un nom déjà présent exige de
+sélectionner le jeu existant ou de confirmer une autre édition, sans fusion arbitraire.
+Les anciens écrans de correction restent disponibles. Les règles de modération,
+d'archivage et de prêt ne sont pas modifiées. [Schéma et confidentialité](docs/lot-3-catalogue.md).
+
 Après masquage d'une fiche par modération, le propriétaire peut encore modifier
 son exemplaire non archivé. La fiche reste masquée et l'exemplaire retiré du prêt ;
 aucun nouvel exemplaire de cette fiche ne peut être créé.
+
+## Import volontaire d'un catalogue CSV local
+
+Aucun appel API BGG, téléchargement d'image ou synchronisation. Le catalogue est
+stocké dans PostgreSQL ; l'application n'a besoin ni du CSV ni d'Internet après
+import. L'import n'est lancé ni au démarrage, ni par les migrations, tests,
+Compose ou déploiements. Les tests utilisent exclusivement des CSV synthétiques.
+
+**Licence :** l'autorisation de stockage et d'affichage permanents des données BGG
+n'est pas confirmée. Ne pas importer ces données sur une instance publique avant
+clarification des droits et conditions applicables. Le code ne télécharge aucune
+donnée et ne prétend pas accorder de licence sur un fichier fourni séparément.
+
+Format UTF-8 (BOM accepté), séparateur virgule, neuf colonnes obligatoires, dans
+un ordre quelconque ; valeurs facultatives vides :
+
+```csv
+title,year,publisher,players_min,players_max,duration,description,external_source,external_id
+Jeu entièrement fictif,2025,,2,4,30,,synthetic,example-game-1
+```
+
+Les limites et contraintes de `Game` sont validées : titre 120 caractères,
+éditeur 120, description 2000, année 1–2200, joueurs 1–100 avec min ≤ max,
+durée 1–10000 minutes, source 80 et identifiant 120 caractères. Le titre normalisé
+utilise la même fonction que la recherche. Un titre identique n'est pas une clé :
+deux éditions ayant des identifiants différents restent séparées.
+
+Conserver tout CSV réel dans `data/import/` (déjà couvert par `data/` dans
+`.gitignore`). Le nom `muqola_games_5000.csv` et les noms `*bgg*.csv` sont aussi
+ignorés hors de ce dossier. Tout autre export réel doit rester dans `data/`,
+quel que soit son format. Ne jamais utiliser `git add -f`. Aucun CSV réel, dump,
+fixture ou illustration BGG ne doit être poussé sur GitHub.
+
+Sur la pile locale lancée selon les instructions ci-dessus :
+
+```sh
+mkdir -p data/import
+# Copier volontairement le fichier externe dans ce dossier, sans le versionner.
+docker compose exec -T web python manage.py import_games /dev/stdin --dry-run < data/import/muqola_games_5000.csv
+docker compose exec -T web python manage.py import_games /dev/stdin < data/import/muqola_games_5000.csv
+# Si le fichier est déjà accessible depuis le processus Django :
+uv run --frozen python manage.py import_games /chemin/externe/catalogue.csv --dry-run
+uv run --frozen python manage.py import_games /chemin/externe/catalogue.csv
+```
+
+La sortie JSON donne `created`, `existing`, `ignored`, `invalid` et `dry_run`.
+En simulation, `created` signifie **seraient créées** : aucune écriture PostgreSQL,
+aucun compte technique créé. Les anomalies indiquent sur stderr la ligne physique
+(fin de l'enregistrement multiligne) et les champs concernés, sans recopier les données.
+Les lignes sans identifiant externe sont ignorées pour garantir l'idempotence ;
+une paire source/identifiant incomplète est invalide. Pour le fichier BGG, conserver
+`external_source=bgg` et l'identifiant fourni dans `external_id`.
+
+La paire `(external_source, external_id)` identifie une fiche : doublons du CSV et
+fiches déjà présentes sont comptés dans `existing`, **sans aucune mise à jour**,
+même si le titre ou le masquage diffère. Le fichier est lu par lots de 250 lignes,
+avec transactions et savepoints ; seuls les identifiants déjà rencontrés sont
+conservés en mémoire au-delà du lot. Les données invalides sont sautées. Une erreur
+fatale de fichier/base annule le lot courant, conserve les lots validés et interrompt
+la commande ; corriger puis relancer. La contrainte unique en base protège aussi
+les imports concurrents. Aucun `OwnedGame` n'est créé par l'import.
+
+Le premier import effectif valide crée, si nécessaire, le compte identifiable
+`catalogue-import@muqola.invalid`, nommé « Catalogue importé (compte technique) » :
+compte désactivé, non vérifié, sans mot de passe utilisable, `is_staff=False`,
+`is_superuser=False`. Ce n'est pas un compte humain ni un administrateur ; ne pas
+l'activer ni lui attribuer de mot de passe. Si l'adresse réservée désigne un compte
+interactif/privilégié, l'import refuse de le modifier. Les fiches importées ont ce
+créateur protégé par FK ; leurs identifiants externes permettent la traçabilité.
+
+Après import, les données restent dans le volume PostgreSQL : le CSV peut être
+retiré de la machine sans affecter la recherche. Ne pas supprimer le volume pour
+retirer des fiches. Pour contrôler les références importées, une console Django
+locale de confiance peut lire, sans données d'exemplaires :
+
+```python
+from muqola.catalogue.models import Game
+
+Game.objects.filter(external_source="bgg").values("id", "title", "external_source", "external_id")
+```
+
+Si les droits imposent un retrait : arrêter les nouveaux imports, identifier les
+fiches concernées, puis utiliser **explicitement pour chaque UUID validé** la
+console opérateur existante :
+
+```sh
+docker compose exec web python manage.py ops hide-game --operator operateur@example.test --game-id UUID --reason 'Retrait du catalogue importe valide par operateur'
+```
+
+Cette action requiert un opérateur actif/vérifié/superutilisateur et un accès OS de
+confiance ; elle est tracée. Elle masque la fiche, retire les copies du prêt et
+clôt les demandes inéligibles, sans supprimer les exemplaires ni les prêts actifs.
+Une relance d'import ne la réaffiche pas. Aucune suppression destructive automatique.
+Avant toute suppression définitive éventuelle, examiner séparément les obligations
+légales et les historiques protégés.
+
+**Futur VPS :** après autorisation des droits et validation de l'exploitant, prévoir
+une sauvegarde restaurable, transférer le CSV hors du dépôt avec un accès privé,
+exécuter d'abord la simulation puis l'import volontaire avec la configuration de
+cette instance, conserver le bilan et retirer le fichier de transit. Ne pas modifier
+le démarrage ou le déploiement pour lancer l'import. Aucune opération VPS réalisée
+ici ; les prérequis de production restent du lot 6.
+
+Vérification navigateur de l'ajout rapide sur une pile locale avec Mailpit et un
+jeu déjà présent (importé ou synthétique) :
+
+```sh
+uv run --frozen --group browser python scripts/catalogue_browser_smoke.py --title "Titre déjà présent" --browser /usr/bin/chromium
+```
 
 ## Prêts (lot 4)
 
