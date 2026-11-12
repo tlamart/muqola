@@ -323,6 +323,14 @@ comptes fictifs et leurs jeux via les vrais formulaires, puis vérifie 360, 390,
 Les tests serveur vérifient aussi les limites de visibilité des nouvelles présentations.
 Aucun changement des règles métier, de Gunicorn, ni démarrage du lot 6.
 
+## Journalisation confidentielle
+
+Le [format JSON MUQ-06](docs/muq-06-safe-logging.md) conserve une liste fermée
+avec date UTC, type d'exception et localisation applicative lorsque disponibles.
+Messages libres, requêtes, secrets et tracebacks ne sont jamais sérialisés par
+le formateur. Le document décrit le contrat, ses limites et le choix de différer
+la corrélation plutôt que de reprendre une valeur client.
+
 ## Comptage SQL (MUQ-05)
 
 Explorer, Mes jeux et le détail de fiche réutilisent une annotation de prêt actif.
