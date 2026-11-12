@@ -44,20 +44,23 @@ def write_copy(
     copy_id: UUID | None = None,
 ) -> OwnedGame:
     with domain_write(user):
-        game = get_object_or_404(Game, pk=game_id, hidden=False)
-        item = (
-            OwnedGame(game=game, owner=user)
-            if copy_id is None
-            else get_object_or_404(OwnedGame, pk=copy_id, owner=user, archived=False)
-        )
-        if item.game_id != game.pk:
+        if copy_id is None:
+            game = get_object_or_404(Game, pk=game_id, hidden=False)
+            item = OwnedGame(game=game, owner=user)
+        else:
+            item = get_object_or_404(
+                OwnedGame.objects.select_related("game"), pk=copy_id, owner=user, archived=False
+            )
+            game = item.game
+        if item.game_id != game_id:
             raise ValidationError("La fiche d'un exemplaire ne peut pas être remplacée.")
         allowed = set(
             Membership.objects.filter(user=user, active=True).values_list("community_id", flat=True)
         )
         if not set(community_ids) <= allowed:
             raise ValidationError("Choisissez uniquement vos communautés actuelles.")
-        item.notes, item.withdrawn = notes.strip(), withdrawn
+        # L'édition privée ne peut pas annuler le retrait imposé par la modération.
+        item.notes, item.withdrawn = notes.strip(), withdrawn or game.hidden
         item.full_clean()
         item.save()
         if game.created_by_id != user.pk:
