@@ -271,6 +271,9 @@ zéro ou plusieurs communautés : sans sélection, il reste privé. Un second co
 réutilise la même fiche pour sa propre copie. **Ma collection** permet l'édition
 et le retrait du prêt. Une fiche déjà réutilisée passe par le signalement pour
 correction. [Schéma et confidentialité](docs/lot-3-catalogue.md).
+Après masquage d'une fiche par modération, le propriétaire peut encore modifier
+son exemplaire non archivé. La fiche reste masquée et l'exemplaire retiré du prêt ;
+aucun nouvel exemplaire de cette fiche ne peut être créé.
 
 ## Prêts (lot 4)
 
@@ -327,3 +330,14 @@ avec date UTC, type d'exception et localisation applicative lorsque disponibles.
 Messages libres, requêtes, secrets et tracebacks ne sont jamais sérialisés par
 le formateur. Le document décrit le contrat, ses limites et le choix de différer
 la corrélation plutôt que de reprendre une valeur client.
+
+## Comptage SQL (MUQ-05)
+
+Explorer, Mes jeux et le détail de fiche réutilisent une annotation de prêt actif.
+Le détail affiche au plus 30 exemplaires autorisés par page, avec navigation ;
+son badge de disponibilité couvre tous les exemplaires accessibles.
+[Mesures avant/après et protocole](docs/muq-05-sql.md).
+
+```sh
+uv run --frozen pytest tests/test_inventory_sql.py -q -s
+```
