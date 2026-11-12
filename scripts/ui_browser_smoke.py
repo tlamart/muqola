@@ -20,9 +20,15 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--browser", default="/usr/bin/chromium")
 parser.add_argument("--url", default="http://localhost:8000")
 parser.add_argument("--mailpit", default="http://127.0.0.1:8025")
+parser.add_argument(
+    "--reject-long-content",
+    choices=("game", "copy", "community"),
+    help="Test négatif local : dépasse une limite serveur ; le script doit échouer.",
+)
 args = parser.parse_args()
 output = Path("work/ui-redesign/screenshots")
 output.mkdir(parents=True, exist_ok=True)
+(output.parent / "result.json").unlink(missing_ok=True)
 widths = (360, 390, 768, 1200, 1280)
 
 
@@ -79,6 +85,41 @@ def geometry(page: Page) -> None:
         not page.evaluate("document.documentElement.scrollWidth > innerWidth"),
         "Débordement horizontal sur " + page.url.split("?")[0],
     )
+
+
+def no_validation_errors(page: Page) -> None:
+    expect(page.locator(".errorlist, [aria-invalid=true], form [role=alert]")).to_have_count(0)
+
+
+def submit_long_content(page: Page, button: str, destination: str) -> None:
+    source = page.url
+    with page.expect_response(
+        lambda response: response.request.method == "POST" and response.url == source
+    ) as submitted:
+        page.get_by_role("button", name=button, exact=True).click()
+    response = submitted.value
+    check(
+        response.status == 302,
+        f"Soumission refusée sur {source} : HTTP {response.status}, redirection 302 attendue",
+    )
+    check(
+        response.headers.get("location") == destination.removeprefix(args.url),
+        "Destination de redirection inattendue",
+    )
+    page.wait_for_url(destination)
+    no_validation_errors(page)
+    # Un nouveau GET ne peut pas relire les valeurs du formulaire POST en mémoire.
+    reloaded = page.reload()
+    check(reloaded is not None and reloaded.status == 200, "Relecture persistée indisponible")
+    no_validation_errors(page)
+
+
+def reject_if_requested(page: Page, scenario: str, field: str, length: int) -> None:
+    if args.reject_long_content == scenario:
+        # Contourne uniquement la validation HTML du navigateur, jamais celle du serveur.
+        control = page.locator(f"[name={field}]")
+        control.evaluate("el => { el.removeAttribute('maxlength'); el.form.noValidate = true; }")
+        control.fill("X" * length)
 
 
 def navigation(page: Page, width: int) -> None:
@@ -248,18 +289,36 @@ with sync_playwright() as playwright:
     alice.goto(game_urls["Régicide"] + "edit/")
     long_title = "Partage" * 17
     alice.get_by_label("Titre du jeu").fill(long_title)
-    alice.get_by_label("Description générique").fill("Une partie à partager. " * 80)
-    alice.get_by_role("button", name="Enregistrer", exact=True).click()
+    long_description = "Une partie à partager. " * 80
+    alice.get_by_label("Description générique").fill(long_description)
+    reject_if_requested(alice, "game", "description", 2001)
+    submit_long_content(alice, "Enregistrer", game_urls["Régicide"])
+    expect(alice.locator("#game-title")).to_have_text(long_title)
+    expect(alice.locator(".game-description")).to_have_text(long_description.strip())
     alice.goto(copy_urls["Régicide"] + "edit/")
-    alice.get_by_label("État et commentaires de mon exemplaire").fill("Commentaire" * 45)
-    alice.get_by_role("button", name="Enregistrer", exact=True).click()
+    long_notes = "Commentaire" * 45
+    alice.get_by_label("État et commentaires de mon exemplaire").fill(long_notes)
+    reject_if_requested(alice, "copy", "notes", 501)
+    submit_long_content(alice, "Enregistrer", copy_urls["Régicide"])
+    expect(alice.locator(".game-description")).to_have_text(long_notes)
     alice.goto(community_url)
-    alice.get_by_label("Nom de la communauté").fill("Communauté" * 10)
-    alice.get_by_role("button", name="Enregistrer les paramètres", exact=True).click()
+    long_community = "Communauté" * 10
+    alice.get_by_label("Nom de la communauté").fill(long_community)
+    reject_if_requested(alice, "community", "name", 101)
+    submit_long_content(alice, "Enregistrer les paramètres", community_url)
+    expect(alice.get_by_label("Nom de la communauté")).to_have_value(long_community)
+    expect(alice.get_by_role("heading", level=1)).to_have_text(long_community)
     for width in widths:
-        for url in (routes["explorer"], game_urls["Régicide"], community_url):
+        for url in (
+            routes["explorer"],
+            game_urls["Régicide"],
+            copy_urls["Régicide"],
+            community_url,
+        ):
             alice.set_viewport_size({"width": width, "height": 900})
-            alice.goto(url)
+            response = alice.goto(url)
+            check(response is not None and response.status == 200, "Contenu long indisponible")
+            no_validation_errors(alice)
             geometry(alice)
     check(not failures, "Erreurs JavaScript ou ressources réseau : " + str(failures))
     print(
