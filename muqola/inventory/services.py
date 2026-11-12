@@ -1,7 +1,10 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, TypedDict
 from uuid import UUID
 
 from django.core.exceptions import ValidationError
-from django.db.models import Q, QuerySet
+from django.db.models import Exists, OuterRef, Q, QuerySet
 from django.shortcuts import get_object_or_404
 
 from muqola.catalogue.models import Game
@@ -10,11 +13,30 @@ from muqola.core.transactions import domain_write, verified
 from muqola.identity.models import User
 from muqola.inventory.models import GameVisibility, OwnedGame
 
+if TYPE_CHECKING:
+    from django_stubs_ext import WithAnnotations
+
+
+class Availability(TypedDict):
+    has_active_loan: bool
+
+
+def with_availability(
+    query: QuerySet[OwnedGame],
+) -> QuerySet[WithAnnotations[OwnedGame, Availability]]:
+    from muqola.loans.models import Loan
+
+    return query.annotate(
+        has_active_loan=Exists(
+            Loan.objects.filter(owned_game_id=OuterRef("pk"), state__in=["ACCEPTED", "HANDED_OVER"])
+        )
+    )
+
 
 def visible(user: User) -> QuerySet[OwnedGame]:
     verified(user)
     return (
-        OwnedGame.objects.filter(archived=False)
+        with_availability(OwnedGame.objects.filter(archived=False))
         .filter(
             Q(owner=user)
             | Q(
@@ -30,8 +52,8 @@ def visible(user: User) -> QuerySet[OwnedGame]:
 
 
 def available(query: QuerySet[OwnedGame]) -> QuerySet[OwnedGame]:
-    return query.filter(withdrawn=False, archived=False, game__hidden=False).exclude(
-        loans__state__in=["ACCEPTED", "HANDED_OVER"]
+    return with_availability(query).filter(
+        withdrawn=False, archived=False, game__hidden=False, has_active_loan=False
     )
 
 

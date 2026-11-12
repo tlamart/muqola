@@ -51,9 +51,9 @@ def mine(request: HttpRequest) -> HttpResponse:
         "inventory/mine.html",
         {
             "copies": Paginator(
-                OwnedGame.objects.filter(owner=actor(request), archived=False).select_related(
-                    "game"
-                ),
+                services.with_availability(
+                    OwnedGame.objects.filter(owner=actor(request), archived=False)
+                ).select_related("game"),
                 30,
             ).get_page(request.GET.get("page"))
         },

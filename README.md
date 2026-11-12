@@ -319,3 +319,14 @@ comptes fictifs et leurs jeux via les vrais formulaires, puis vérifie 360, 390,
 `work/ui-redesign/screenshots/` ; les comparaisons avant/après sont versionnées dans la documentation.
 Les tests serveur vérifient aussi les limites de visibilité des nouvelles présentations.
 Aucun changement des règles métier, de Gunicorn, ni démarrage du lot 6.
+
+## Comptage SQL (MUQ-05)
+
+Explorer, Mes jeux et le détail de fiche réutilisent une annotation de prêt actif.
+Le détail affiche au plus 30 exemplaires autorisés par page, avec navigation ;
+son badge de disponibilité couvre tous les exemplaires accessibles.
+[Mesures avant/après et protocole](docs/muq-05-sql.md).
+
+```sh
+uv run --frozen pytest tests/test_inventory_sql.py -q -s
+```
