@@ -1,8 +1,9 @@
 name: Muqola checks
 on:
   pull_request:
+    branches: [main]
   push:
-    branches: [main, 'feat/**']
+    branches: [main]
 permissions:
   contents: read
 concurrency:
