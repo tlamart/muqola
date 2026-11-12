@@ -97,6 +97,8 @@ SESSION_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_SECURE = APP_ENV == "production"
 CSRF_COOKIE_SECURE = APP_ENV == "production"
 SECURE_SSL_REDIRECT = APP_ENV == "production"
+# Only the private Caddy reverse proxy may reach Gunicorn in production.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https") if APP_ENV == "production" else None
 SECURE_HSTS_SECONDS = 3600 if APP_ENV == "production" else 0
 SECURE_HSTS_INCLUDE_SUBDOMAINS = False
 SECURE_HSTS_PRELOAD = False
@@ -153,5 +155,6 @@ if (
     raise ImproperlyConfigured(
         "APP_BASE_URL doit être une origine de confiance, HTTPS en production."
     )
+CSRF_TRUSTED_ORIGINS = [APP_BASE_URL] if APP_ENV == "production" else []
 SESSION_COOKIE_AGE = 7 * 24 * 60 * 60
 CSRF_FAILURE_VIEW = "muqola.core.views.csrf_failure"
