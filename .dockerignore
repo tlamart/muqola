@@ -10,3 +10,7 @@ __pycache__
 .mypy_cache
 .ruff_cache
 staticfiles
+# Données d'import externes : exclues aussi des images.
+data
+**/muqola_games_5000.csv
+**/*bgg*.csv

@@ -314,6 +314,8 @@ Conserver tout CSV réel dans `data/import/` (déjà couvert par `data/` dans
 ignorés hors de ce dossier. Tout autre export réel doit rester dans `data/`,
 quel que soit son format. Ne jamais utiliser `git add -f`. Aucun CSV réel, dump,
 fixture ou illustration BGG ne doit être poussé sur GitHub.
+Les mêmes données d'import sont exclues du contexte Docker par `.dockerignore`,
+pour qu'un build local ne les embarque pas dans l'image.
 
 Sur la pile locale lancée selon les instructions ci-dessus :
 
