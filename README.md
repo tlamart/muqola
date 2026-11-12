@@ -258,6 +258,9 @@ Depuis **Mes communautés**, créer une communauté, générer un lien et le par
 avec un second compte fictif vérifié. L'adhésion doit être confirmée ; les liens
 sont multiusages, expirables et révocables. Transférer l'administration avant le
 départ du dernier administrateur. Les détails et membres restent privés.
+Si la désactivation du seul administrateur bloque la gestion, une
+[reprise opérateur explicite et tracée](docs/lot-5-notifications.md#reprise-opérateur)
+permet de promouvoir un membre existant ; aucune promotion automatique.
 [Schéma, permissions, concurrence et vérifications](docs/lot-2-communities.md).
 
 ## Catalogue et collection (lot 3)
