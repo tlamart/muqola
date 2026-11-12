@@ -442,6 +442,36 @@ comptes fictifs et leurs jeux via les vrais formulaires, puis vérifie 360, 390,
 Les tests serveur vérifient aussi les limites de visibilité des nouvelles présentations.
 Aucun changement des règles métier, de Gunicorn, ni démarrage du lot 6.
 
+Le scénario de contenus longs exige désormais, pour les trois formulaires (fiche
+jeu, exemplaire, communauté), une réponse POST 302 vers le détail attendu, puis
+un rechargement HTTP 200 sans erreur de validation et une relecture exacte des
+valeurs enregistrées. Le rendu reste contrôlé aux cinq largeurs, y compris sur
+le détail de l'exemplaire.
+
+Test négatif contrôlé, sur la même pile locale uniquement :
+
+```sh
+uv run --frozen --group browser python scripts/ui_browser_smoke.py --reject-long-content copy
+```
+
+Cette commande doit terminer avec un code non nul et « Soumission refusée » :
+elle soumet 501 caractères pour une limite serveur de 500. Elle désactive la
+validation HTML pour ce champ uniquement afin d'atteindre la validation serveur,
+sans changer les règles de l'application. Les variantes `game` (description de
+2001 caractères) et `community` (nom de 101 caractères) sont aussi disponibles.
+Le mode normal conserve les données longues valides. Chaque parcours crée deux
+nouveaux comptes fictifs ; les limites de débit locales restent applicables.
+`work/ui-redesign/result.json` est supprimé au démarrage et écrit uniquement si
+tout le parcours réussit ; les captures de référence précèdent les contenus longs.
+
+## Journalisation confidentielle
+
+Le [format JSON MUQ-06](docs/muq-06-safe-logging.md) conserve une liste fermée
+avec date UTC, type d'exception et localisation applicative lorsque disponibles.
+Messages libres, requêtes, secrets et tracebacks ne sont jamais sérialisés par
+le formateur. Le document décrit le contrat, ses limites et le choix de différer
+la corrélation plutôt que de reprendre une valeur client.
+
 ## Comptage SQL (MUQ-05)
 
 Explorer, Mes jeux et le détail de fiche réutilisent une annotation de prêt actif.
