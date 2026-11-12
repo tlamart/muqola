@@ -1,0 +1,91 @@
+# Production only. Run with: docker compose --env-file .env.production -f compose.prod.yaml ...
+# Never use the local compose.yaml or Mailpit in production.
+name: muqola-prod
+x-app: &app
+  image: muqola:production
+  build: .
+  env_file: .env.production
+  environment:
+    APP_ENV: production
+    POSTGRES_HOST: db
+    POSTGRES_PORT: "5432"
+  init: true
+  stop_grace_period: 30s
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  read_only: true
+  tmpfs: [/tmp]
+  mem_limit: 512m
+  logging:
+    driver: json-file
+    options:
+      max-size: "5m"
+      max-file: "3"
+services:
+  db:
+    image: postgres:17-bookworm
+    env_file: .env.production
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB required}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    mem_limit: 768m
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+  web:
+    <<: *app
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready/', timeout=4).read()"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+  worker:
+    <<: *app
+    command: [python, manage.py, process_outbox]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    mem_limit: 192m
+  caddy:
+    image: caddy:2
+    env_file: .env.production
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?APP_DOMAIN required}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+    restart: unless-stopped
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 128m
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
