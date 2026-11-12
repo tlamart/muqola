@@ -345,6 +345,14 @@ nouveaux comptes fictifs ; les limites de débit locales restent applicables.
 `work/ui-redesign/result.json` est supprimé au démarrage et écrit uniquement si
 tout le parcours réussit ; les captures de référence précèdent les contenus longs.
 
+## Journalisation confidentielle
+
+Le [format JSON MUQ-06](docs/muq-06-safe-logging.md) conserve une liste fermée
+avec date UTC, type d'exception et localisation applicative lorsque disponibles.
+Messages libres, requêtes, secrets et tracebacks ne sont jamais sérialisés par
+le formateur. Le document décrit le contrat, ses limites et le choix de différer
+la corrélation plutôt que de reprendre une valeur client.
+
 ## Comptage SQL (MUQ-05)
 
 Explorer, Mes jeux et le détail de fiche réutilisent une annotation de prêt actif.
