@@ -26,6 +26,10 @@ coverage/
 *.sql.gz
 backups/
 data/
+# Imports externes : ne jamais versionner les données BGG, même hors de data/.
+data/import/
+muqola_games_5000.csv
+*bgg*.csv
 
 # Éditeurs et système
 .DS_Store

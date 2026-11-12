@@ -1,29 +1,43 @@
 {% extends 'base.html' %}{% block title %}Ajouter un jeu — Muqola{% endblock %}
 {% block content %}<header class="page-heading">
-<p class="eyebrow">Ajouter un jeu · Étape 1</p>
-<h1>Trouvez sa fiche</h1>
-<p class="intro">Recherchez d’abord dans le catalogue interne. Vous pourrez ensuite ajouter votre propre exemplaire et choisir son partage.</p>
-<p class="help">Les fiches contiennent uniquement des métadonnées génériques. Aucun exemplaire privé n’est révélé ici.</p>
+<p class="eyebrow">Ma collection</p><h1>Ajouter un jeu</h1>
+<p class="intro">Trouvez votre jeu, choisissez avec qui le partager et ajoutez-le à votre collection.</p>
 </header>
 <form method="get" class="search-form">
-<label for="title">Rechercher par titre avant de créer</label>
-<div class="search-bar search-bar--catalogue">
-<span aria-hidden="true">⌕</span>
-<input id="title" name="title" maxlength="120" value="{{ title_query }}" placeholder="Le nom de votre jeu">
-<button type="submit">Rechercher une fiche</button>
-</div>
-</form>
-<h2 class="visually-hidden">Fiches correspondantes</h2>
-<ul class="game-grid">{% for game in games %}<li>
-<article class="game-card">
-<a class="game-card__link" href="{% url 'catalogue:detail' game.pk %}">{% include 'components/game_cover.html' %}<h3>{{ game.title }}</h3>
-</a>
-<p class="game-card__metadata">{% include 'components/game_metadata.html' %}</p>{% if game.publisher %}<p class="game-card__metadata">{{ game.publisher }}</p>{% endif %}</article>
-</li>{% empty %}<li class="empty-state">
-<h2>Cette fiche reste à créer</h2>
-<p>Aucune fiche ne correspond. Vous pouvez la créer manuellement, sans catalogue externe.</p>
-</li>{% endfor %}</ul>
-{% include 'pagination.html' with page=games %}<div class="actions">
-<a class="button" href="{% url 'catalogue:create' %}">Créer une fiche manuellement</a>
-<a href="{% url 'inventory:mine' %}">Revenir à mes jeux</a>
-</div>{% endblock %}
+<label for="search-title">Rechercher un jeu par titre</label>
+<div class="search-bar search-bar--catalogue"><span aria-hidden="true">⌕</span>
+<input id="search-title" name="title" maxlength="120" value="{{ title_query }}" placeholder="Le nom de votre jeu">
+<button type="submit">Rechercher</button></div></form>
+{% if manual %}<section class="panel"><h2>Un jeu absent du catalogue</h2>
+<p>Vérifiez les correspondances ci-dessous avant d'ajouter un nouveau jeu.
+Son titre sera visible aux autres membres ; gardez les informations personnelles dans les notes de votre exemplaire.</p>
+<a href="{% url 'catalogue:index' %}?title={{ title_query|urlencode }}">Choisir un jeu existant</a></section>{% endif %}
+<form method="post" class="catalogue-add">{% csrf_token %}
+{% if form.errors %}<div class="form-errors" role="alert">{{ form.non_field_errors }}{% for field in form %}{{ field.errors }}{% endfor %}</div>{% endif %}
+<fieldset><legend>{% if manual %}Jeux proches{% else %}Choisissez votre jeu{% endif %}</legend>
+<ul class="catalogue-choices">{% for game in games %}<li class="game-card">
+{% if not manual %}<label class="game-choice" for="game-{{ game.pk }}">
+<input type="radio" id="game-{{ game.pk }}" name="game_id" value="{{ game.pk }}" required
+{% if form.game_id.value|stringformat:'s' == game.pk|stringformat:'s' %}checked{% endif %}>
+<span><span class="visually-hidden">Choisir </span><strong>{{ game.title }}</strong>
+{% else %}<div><strong>{{ game.title }}</strong>{% endif %}
+<span class="game-card__metadata">{% if game.year %}{{ game.year }} · {% endif %}{% include 'components/game_metadata.html' %}{% if game.publisher %} · {{ game.publisher }}{% endif %}</span>
+{% if not manual %}</span></label>{% else %}</div>{% endif %}
+<a class="help" href="{% url 'catalogue:detail' game.pk %}" aria-label="Voir les détails de {{ game.title }}">Détails</a>
+</li>{% empty %}<li class="empty-state"><h2>Aucun jeu ne correspond</h2>
+<p>Vous pouvez ajouter le vôtre avec son titre uniquement.</p></li>{% endfor %}</ul>
+</fieldset>
+{% include 'pagination.html' with page=games %}
+{% if manual %}<p>{{ form.title.label_tag }}{{ form.title }}</p>
+<p>{{ form.distinct_edition }} {{ form.distinct_edition.label_tag }}</p>{% endif %}
+{% if games or manual %}<section class="panel collection-actions" aria-labelledby="copy-information">
+<h2 id="copy-information">Votre exemplaire</h2>
+<p>{{ form.notes.label_tag }}{{ form.notes }}</p>
+<fieldset><legend>Avec qui partager ?</legend>
+<p class="help">Aucune communauté sélectionnée : votre exemplaire reste privé.</p>
+{{ form.communities }}</fieldset>
+<button type="submit">{% if manual %}Créer ce jeu et l’ajouter{% else %}Ajouter à ma collection{% endif %}</button>
+</section>{% endif %}</form>
+<div class="actions">{% if not manual %}<a class="button secondary" href="{% url 'catalogue:index' %}?manual=1&amp;title={{ title_query|urlencode }}">Mon jeu n’est pas dans la liste</a>{% endif %}
+<a href="{% url 'inventory:mine' %}">Revenir à mes jeux</a></div>
+{% endblock %}

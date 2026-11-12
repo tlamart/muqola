@@ -91,6 +91,8 @@ jobs:
           uv run --frozen --group browser python scripts/accounts_browser_smoke.py --browser "$(command -v google-chrome || command -v chromium)"
       - name: Product journey
         run: uv run --frozen --group browser python scripts/product_browser_smoke.py --browser "$(command -v google-chrome || command -v chromium)"
+      - name: Quick add with and without JavaScript
+        run: uv run --frozen --group browser python scripts/catalogue_browser_smoke.py --browser "$(command -v google-chrome || command -v chromium)"
       - name: Responsive UI, navigation, filters and no-JavaScript journey
         run: uv run --frozen --group browser python scripts/ui_browser_smoke.py --browser "$(command -v google-chrome || command -v chromium)"
       - name: Preserve responsive screenshots

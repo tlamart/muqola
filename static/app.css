@@ -110,6 +110,12 @@ button:disabled { opacity: .65; cursor: wait; }
 .game-card__link:hover h3 { color: var(--purple-ink); text-decoration: underline; }
 .game-card h3 { font-size: 1rem; margin: 8px 0 5px; }
 .game-card__metadata { font-size: .75rem; color: var(--muted); margin: 0 0 4px; }
+.game-choice { display: flex; align-items: center; gap: 8px; min-height: 44px; overflow-wrap: anywhere; }
+.game-choice input { flex: 0 0 auto; width: auto; }
+.catalogue-add fieldset { min-width: 0; }
+.catalogue-choices { list-style: none; padding: 0; display: grid; gap: 10px; }
+.catalogue-choices .game-card__metadata { display: block; font-weight: 400; }
+.catalogue-choices .game-card { height: auto; }
 .game-card__owner { font-size: .75rem; color: var(--muted); margin: 0 0 8px; }
 .game-card__owner a { color: var(--muted); }
 .game-cover { position: relative; isolation: isolate; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 16px; aspect-ratio: 1 / 1.05; min-height: 150px; max-height: 210px; padding: 18px 10px 14px; border-radius: 7px; color: var(--white); background: linear-gradient(145deg, rgb(255 255 255 / 14%), transparent 60%), var(--ocean); text-align: center; }

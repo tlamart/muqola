@@ -3,31 +3,59 @@ from uuid import UUID
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
+from django.db.models import Case, Value, When
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_http_methods
 
 from muqola.catalogue import services
-from muqola.catalogue.forms import GameForm, ReportForm
-from muqola.catalogue.models import Game
+from muqola.catalogue.forms import GameForm, QuickAddForm, ReportForm
+from muqola.catalogue.models import Game, normalized_title
 from muqola.communities.models import Membership
 from muqola.core.http import actor
 from muqola.inventory.models import GameVisibility
-from muqola.inventory.services import available, visible
+from muqola.inventory.services import add_to_collection, available, visible
 
 
-@require_GET
+@require_http_methods(["GET", "POST"])
 def index(request: HttpRequest) -> HttpResponse:
     title = request.GET.get("title", "")[:120]
+    manual = request.GET.get("manual") == "1"
+    matches = services.search(actor(request), title).order_by(
+        Case(When(title_key=normalized_title(title), then=Value(0)), default=Value(1)),
+        "title_key",
+        "id",
+    )
+    form = QuickAddForm(
+        request.POST if request.method == "POST" else None,
+        user=actor(request),
+        initial={"title": title} if manual else None,
+    )
+    if request.method == "POST" and form.is_valid():
+        try:
+            saved = add_to_collection(
+                actor(request),
+                form.cleaned_data["game_id"],
+                form.cleaned_data["title"],
+                form.cleaned_data["notes"],
+                [UUID(value) for value in form.cleaned_data["communities"]],
+                form.cleaned_data["distinct_edition"],
+            )
+        except ValidationError as error:
+            form.add_error(None, " ".join(error.messages))
+        else:
+            messages.success(request, "Jeu ajouté à votre collection.")
+            return redirect("inventory:detail", copy_id=saved.pk)
     return render(
         request,
         "catalogue/index.html",
         {
-            "games": Paginator(services.search(actor(request), title), 30).get_page(
-                request.GET.get("page")
-            ),
+            "games": Paginator(matches, 10).get_page(request.GET.get("page")),
             "title_query": title,
+            "form": form,
+            "manual": manual,
         },
+        status=400 if request.method == "POST" else 200,
     )
 
 
