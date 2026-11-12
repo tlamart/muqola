@@ -40,6 +40,9 @@ de prêt ne sont pas supprimés par cette purge. Un message de prêt en échec p
 être régénéré depuis l'événement ; pour un lien de compte expiré, demander un
 nouveau lien. Jetons d'invitation expirés effacés, intention d'adhésion supprimée
 après 30 jours. Les rétentions des jetons de compte du lot 1 restent applicables.
+Le passage des attentes expirées en échec utilise une mise à jour conditionnelle
+atomique : si une livraison concurrente valide `sent`, la purge conserve ce statut
+et ne rend pas le message éligible à une reprise manuelle.
 La politique complète des historiques/droits RGPD est à finaliser avant ouverture
 au lot 6, avec l'exploitant ; aucun compte réel ici.
 
