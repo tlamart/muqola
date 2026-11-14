@@ -74,23 +74,27 @@ print(json.dumps({
     assert settings["mail"] == "mailpit"
 
 
-def test_production_does_not_inherit_codespaces_origins_or_cookie_exceptions() -> None:
-    env = (
-        os.environ
-        | ENVIRONMENT
-        | {"APP_ENV": "production", "APP_BASE_URL": "https://muqola.example.test"}
-    )
+@pytest.mark.parametrize("base_url", ["https://muqola.example.test", "https://other.example.test"])
+def test_production_does_not_inherit_codespaces_origins_or_cookie_exceptions(base_url: str) -> None:
+    env = os.environ | ENVIRONMENT | {"APP_ENV": "production", "APP_BASE_URL": base_url}
     code = """
 import json
 import config.settings as s
-csrf = getattr(s, 'CSRF_TRUSTED_ORIGINS', [])
-print(json.dumps([s.APP_BASE_URL, csrf,
-                  s.SESSION_COOKIE_SECURE, s.CSRF_COOKIE_SECURE, s.SECURE_SSL_REDIRECT]))
+print(json.dumps([s.APP_BASE_URL, s.CSRF_TRUSTED_ORIGINS,
+                  s.SESSION_COOKIE_SECURE, s.CSRF_COOKIE_SECURE, s.SECURE_SSL_REDIRECT,
+                  s.SECURE_PROXY_SSL_HEADER]))
 """
     result = subprocess.run(  # noqa: S603
         [sys.executable, "-c", code], env=env, cwd=ROOT, capture_output=True, text=True, check=True
     )
-    assert json.loads(result.stdout) == ["https://muqola.example.test", [], True, True, True]
+    assert json.loads(result.stdout) == [
+        base_url,
+        [base_url],
+        True,
+        True,
+        True,
+        ["HTTP_X_FORWARDED_PROTO", "https"],
+    ]
     result = subprocess.run(  # noqa: S603
         [sys.executable, "-c", "import config.codespaces"],
         env=env,

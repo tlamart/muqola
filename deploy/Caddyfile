@@ -1,0 +1,6 @@
+# Caddy provisions HTTPS once the DNS and public ports are ready.
+# APP_DOMAIN is the exact hostname, not a URL.
+{$APP_DOMAIN} {
+    encode zstd gzip
+    reverse_proxy web:8000
+}
