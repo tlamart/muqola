@@ -106,6 +106,9 @@ de cookies réels seront validés au lot 6. Ce contrôle ne vaut pas homologatio
 La CI GitHub répète ces contrôles, vérifie le lock runtime généré, audite les
 dépendances runtime et démarre un Compose propre (build Docker + migrations +
 healthcheck + vraie capture SMTP locale). Aucun déploiement automatique.
+Les tests de configuration vérifient qu'en production, l'origine CSRF autorisée
+est exactement `APP_BASE_URL`, même en présence de variables Codespaces ; les
+cookies sécurisés et la redirection HTTPS restent obligatoires.
 
 ## Migrations et dépendances
 
