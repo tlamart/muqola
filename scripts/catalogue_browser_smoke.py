@@ -178,7 +178,12 @@ with sync_playwright() as playwright:
             )
             if args.commons_fixture:
                 print(
-                    "PASS alias Wikidata, crédits, image synthétique et remplacement après erreur",
+                    "PASS alias Wikidata, crédits et image synthétique"
+                    + (
+                        " ; remplacement après erreur vérifié (JS actif)"
+                        if javascript
+                        else " ; chargement vérifié sans JS"
+                    ),
                     flush=True,
                 )
     browser.close()
