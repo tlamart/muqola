@@ -55,7 +55,8 @@ Le catalogue `Game` contient uniquement des **métadonnées génériques sur les
 ### Doublons, images et catalogue externe
 - Suggérer les fiches existantes avant création ; ne pas imposer l'unicité du titre car des jeux distincts peuvent porter des noms semblables. Contrôler uniquement les IDs externes non nuls quand ils existeront.
 - Prévoir `externalSource` et `externalId` facultatifs et une couche d'import indépendante, mais **aucune API externe requise au MVP**.
-- **MVP : visuel de remplacement neutre**, sans chargement automatique de couvertures ni dépôt/URL d'image fournie par les utilisateurs. Intégrations externes et illustrations enrichies après vérification des licences, attribution et sécurité.
+- **Visuel neutre par défaut**, sans dépôt ni URL d'image saisie par les utilisateurs. Les illustrations externes sont limitées à l'extension Commons approuvée ci-dessous ; aucun enrichissement ni téléchargement serveur automatique.
+- **Extension Wikidata autorisée pour la bêta :** import CSV local explicite, titre français et alias anglais ; seules les illustrations Commons marquées `approved_by_owner` et validées sont affichées, avec auteur/attribution et licence propres à l'image. Les données Wikidata CC0 restent distinctes de ces licences. Aucun téléchargement serveur, synchronisation ou saisie d'URL par les utilisateurs ; le visuel neutre reste le remplacement.
 
 ## 6. Découverte et recherche
 - Tableau de bord des jeux accessibles à l'utilisateur via l'union de ses communautés, avec déduplication d'un même exemplaire partagé dans plusieurs communautés.

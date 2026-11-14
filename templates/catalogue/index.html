@@ -16,6 +16,7 @@ Son titre sera visible aux autres membres ; gardez les informations personnelles
 {% if form.errors %}<div class="form-errors" role="alert">{{ form.non_field_errors }}{% for field in form %}{{ field.errors }}{% endfor %}</div>{% endif %}
 <fieldset><legend>{% if manual %}Jeux proches{% else %}Choisissez votre jeu{% endif %}</legend>
 <ul class="catalogue-choices">{% for game in games %}<li class="game-card">
+{% if game.illustration.displayable %}{% include 'components/game_cover.html' with compact=True %}{% endif %}
 {% if not manual %}<label class="game-choice" for="game-{{ game.pk }}">
 <input type="radio" id="game-{{ game.pk }}" name="game_id" value="{{ game.pk }}" required
 {% if form.game_id.value|stringformat:'s' == game.pk|stringformat:'s' %}checked{% endif %}>

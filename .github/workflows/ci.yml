@@ -93,6 +93,13 @@ jobs:
         run: uv run --frozen --group browser python scripts/product_browser_smoke.py --browser "$(command -v google-chrome || command -v chromium)"
       - name: Quick add with and without JavaScript
         run: uv run --frozen --group browser python scripts/catalogue_browser_smoke.py --browser "$(command -v google-chrome || command -v chromium)"
+      - name: Wikidata aliases and Commons credits (synthetic, no external image download)
+        run: |
+          docker compose exec -T web python manage.py import_wikidata_games /dev/stdin <<'CSV'
+          wikidata_id,title_fr,title_en,bgg_ids,data_source,data_license,image_url,image_commons_file,image_source_url,image_license,image_license_url,image_artist,image_attribution,image_review_status
+          Q999999999,Les Pions du Canal fictifs,Fictional Canal Tokens,,Wikidata,CC0,https://commons.wikimedia.org/wiki/Special:FilePath/Synthetic_game.jpg,File:Synthetic game.jpg,https://commons.wikimedia.org/wiki/File:Synthetic_game.jpg,CC BY-SA 4.0,https://creativecommons.org/licenses/by-sa/4.0,Auteur fictif,Photographie synthétique,approved_by_owner
+          CSV
+          uv run --frozen --group browser python scripts/catalogue_browser_smoke.py --title "Fictional Canal Tokens" --expected-title "Les Pions du Canal fictifs" --commons-fixture --browser "$(command -v google-chrome || command -v chromium)"
       - name: Responsive UI, navigation, filters and no-JavaScript journey
         run: uv run --frozen --group browser python scripts/ui_browser_smoke.py --browser "$(command -v google-chrome || command -v chromium)"
       - name: Preserve responsive screenshots
