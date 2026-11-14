@@ -1,0 +1,7 @@
+{% with illustration=game.illustration %}{% if illustration.displayable and not game.hidden %}
+<p class="image-credit">
+{% if illustration.artist %}{{ illustration.artist }}{% elif illustration.attribution %}{{ illustration.attribution }}{% else %}Auteur non renseigné{% endif %}
+{% if illustration.artist and illustration.attribution %} — {{ illustration.attribution }}{% endif %}
+ · <a href="{{ illustration.source_url }}" rel="noreferrer noopener">Wikimedia Commons</a>
+ · <a href="{{ illustration.license_url }}" rel="noreferrer noopener">{{ illustration.license }}</a>
+</p>{% endif %}{% endwith %}

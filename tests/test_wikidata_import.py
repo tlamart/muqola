@@ -361,3 +361,32 @@ def test_concurrent_imports_keep_game_alias_image_atomic(tmp_path: Path) -> None
         Game.objects.count() == GameAlias.objects.count() == GameIllustration.objects.count() == 3
     )
     assert User.objects.count() == 1
+
+
+def test_illustrated_collection_card_does_not_nest_credit_links(
+    tmp_path: Path, client: Client
+) -> None:
+    from html.parser import HTMLParser
+
+    class CheckLinks(HTMLParser):
+        depth = 0
+
+        def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+            if tag == "a":
+                assert self.depth == 0, "Les liens de crédit ne doivent pas être imbriqués"
+                self.depth += 1
+
+        def handle_endtag(self, tag: str) -> None:
+            if tag == "a":
+                self.depth -= 1
+
+    run(source(tmp_path, [picture()]))
+    actor = member()
+    add_to_collection(actor, Game.objects.get().pk, "", "Notes", [])
+    client.force_login(actor)
+    response = client.get(reverse("inventory:mine"))
+    assert response.status_code == 200
+    parser = CheckLinks()
+    parser.feed(response.content.decode())
+    assert parser.depth == 0
+    assert "CC BY-SA 4.0" in response.content.decode()

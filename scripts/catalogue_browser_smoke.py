@@ -159,6 +159,23 @@ with sync_playwright() as playwright:
             else:
                 for name in community_names:
                     expect(page.locator("main")).to_contain_text(name)
+            if args.commons_fixture:
+                saved_url = page.url
+                saved_path = urlparse(saved_url).path
+                page.goto(args.url + "/copies/mine/")
+                card = (
+                    page.locator(".game-card")
+                    .filter(has=page.locator(f'a.game-card__link[href="{saved_path}"]'))
+                    .first
+                )
+                primary = card.locator("a.game-card__link")
+                expect(primary).to_have_count(1)
+                expect(primary.locator("h3")).to_have_count(1)
+                expect(primary.locator("img[data-commons-image]")).to_have_count(1)
+                expect(primary.locator(".image-credit")).to_have_count(0)
+                expect(card.locator(".image-credit a")).to_have_count(2)
+                primary.click()
+                page.wait_for_url(saved_url)
             manual = "Jeu absent fictif " + secrets.token_hex(5)
             page.goto(args.url + "/games/")
             page.get_by_label("Rechercher un jeu par titre", exact=True).fill(manual)
