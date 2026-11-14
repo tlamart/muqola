@@ -1,4 +1,16 @@
-{% load game_visuals %}<div class="game-cover game-cover--{{ game.pk|cover_tone }}{% if large %} detail-cover{% endif %}" aria-hidden="true">
+{% load game_visuals %}{% with illustration=game.illustration %}
+<figure class="game-art{% if compact %} game-art--compact{% endif %}">
+<div class="game-art__frame">
+<div class="game-cover game-cover--{{ game.pk|cover_tone }}{% if large %} detail-cover{% endif %}" aria-hidden="true">
 <span class="game-cover__title">{{ game.title }}</span>
 <span class="game-cover__marks"><span class="cover-emblem">◆</span><span class="cover-caption">JEU DE SOCIÉTÉ</span></span>
 </div>
+{% if illustration.displayable and not game.hidden %}<img class="game-art__image" data-commons-image src="{{ illustration.image_url }}" alt="Illustration de {{ game.title }}" loading="lazy" decoding="async" referrerpolicy="no-referrer">{% endif %}
+</div>
+{% if illustration.displayable and not game.hidden %}<figcaption class="image-credit">
+{% if illustration.artist %}{{ illustration.artist }}{% elif illustration.attribution %}{{ illustration.attribution }}{% else %}Auteur non renseigné{% endif %}
+{% if illustration.artist and illustration.attribution %} — {{ illustration.attribution }}{% endif %}
+ · <a href="{{ illustration.source_url }}" rel="noreferrer noopener">Wikimedia Commons</a>
+ · <a href="{{ illustration.license_url }}" rel="noreferrer noopener">{{ illustration.license }}</a>
+</figcaption>{% endif %}
+</figure>{% endwith %}

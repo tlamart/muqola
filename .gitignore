@@ -31,6 +31,8 @@ data/
 data/import/
 muqola_games_5000.csv
 *bgg*.csv
+muqola_wikidata_import_1539.csv
+*wikidata*.csv
 
 # Éditeurs et système
 .DS_Store

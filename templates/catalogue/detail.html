@@ -7,6 +7,7 @@
   <section class="detail-content" aria-labelledby="game-title">
     <header class="game-summary">
     <h1 id="game-title">{{ game.title }}</h1>
+    {% if game.data_source %}<p class="help">Données : {{ game.data_source }} · {{ game.data_license }}</p>{% endif %}
     <p class="game-metadata muted">{% include 'components/game_metadata.html' %}</p>
     {% if has_available %}<span class="badge badge--available">Disponible</span>{% elif copies %}<span class="badge">Aucun exemplaire disponible</span>{% else %}<span class="badge badge--private">Aucun exemplaire accessible</span>{% endif %}
     </header>

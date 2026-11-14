@@ -10,7 +10,8 @@ class SecurityHeadersMiddleware:
     def __call__(self, request: HttpRequest) -> HttpResponse:
         response = self.get_response(request)
         response["Content-Security-Policy"] = (
-            "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; "
+            "default-src 'none'; script-src 'self'; style-src 'self'; "
+            "img-src 'self' https://commons.wikimedia.org https://upload.wikimedia.org; "
             "font-src 'self'; "
             "form-action 'self'; frame-ancestors 'none'; base-uri 'none'"
         )

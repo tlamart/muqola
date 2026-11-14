@@ -10,7 +10,7 @@ from django.views.decorators.http import require_GET, require_http_methods
 
 from muqola.catalogue import services
 from muqola.catalogue.forms import GameForm, QuickAddForm, ReportForm
-from muqola.catalogue.models import Game, normalized_title
+from muqola.catalogue.models import Game
 from muqola.communities.models import Membership
 from muqola.core.http import actor
 from muqola.inventory.models import GameVisibility
@@ -22,7 +22,7 @@ def index(request: HttpRequest) -> HttpResponse:
     title = request.GET.get("title", "")[:120]
     manual = request.GET.get("manual") == "1"
     matches = services.search(actor(request), title).order_by(
-        Case(When(title_key=normalized_title(title), then=Value(0)), default=Value(1)),
+        Case(When(services.title_condition(title, exact=True), then=Value(0)), default=Value(1)),
         "title_key",
         "id",
     )

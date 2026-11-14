@@ -8,7 +8,8 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
-from muqola.catalogue.models import Game, normalized_title
+from muqola.catalogue.models import Game
+from muqola.catalogue.services import matching_title
 from muqola.core.http import actor
 from muqola.inventory import services
 from muqola.inventory.forms import CopyForm, SearchForm
@@ -21,7 +22,10 @@ def index(request: HttpRequest) -> HttpResponse:
     copies = services.visible(actor(request))
     if form.is_valid():
         data = form.cleaned_data
-        copies = copies.filter(game__title_key__contains=normalized_title(data["title"]))
+        if data["title"]:
+            copies = copies.filter(
+                game_id__in=matching_title(Game.objects.all(), data["title"]).values("pk")
+            )
         if data["community"]:
             copies = copies.filter(visibilities__community_id=data["community"])
         if data["players"]:
@@ -53,7 +57,7 @@ def mine(request: HttpRequest) -> HttpResponse:
             "copies": Paginator(
                 services.with_availability(
                     OwnedGame.objects.filter(owner=actor(request), archived=False)
-                ).select_related("game"),
+                ).select_related("game", "game__illustration"),
                 30,
             ).get_page(request.GET.get("page"))
         },

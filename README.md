@@ -286,6 +286,26 @@ Après masquage d'une fiche par modération, le propriétaire peut encore modifi
 son exemplaire non archivé. La fiche reste masquée et l'exemplaire retiré du prêt ;
 aucun nouvel exemplaire de cette fiche ne peut être créé.
 
+## Wikidata : titres français, alias anglais et images Commons
+
+La commande distincte `import_wikidata_games` importe volontairement le fichier
+Wikidata fourni, sans réseau serveur et sans remplacer les fiches existantes.
+Le titre français est principal ; l’anglais reste recherchable. Les seules
+illustrations retenues sont celles approuvées, avec crédits et licence propres
+à chaque image. Les données Wikidata CC0 et les licences d’images sont séparées.
+
+```sh
+uv run --frozen python manage.py migrate --noinput
+uv run --frozen python manage.py import_wikidata_games data/import/muqola_wikidata_import_1539.csv --dry-run
+uv run --frozen python manage.py import_wikidata_games data/import/muqola_wikidata_import_1539.csv
+```
+
+Le CSV réel reste ignoré par Git et Docker dans `data/import/`. Sur une base sans
+conflits : **1 539 jeux, 1 474 alias anglais et 298 illustrations** attendus.
+Les anciens jeux BGG/manuels en conflit sont signalés, sans fusion automatique.
+La commande `import_games` et les parcours existants sont conservés.
+[Format, commandes Docker, migration, crédits, validation et limites](docs/wikidata-catalogue.md).
+
 ## Import volontaire d'un catalogue CSV local
 
 Aucun appel API BGG, téléchargement d'image ou synchronisation. Le catalogue est
