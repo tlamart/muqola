@@ -1,5 +1,9 @@
 # Muqola — Spécifications produit (MVP)
 
+> Les sections 4–6 décrivent la cible validée des PR B → A → C, encore à implémenter.
+> État du code, écarts et arbitrages : [audit](docs/plan-b-a-c.md).
+> Le plan doit être validé avant toute implémentation fonctionnelle.
+
 ## 1. Vision
 Muqola est une application web responsive, mobile-first, gratuite au lancement, permettant à des membres de communautés privées (amis, voisins, collègues) de partager leurs **exemplaires physiques de jeux de société** et de gérer leurs prêts. L'inscription à la plateforme est **ouverte à tous**, y compris pendant la bêta ; les communautés restent privées. Le nom Muqola est provisoire jusqu'à vérification des droits et du domaine.
 
@@ -11,7 +15,7 @@ Deux personnes appartenant à une même communauté peuvent : créer leur compte
 - **Utilisateur inscrit non vérifié** : peut confirmer son e-mail, demander un nouveau lien et se déconnecter ; aucune opération métier sensible avant vérification.
 - **Membre vérifié** : peut créer une communauté privée, y rejoindre via une invitation valide, gérer ses propres exemplaires, chercher dans ses communautés et emprunter des exemplaires autorisés.
 - **Administrateur de communauté** : gère les paramètres de sa communauté, les invitations et les membres (y compris retrait). Aucun pouvoir d'administration global ni d'accès aux données privées d'autres communautés.
-- **Administrateur de plateforme** : accès limité à des fonctions de modération/sécurité et de gestion des comptes (désactivation et retrait d'une fiche abusive). Via un outil opérateur sécurisé documenté si besoin ; pas de tableau de bord d'administration requis. Les actions doivent être tracées, sans consultation générale des données privées. Ne valide pas les inscriptions.
+- **Administrateur de plateforme** : accès limité à des fonctions de modération/sécurité et de gestion des comptes (désactivation, validation des propositions, correction/fusion du catalogue et retrait d'une fiche abusive). Via un outil opérateur sécurisé documenté si besoin ; pas de tableau de bord d'administration requis. Les actions doivent être tracées, sans consultation générale des données privées. Ne valide pas les inscriptions.
 
 ## 3. Comptes et authentification
 - Inscription **libre** par e-mail + mot de passe et nom d'affichage ; aucune validation humaine. E-mail unique normalisé, mot de passe robuste haché par une fonction reconnue, sessions sécurisées.
@@ -22,46 +26,60 @@ Deux personnes appartenant à une même communauté peuvent : créer leur compte
 - Suppression de compte : fournir un moyen effectif de demander la suppression dès le lancement ; prévoir la suppression/anonymisation des données qui peuvent l'être et la résolution des prêts actifs avant clôture définitive, en informant l'utilisateur. Aucune conservation indéfinie par défaut ; détailler la politique réelle dans les documents légaux.
 - Pas de connexion sociale, paiement, profil public ni annuaire public au MVP.
 
-## 4. Communautés privées
-- Tout utilisateur vérifié peut créer une communauté et en devient administrateur.
-- Une communauté comporte au minimum : identifiant, nom, description facultative, créateur, dates de création/modification.
-- Invitation par **lien partageable** doté d'un jeton aléatoire non devinable, **multiusage**, révocable et expirant (défaut **7 jours**, configurable). Un compte ne peut adhérer qu'une fois. L'invité voit le nom de la communauté et confirme son adhésion après connexion **et vérification de son e-mail** ; ne jamais adhérer silencieusement.
-- Si l'invité n'a pas de compte, conserver le parcours d'invitation durant inscription/vérification/connexion, puis **revérifier** expiration et révocation lors de l'adhésion. Si le lien a expiré entre-temps, expliquer comment demander un nouveau lien, sans contourner l'expiration.
-- Les administrateurs peuvent générer, consulter et révoquer les invitations, voir les membres et retirer un membre. Interdire de laisser une communauté sans administrateur (transfert ou suppression explicite).
-- Le lien n'accorde l'accès qu'à la communauté ciblée ; contrôle côté serveur, pas seulement dans l'interface.
-- Une personne peut appartenir à plusieurs communautés.
-- Quand un membre quitte une communauté ou en est retiré, son accès aux exemplaires visibles **uniquement** via cette communauté cesse immédiatement ; il conserve l'accès éventuel via ses autres communautés. Les demandes `REQUESTED` qui ne sont plus autorisées deviennent non acceptables et sont clôturées/annulées avec information des parties. Les prêts déjà `ACCEPTED` ou `HANDED_OVER` restent consultables **par leurs deux parties seulement**, avec possibilité de les clôturer normalement, même si l'appartenance est perdue.
-- Si le **propriétaire** quitte une communauté ou en est retiré, retirer automatiquement la visibilité de ses exemplaires dans cette communauté ; ne plus accepter les demandes devenues inéligibles. Conserver uniquement les droits nécessaires aux prêts déjà acceptés.
-- La suppression définitive d'une communauté n'est pas requise dans le MVP ; ne pas la simuler par une suppression brutale de prêts ou de données nécessaires.
+## 4. Communautés et invitations — cible PR C
+- Tout utilisateur actif et vérifié peut créer une communauté et en devient administrateur. Un bouton « Créer une communauté » ouvre une **page dédiée** ; le formulaire n'est plus intégré à la liste.
+- Une communauté conserve identifiant, nom, description facultative, créateur et dates. Chaque carte affiche illustration facultative ou visuel local par défaut, nom, nombre de membres actifs et visibilité publique/privée. Toute la carte ouvre son détail via un lien sémantique accessible au clavier, sans liens/boutons imbriqués.
+- **Droits maintenus (confirmation du propriétaire le 15 novembre 2026)** : communautés existantes privées ; pas d'annuaire public, pas d'accès aux membres, exemplaires ou prêts par le seul badge « publique ». La portée de la découverte publique (audience, métadonnées, adhésion) doit être précisée avant son implémentation. Ne pas ouvrir de nouveaux accès en attendant ; l'interface ne doit pas promettre un mode public opérationnel.
+- Invitation par **lien partageable**, multiusage, permanent par défaut, aléatoire et difficile à deviner, révocable. L'absence d'expiration doit être explicite ; une expiration facultative peut être conservée. Un compte ne peut adhérer qu'une fois.
+- **Tous les membres actifs et vérifiés** peuvent consulter et copier le lien courant de leur communauté. Seuls ses administrateurs peuvent le révoquer et le régénérer. Une régénération invalide l'ancien lien de manière atomique ; les membres accèdent ensuite au nouveau. Après révocation seule, l'écran explique l'absence de lien actif. Aucune création/régénération sur GET.
+- L'invité voit le nom de la communauté et confirme son adhésion après connexion **et vérification de son e-mail** ; jamais d'adhésion silencieuse. Sans compte, conserver le parcours pendant inscription/vérification/connexion, puis **revérifier** validité, éventuelle expiration et révocation à la confirmation. Un lien périmé doit proposer de demander un nouveau lien aux membres.
+- Les anciens liens expirés/révoqués ne sont jamais réactivés par migration. Un lien existant à durée limitée garde son échéance ; stratégie de coexistence des anciens liens multiples et du lien courant à valider dans le plan.
+- Les administrateurs gèrent paramètres et membres (dont retrait). Interdire de laisser une communauté sans administrateur ; conserver le transfert et la reprise opérateur tracée.
+- Le lien n'accorde l'accès qu'à la communauté ciblée ; chaque lecture/écriture contrôle les droits serveur. Un ancien membre ou un membre d'une autre communauté ne peut consulter le lien, même par URL directe.
+- Une personne peut appartenir à plusieurs communautés. Son départ/retrait coupe immédiatement les accès obtenus **uniquement** via cette communauté ; l'accès éventuel par d'autres communautés reste possible. Les demandes `REQUESTED` devenues inéligibles sont clôturées/annulées avec information des parties. Les prêts déjà `ACCEPTED`/`HANDED_OVER` restent consultables **par leurs deux parties seulement**, qui peuvent les clôturer normalement.
+- Si le **propriétaire** part ou est retiré, enlever la visibilité de ses exemplaires dans cette communauté et fermer les demandes devenues inéligibles ; conserver les droits nécessaires aux prêts déjà acceptés.
+- La suppression définitive d'une communauté n'est pas requise ; ne pas supprimer brutalement ses prêts ou historiques.
 
-## 5. Jeux, catalogue interne et exemplaires
+## 5. Jeux, catalogue interne et exemplaires — cible PR B
 ### Distinction indispensable
-- **Game** : fiche de référence d'un jeu (titre obligatoire ; éditeur, année, nombre de joueurs min/max, durée, description et image facultatifs).
-- **OwnedGame** : exemplaire physique appartenant à un utilisateur, lié à un `Game` ; état/commentaire facultatif, disponibilité dérivée des prêts actifs, propriétaire.
-- **GameVisibility** : communautés dans lesquelles un exemplaire est visible, choisies explicitement par le propriétaire, parmi ses communautés uniquement.
+- **Game** : fiche générique d'un **jeu**, indépendante des éditions commerciales et des propriétaires. Plusieurs utilisateurs et plusieurs exemplaires d'un même utilisateur peuvent référencer la même fiche. Une autre boîte, langue, année ou édition commerciale ne justifie pas à elle seule une nouvelle fiche.
+- **OwnedGame** : exemplaire physique d'un utilisateur, lié à un `Game`, avec notes/état facultatifs, retrait/archivage et disponibilité dérivée des prêts actifs.
+- **GameVisibility** : partages explicites d'un exemplaire vers zéro, une ou plusieurs communautés de son propriétaire. Zéro = collection privée ; aucune visibilité implicite.
 
-### Ajout d'un jeu — comportement MVP
-1. L'utilisateur recherche par titre dans le **catalogue interne** des fiches `Game` déjà créées sur Muqola (recherche insensible à la casse, aux accents et aux espaces superflus si possible).
-2. Il sélectionne une fiche existante et crée son propre `OwnedGame` ; **ou** crée une nouvelle fiche `Game` manuellement si aucun résultat ne convient. Un même utilisateur peut posséder plusieurs exemplaires physiques du même `Game`.
-3. Il peut sélectionner **zéro, une ou plusieurs** de ses communautés pour partager l'exemplaire. **Zéro = collection privée invisible aux autres** ; indispensable si l'utilisateur n'a pas encore rejoint de communauté. Aucune visibilité implicite.
-4. Il peut modifier les détails de son exemplaire, son partage et son statut « retiré du prêt ». Les exemplaires retirés ne sont plus proposés aux emprunteurs ; les prêts actifs restent clôturables.
-5. La suppression physique d'un exemplaire est interdite tant qu'un prêt `ACCEPTED`/`HANDED_OVER` existe. En cas de retrait/masquage ou de perte de toutes les communautés communes, fermer les demandes `REQUESTED` devenues inéligibles ; préserver l'historique minimal des prêts.
+### Contenu et types
+Une fiche **validée** exige un titre principal, un type de jeu et, si applicable, le jeu de base nécessaire. Distinguer jeu autonome, extension nécessitant une base, extension jouable seule. La relation de base est obligatoire pour l'extension dépendante, sans auto-référence ni cycle. La représentation d'éventuelles bases multiples doit être arbitrée dans le plan.
 
-### Confidentialité et gouvernance du catalogue
-Le catalogue `Game` contient uniquement des **métadonnées génériques sur les jeux** : il peut être recherché par tout membre connecté et vérifié, même sans communauté, mais ne doit jamais révéler les propriétaires, communautés ou quantités d'exemplaires privés. Préciser dans le formulaire que la fiche générique est **visible à tous les comptes vérifiés** ; ne pas y saisir de données personnelles.
-- Pour éviter qu'un utilisateur réécrive une fiche adoptée par d'autres : une fiche peut être corrigée par son créateur uniquement tant qu'aucun **autre utilisateur** ne l'a réutilisée ; au-delà, toute correction passe par une intervention de modération/maintenance. Les champs de son propre `OwnedGame` restent modifiables.
-- Validation et limites de taille pour tous les champs libres ; pas de HTML arbitraire ni de contenu actif. Prévoir une procédure simple de signalement/correction d'une fiche erronée ou abusive, sans console d'administration complexe.
+Titres alternatifs, illustration et informations de licence, joueurs min/max, durée, année, éditeur, description et identifiants externes restent **facultatifs**. Ne pas rendre l'illustration nécessaire à la validation : un visuel local de remplacement suffit. Conserver les bornes de champs, validations serveur et cohérence min/max. Les identifiants externes ne sont pas une source obligatoire de données.
 
-### Doublons, images et catalogue externe
-- Suggérer les fiches existantes avant création ; ne pas imposer l'unicité du titre car des jeux distincts peuvent porter des noms semblables. Contrôler uniquement les IDs externes non nuls quand ils existeront.
-- Prévoir `externalSource` et `externalId` facultatifs et une couche d'import indépendante, mais **aucune API externe requise au MVP**.
-- **MVP : visuel de remplacement neutre**, sans chargement automatique de couvertures ni dépôt/URL d'image fournie par les utilisateurs. Intégrations externes et illustrations enrichies après vérification des licences, attribution et sécurité.
+### Ajout et propositions
+1. Un compte actif et vérifié, même sans communauté, recherche une fiche du catalogue, puis la réutilise pour son exemplaire.
+2. En l'absence de fiche pertinente, il **propose** une fiche : seul le titre est obligatoire ; le type « Je ne sais pas » est autorisé jusqu'à validation administrative. La proposition n'est pas publiée automatiquement comme fiche validée.
+3. Un administrateur **de plateforme**, distinct d'un administrateur de communauté, vérifie les doublons, complète type/base si nécessaire puis valide, demande une correction ou rejette avec motif. Aucune publication par simple réutilisation d'une proposition.
+4. Le parcours d'exemplaire privé pendant l'attente doit rester possible ; sa représentation et sa visibilité avant validation sont proposées dans le plan et soumises à sa validation. Les propositions et éventuelles pièces jointes sont visibles seulement par leur auteur et les opérateurs autorisés.
+5. Le propriétaire peut modifier les détails, partages et retrait de son exemplaire. Retrait/masquage/perte de communauté ferme les `REQUESTED` devenues inéligibles, sans bloquer la clôture des prêts acceptés/remis. Aucun effacement physique d'exemplaire avec prêt actif ; conserver l'historique minimal.
 
-## 6. Découverte et recherche
-- Tableau de bord des jeux accessibles à l'utilisateur via l'union de ses communautés, avec déduplication d'un même exemplaire partagé dans plusieurs communautés.
-- Recherche par titre ; filtres disponibilité, communauté, nombre de joueurs (si renseigné).
-- Fiche jeu : métadonnées génériques + exemplaires visibles et leur disponibilité ; informations minimales sur le propriétaire (nom d'affichage), sans e-mail avant acceptation d'un prêt.
-- Aucun exemplaire invisible ne doit être renvoyé par l'API, les compteurs, les filtres ou les erreurs.
+### Gouvernance et confidentialité
+- Seules les métadonnées génériques **validées** sont recherchables par tous les comptes vérifiés, sans révéler propriétaires, communautés, quantités privées ou adresses e-mail. Le formulaire explique la future visibilité de la fiche, distincte de celle de l'exemplaire.
+- La correction du catalogue passe par une proposition de correction ou une opération administrative contrôlée ; un créateur ne peut réécrire directement une fiche validée partagée. Les détails de ses exemplaires restent modifiables. Conserver les signalements et la protection des fiches déjà réutilisées.
+- Vérifier les doublons avant validation, **côté serveur aussi**. Un titre semblable ou identique n'est pas une preuve d'identité ; pas d'unicité globale du titre. Une homonymie réelle exige une justification administrative ; une édition différente seule n'est plus un motif suffisant.
+- Prévoir correction et **fusion administrative**, avec trace auteur/motif/source/cible et conservation des références : exemplaires, propriétaires, partages, demandes/prêts, signalements, titres et identifiants externes. Ni suppression en cascade, ni perte d'anciens liens. Ne pas réafficher une fiche masquée par une fusion.
+- Valider/borner tous les champs et échapper les contenus ; pas de HTML arbitraire. Une photo de boîte soumise par un utilisateur reste **privée et non publiée automatiquement**. Toute illustration publique nécessite contrôle des droits/licence/attribution et validation explicite. Le choix d'accepter des uploads et leur stockage sécurisé reste un arbitrage technique, sans service supplémentaire imposé.
+
+### Catalogue vide et données existantes
+- Une **nouvelle base** démarre avec un catalogue vide ; aucun seed, import automatique, ancien CSV BGG ou Wikidata à importer. Ne jamais committer un catalogue réel dans Git ni l'embarquer dans une image Docker ; seuls des jeux de tests synthétiques minimaux sont acceptables.
+- « Repartir vide » **n'autorise aucune purge** d'une base existante. Préserver UUID, exemplaires, propriétaires, visibilités, réservations/demandes, prêts et historique lors des migrations. Inventorier les fiches héritées et les faire réviser sans leur inventer un type ou une validation.
+- Toute suppression de données ou réinitialisation d'une instance exige une validation explicite distincte, une sauvegarde restaurable et un retour arrière. La PR B ne supprime pas les données historiques ni les anciennes migrations.
+- La commande CSV historique peut exister dans le code actuel : elle n'est pas un parcours de la cible. Aucun import BGG/Wikidata dans ces trois PR. Les identifiants externes facultatifs conservés ne constituent pas une intégration externe.
+
+## 6. Découverte et recherche — cible PR A
+- Recherche instantanée **sans bouton « Rechercher »**, résultats actualisés sans rechargement après environ **deux caractères**, debounce d'environ **250 ms**. Les requêtes courtes affichent une aide ou l'état initial ; vider la saisie restaure cet état. Conserver un parcours de repli utilisable sans JavaScript.
+- Chercher dans le titre principal et les titres alternatifs, avec casse, accents et espaces normalisés ; tolérer les fautes d'orthographe. Privilégier titre exact, puis préfixe/contenu, puis proximité approximative, avec ordre stable. PostgreSQL et `pg_trgm` si approprié ; ni Meilisearch ni Elasticsearch.
+- Deux périmètres explicites : **catalogue validé** pour ajouter un exemplaire (sans informations de possession), **jeux accessibles dans les communautés** pour emprunter. Le mode emprunt ne doit pas suggérer un jeu trouvé uniquement dans le catalogue global ou une collection privée.
+- Regrouper les exemplaires d'un même jeu : une fiche par résultat, disponibilité et compteurs calculés **sur les seuls exemplaires autorisés**. Dédupliquer un même exemplaire partagé dans plusieurs communautés ; garder les exemplaires physiques distincts et sélectionner ensuite celui à emprunter.
+- Conserver les filtres disponibilité, communauté et nombre de joueurs si renseigné, les bornes de résultats et la pagination. Le filtrage des droits précède recherche, classement, agrégation et pagination, y compris sur endpoints asynchrones et suggestions.
+- Proposer des fiches similaires avant soumission d'une proposition et avant validation administrative ; recontrôler côté serveur pour les POST directs et soumissions concurrentes. La recherche JS n'est jamais une garantie d'absence de doublon.
+- Interface clavier, labels et focus stables, annonce accessible du chargement/du nombre de résultats/des erreurs. Ne pas remplacer la sélection par une réponse obsolète ; prévoir requêtes annulées, erreur réseau, aucun résultat et reconnexion. Aucune donnée privée dans résultats, compteurs, suggestions, filtres, erreurs ou caches.
+- Fiche jeu : métadonnées génériques + exemplaires autorisés et disponibilité ; nom d'affichage du propriétaire uniquement, sans e-mail avant acceptation du prêt.
 
 ## 7. Cycle de prêt
 ### États
@@ -93,13 +111,16 @@ Chat, avis/réputation, paiements, dons, abonnements, assurance, événements, o
 
 ## 11. Critères d'acceptation de bout en bout
 1. Un inconnu s'inscrit, reçoit un lien, vérifie son e-mail, puis se connecte ; avant vérification, l'accès métier est refusé.
-2. Alice crée une communauté, génère un lien ; Bob s'inscrit via ce lien et rejoint après vérification ; un lien révoqué/expiré échoue.
-3. Alice crée une fiche `Game` et un exemplaire ; Bob trouve la fiche existante et ajoute son propre exemplaire sans créer de doublon obligatoire.
+2. Alice crée une communauté par la page dédiée ; Bob rejoint par invitation après vérification. Tout membre peut copier le lien permanent courant ; seuls les administrateurs le révoquent/régénèrent. Un ancien lien révoqué ou à expiration dépassée échoue.
+3. Alice propose un titre, un administrateur vérifie les doublons et valide avec type/base requis ; Bob réutilise cette fiche pour son exemplaire. Une édition différente ne crée pas une autre fiche.
 4. Alice partage son exemplaire uniquement dans la communauté A ; un membre de B ne peut ni le voir ni le demander, même en appelant directement l'API.
 5. Bob demande le jeu avec une date ; Alice accepte ; leurs e-mails deviennent visibles l'un à l'autre ; remise et retour clôturent le prêt.
 6. Deux demandes simultanées ne peuvent jamais créer deux prêts acceptés sur le même exemplaire.
 7. La révocation d'une invitation, le retrait d'un membre et la suppression de visibilité prennent effet immédiatement pour les **nouveaux accès**, tout en préservant la clôture des prêts déjà acceptés.
-8. Une personne sans communauté peut créer une fiche et son exemplaire **privé** ; la recherche interne reste possible.
-9. Une fiche `Game` réutilisée par Bob ne peut plus être modifiée arbitrairement par Alice ; chacun peut modifier son propre exemplaire.
+8. Une personne sans communauté peut proposer un titre et conserver son exemplaire **privé** ; elle peut rechercher le catalogue validé. Sa proposition et sa photo éventuelle ne deviennent pas publiques automatiquement.
+9. Alice ne réécrit pas arbitrairement une fiche validée ; chacun peut modifier son exemplaire. Une fusion administrative préserve exemplaires, propriétaires, partages, liens et prêts.
 10. Une demande expirée ou devenue invisible ne peut pas être acceptée ; une demande en attente n'empêche pas les autres d'être déposées.
 11. L'application fonctionne sur mobile, avec messages d'erreur et états de chargement accessibles.
+12. Titres alternatifs, accents et fautes retrouvent le bon jeu ; la saisie actualise les résultats sans bouton ni rechargement ; clavier et mobile fonctionnent.
+13. Deux exemplaires autorisés du même jeu sont regroupés ; une copie privée ou une communauté étrangère ne modifie aucun compteur ni résultat.
+14. Une base neuve reste vide ; une migration sur base peuplée conserve les références et les prêts de tous états, sans import ni purge.

@@ -1,7 +1,9 @@
 # Muqola — Contraintes et décisions d'architecture
 
-## Liberté encadrée
-**Codex choisit et justifie la stack exacte** (framework web, langage, ORM, bibliothèque UI, tests). Avant l'implémentation, produire un court ADR (`docs/adr/0001-stack.md`) comparant au moins deux options, avec arguments de rapidité, maintenabilité, sécurité, disponibilité des bibliothèques et simplicité d'exploitation. Favoriser un écosystème mature, bien documenté et adapté au développement assisté par IA ; ne pas choisir une technologie seulement parce qu'elle est tendance.
+## Stack et portée
+La stack est **déjà validée** dans [ADR 0001](docs/adr/0001-stack.md) : Python 3.12, Django 5.2 LTS, PostgreSQL 17, templates HTML/CSS/JS locaux, Gunicorn/WhiteNoise et Docker Compose. La conserver ; ne pas réinitialiser le projet ni relancer un choix de framework pour les PR B/A/C.
+
+L'[audit du code et des écarts](docs/plan-b-a-c.md) décrit `main` à `c2c4c88`, la PR #25 non intégrée et les décisions proposées. [SPEC](SPEC.md) fixe la cible ; [TASKS](TASKS.md) détaille les trois PR et leurs validations. Les extensions ci-dessous sont un **plan**, pas des fonctionnalités livrées. Le socle de préproduction séparé/Caddy existe depuis #24 ; il n'autorise aucun déploiement.
 
 ## Contraintes non négociables
 - Monolithe modulaire, pas de microservices, Kubernetes ou architecture événementielle distribuée.
@@ -14,11 +16,11 @@
 - Intégration e-mail remplaçable (SMTP ou API) ; environnement de développement avec boîte de capture locale. **Outbox en PostgreSQL** et worker léger reprenant après redémarrage (pas de broker dédié).
 - Fichiers de configuration d'exemple sans secrets ; aucun secret ni données réelles dans Git.
 
-## Modèle logique minimal
+## Modèle logique et cible des évolutions
 - `User` : id, email normalisé unique, hash mot de passe, date vérification, nom d'affichage, dates.
-- `EmailVerificationToken`, `PasswordResetToken` : valeur hachée, expiration, consommation.
-- `Community`, `Membership` (rôle, statut), `CommunityInvite` (token haché, expiration, révocation, créateur).
-- `Game` : métadonnées génériques, `createdBy`, source externe/id optionnels. Fiche partagée ; modification par créateur seulement si non réutilisée par autrui, sinon modération.
+- `AccountToken` : jetons de vérification et de réinitialisation distingués par type, digest unique, expiration et consommation ; `RateBucket` pour les limites de débit.
+- `Community`, `Membership` (rôle, actif/inactif), `CommunityInvite` (digest unique, copie chiffrée récupérable, expiration, révocation, créateur) et `PendingJoin`. **Cible C :** expiration nullable pour lien permanent par défaut, lien courant lisible par membres, mutations admin transactionnelles ; préserver les échéances/révocations existantes. Visibilité privée par défaut, découverte publique à préciser avant implémentation.
+- `Game` : fiche générique UUID distincte des exemplaires, métadonnées et paire externe optionnelle, créateur protégé, `hidden` et `ever_reused`. **Cible B :** une fiche par jeu, type/base/alias, propositions et validation distincte de masquage, correction/fusion opérateur auditée ; identifiants multiples à conserver sans perte. Migration additive sans inventer un type aux lignes héritées ; voir les arbitrages de l'audit. Aucune copie ni prêt supprimé lors d'une fusion.
 - `OwnedGame` : gameId, ownerId, détails d'exemplaire, indicateur « retiré du prêt » ; zéro ou plusieurs communautés de visibilité.
 - `GameVisibility` : ownedGameId, communityId ; unicité de la paire ; vérifier l'appartenance du propriétaire et l'absence de partage implicite.
 - `Loan` : ownedGameId, borrowerId, ownerId, état, `dueDate` (DATE), dates de transition horodatées, message facultatif ; protéger l'exclusivité des prêts actifs par index partiel. Interdire les `REQUESTED` en double pour un même couple (exemplaire, emprunteur).
@@ -42,6 +44,14 @@ Variables d'environnement pour URL publique, base PostgreSQL, secrets de session
 - Vérifier l'appartenance et la visibilité pour **chaque** lecture et écriture ; tests IDOR entre communautés. Gérer explicitement l'accès des deux participants à un prêt déjà accepté après leur retrait d'une communauté, sans restaurer leur accès au catalogue.
 - Éviter d'exposer des e-mails de membres, sauf aux deux parties d'un prêt accepté.
 - Ne pas révéler l'existence d'une communauté privée par les réponses publiques.
-- Les invitations sont des secrets : token fort, stockage haché, expiration, révocation, aucune journalisation du token brut. Protéger le token dans les URL contre les fuites par `Referer`, analytics ou logs ; éviter le contenu tiers sur l'écran d'invitation.
+- Les invitations sont des secrets : token fort, digest haché et copie chiffrée récupérable, éventuelle expiration, révocation, aucune journalisation du token brut. En C, contrôler l'appartenance active/vérifiée avant déchiffrement ; la permanence n'affaiblit pas la révocation. Protéger le token dans les URL contre les fuites par `Referer`, analytics ou logs ; éviter le contenu tiers sur l'écran d'invitation.
 - Protéger les entrées libres contre XSS et les sorties contre injection ; ne pas rendre de HTML utilisateur, de fichiers ou d'images distantes arbitraires au MVP. Mettre en place une politique CSP proportionnée, et limiter la taille des requêtes.
 - Prévoir une suppression de compte sûre, y compris en présence de prêts en cours, avec procédure documentée. Prévoir une méthode opérateur minimale pour désactiver un compte ou retirer une fiche abusive, sans interface d'administration complète.
+
+
+## Évolutions prévues B/A/C
+- **B :** réutiliser les services `catalogue`/`inventory` et la console `operations`, pas de back-office générique. Autorisations propositions/illustrations privées distinctes du catalogue validé. Fusion logique source→cible sans changer `OwnedGame.id`, propriétaire ou `Loan.owned_game` ; contrôler collisions d'alias/IDs/signalements et cycles de base.
+- **A :** garder normalisation persistée NFKD/casefold, évaluer `pg_trgm`/GIN sur titre et alias avec tests PostgreSQL réels ; index B-tree actuel insuffisant pour garantir `contains`. Filtrer les droits avant classement, regroupement par jeu, compteurs et pagination. Endpoint de fragments HTML Django et JS natif proposés ; CSP `connect-src 'self'` nécessaire au fetch local. Aucun Meilisearch/Elasticsearch.
+- **C :** mutations invitation sérialisées avec adhésion, pas de génération sur GET ; rotation invalide tous les anciens liens actifs, consultation réservée aux membres, droits privés maintenus. Pas de dépendance de schéma à B ; A dépend de B. Résoudre conflits CSS/JS/scripts/docs au rebase.
+- Pas d'import BGG/Wikidata ni de catalogue réel dans Git/image. Une base neuve reste vide ; sur base existante, aucune purge, reset, réactivation ou suppression de références automatique. Sauvegarde/retour à tester avant toute migration réelle autorisée.
+- Pas d'upload/URL d'image arbitraire ; photo utilisateur privée par défaut. Une collecte éventuelle exige stockage privé, validation de fichier/droits et approbation de publication, sinon conserver le visuel local. Les nouvelles règles ne valent pas autorisation d'ouvrir un service externe.

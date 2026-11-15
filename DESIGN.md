@@ -6,7 +6,7 @@ Une application conviviale, sobre et rassurante, centrée sur les communautés e
 ## Principes
 - Mobile-first, navigation claire en 3 à 5 entrées maximum ; actions prioritaires : « Trouver un jeu », « Ajouter un jeu », « Mes prêts », « Mes communautés ».
 - Présenter d'abord les jeux réellement accessibles à l'utilisateur, pas un catalogue mondial vide.
-- Lors de l'ajout : **Rechercher une fiche existante → sélectionner ou créer → ajouter mon exemplaire → choisir les communautés (facultatif)**. Indiquer clairement qu'une fiche de jeu est partagée entre utilisateurs, tandis qu'un exemplaire appartient à une seule personne. Prévenir que la fiche générique est trouvable par tous les membres vérifiés.
+- Lors de l'ajout : **Rechercher une fiche validée → sélectionner ou proposer → ajouter mon exemplaire → choisir les communautés (facultatif, partage après validation pour une nouvelle proposition)**. Indiquer clairement qu'une fiche de jeu est partagée entre utilisateurs, tandis qu'un exemplaire appartient à une seule personne. Prévenir que la fiche générique validée est trouvable par tous les comptes vérifiés ; une proposition et sa photo éventuelle restent privées pendant la revue. Une fiche représente un jeu, pas une édition commerciale.
 - Afficher les états de prêt en français clair : « Demandé », « Accepté », « Remis », « Rendu », « Refusé », « Annulé ».
 - Éviter les formulaires longs ; champs facultatifs réellement facultatifs ; messages d'erreur contextualisés.
 - La disponibilité et la date de retour doivent être lisibles sur mobile. Une demande en attente ne constitue pas une réservation ; l'expliquer lors de la demande.
@@ -27,3 +27,10 @@ Navigation clavier, focus visible, labels de champs, erreurs annoncées, zones t
 
 ## Page publique
 Expliquer en trois étapes : « Créez votre communauté », « Partagez vos jeux », « Empruntez entre vous ». Boutons « S'inscrire » et « Se connecter ». Aucun listing public de membres, communautés ou exemplaires.
+
+
+## Cible des PR B/A/C (à implémenter après validation du plan)
+- Ajout : titre seul pour proposer, type « Je ne sais pas » accepté ; statut d'attente et suivi compréhensibles, pas de validation fictive. Type/base obligatoires seulement pour l'approbation ; illustrations et métadonnées facultatives. Proposer la réutilisation avant création et expliquer une homonymie réelle, sans case « autre édition ».
+- Recherche : sans bouton Rechercher, résultats sans rechargement à partir d'environ deux caractères après ~250 ms ; repli GET avec Entrée sans JS. Labels, focus conservé, annonce discrète des résultats/erreurs/chargement, résultat par jeu avec seules copies autorisées. Deux intentions claires : ajouter depuis le catalogue, emprunter dans les communautés accessibles.
+- Communautés : bouton « Créer une communauté » vers page dédiée, cartes entièrement ouvrables avec illustration facultative/fallback, nom, membres actifs et visibilité. Garder un seul lien sémantique par carte, sans boutons imbriqués. Le badge public ne doit pas promettre un accès disponible : découverte publique à définir, droits privés conservés.
+- Invitation : lien courant consultable par tout membre actif/vérifié, bouton copier avec annonce et solution manuelle ; mention « permanent » si sans échéance, absence de lien et lien illisible traités. Révocation/régénération réservées aux administrateurs avec confirmation claire de l'invalidation de l'ancien lien.

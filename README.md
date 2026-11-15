@@ -7,7 +7,20 @@ Comptes vérifiés, communautés privées, catalogue interne réutilisable, exem
 à zéro ou plusieurs visibilités, prêts et notifications capturées sont disponibles.
 [Guide de validation sur ordinateur](docs/manual-validation.md) ;
 [comptes et sécurité](docs/lot-1-accounts.md). Les lots 1 à 5 et le correctif
-Gunicorn sont intégrés dans `main` depuis la fusion de la PR #8. Lot 6 non entrepris.
+Gunicorn sont intégrés dans `main` depuis la fusion de la PR #8. La PR #24 a ajouté
+un socle de production distinct, sans déploiement ; les validations opérationnelles
+du lot 6 restent à faire ([état exact](docs/lot-6-infrastructure.md)).
+
+## Prochain travail : plan B → A → C
+
+La préparation documentaire du 15 novembre 2026 porte sur **B : catalogue**,
+**A : recherche intelligente**, puis **C : communautés**. Le
+[plan détaillé](TASKS.md#prochaines-pr--b--a--c-plan-à-valider) et
+l'[audit des écarts et arbitrages](docs/plan-b-a-c.md) sont à valider avant toute
+implémentation fonctionnelle. [SPEC](SPEC.md) décrit cette **cible**, pas des
+fonctionnalités déjà livrées. C peut être développée en parallèle de B ; A
+dépend du schéma de B. Les droits privés sont conservés ; la découverte publique
+reste à préciser avant implémentation. Aucun déploiement, purge ou merge automatique.
 
 ## Démarrer localement
 
@@ -168,12 +181,13 @@ précédente uniquement si son schéma reste compatible ; sinon restauration
 contrôlée depuis sauvegarde après validation humaine, avec arrêt des écritures
 et annonce de la perte potentielle depuis la sauvegarde. Aucune migration
 destructive ni opération de production sans accord et stratégie de retour.
-Procédure exacte de production, restauration testée et incident au lot 6.
+La préparation distincte est décrite dans [le document du lot 6](docs/lot-6-infrastructure.md) ;
+restauration testée, SMTP réel, supervision et autorisation de lancement restent requis.
 
 Les invariants des lots 2–5 sont testés : invitations privées, fiches réutilisables,
 exemplaires à zéro ou plusieurs visibilités, date de retour et contacts uniquement
-pendant un prêt accepté/remis. Voir [TASKS.md](TASKS.md). Arrêt après le lot 5 pour
-validation humaine ; aucune fusion ni opération de production automatique.
+pendant un prêt accepté/remis. Voir [TASKS.md](TASKS.md). La préparation documentaire
+B/A/C attend la validation du plan ; aucune fusion ni opération de production automatique.
 
 ## Test navigateur du socle
 
@@ -246,6 +260,9 @@ La rotation seule ne révoque pas les liens déjà partagés : leurs digests res
 valides jusqu'à révocation explicite ou expiration. Un GET ne modifie ni les
 invitations ni les appartenances. Aucun ancien secret n'est consulté pour
 déchiffrer les invitations ; les liens illisibles sont remplacés explicitement.
+La cible C prévoit des liens permanents : ne plus compter sur une échéance pour
+leur invalidation ; garder la révocation/régénération explicite et adapter cette
+procédure lors de son implémentation.
 
 ## Tester sur Android avec GitHub Codespaces
 
@@ -259,139 +276,67 @@ privée des ports avant de démarrer les services. PostgreSQL n'est pas publié.
 
 Depuis **Mes communautés**, créer une communauté, générer un lien et le partager
 avec un second compte fictif vérifié. L'adhésion doit être confirmée ; les liens
-sont multiusages, expirables et révocables. Transférer l'administration avant le
-départ du dernier administrateur. Les détails et membres restent privés.
+sont actuellement multiusages, expirables et révocables. La cible C prévoit lien
+permanent par défaut consultable/copiable par tous les membres, révocation et
+régénération réservées aux administrateurs, cartes enrichies et création dédiée.
+Ces évolutions attendent validation du plan et implémentation ; les droits privés
+sont conservés et la découverte publique reste à préciser. Les liens historiques
+à échéance doivent garder leur date, sans réactivation des liens expirés/révoqués.
+Transférer l'administration avant le départ du dernier administrateur. Les détails et membres restent privés.
 Si la désactivation du seul administrateur bloque la gestion, une
 [reprise opérateur explicite et tracée](docs/lot-5-notifications.md#reprise-opérateur)
 permet de promouvoir un membre existant ; aucune promotion automatique.
 [Schéma, permissions, concurrence et vérifications](docs/lot-2-communities.md).
 
-## Catalogue et collection (lot 3)
+## Catalogue et collection — état actuel et cible
 
-**Ajouter un jeu** permet de rechercher un titre (casse et accents ignorés),
-choisir un résultat, renseigner les notes et les communautés, puis **Ajouter à ma
-collection** sur la même page. Le parcours fonctionne sans JavaScript, avec 10
-résultats par page et les titres exacts en premier. Année, éditeur et nombre de joueurs distinguent les éditions.
-Aucune communauté sélectionnée : exemplaire privé. Plusieurs exemplaires d'un
-même jeu sont possibles ; le catalogue n'expose ni propriétaires ni quantités privées.
+**Actuellement dans `main`** : ajout rapide par titre (accents/casse normalisés),
+10 résultats/page, priorité au titre exact, sélection et création d'exemplaire
+atomiques, parcours sans JS ; zéro communauté = exemplaire privé. Plusieurs
+exemplaires d'un jeu sont possibles sans exposer les quantités privées.
+La création manuelle publie directement une fiche et la case « autre édition »
+permet un doublon explicite : ce fonctionnement historique doit évoluer en B.
+Après masquage, le propriétaire peut encore modifier son exemplaire non archivé,
+sans rétablir son prêt ni autoriser une nouvelle copie de la fiche masquée.
+[Schéma et invariants historiques](docs/lot-3-catalogue.md).
 
-**Mon jeu n’est pas dans la liste** préremplit le titre recherché et propose les
-correspondances avant création. Le titre est le seul renseignement obligatoire ;
-jeu et exemplaire sont enregistrés atomiquement. Un nom déjà présent exige de
-sélectionner le jeu existant ou de confirmer une autre édition, sans fusion arbitraire.
-Les anciens écrans de correction restent disponibles. Les règles de modération,
-d'archivage et de prêt ne sont pas modifiées. [Schéma et confidentialité](docs/lot-3-catalogue.md).
+**Cible B, non implémentée** : une fiche par jeu (pas par édition), propositions
+titre seul puis validation administrative avec type/base si applicable,
+alias, corrections et fusions sans perte de références ; photo de boîte privée
+par défaut et visuel local de remplacement. Une base neuve démarre vide ; aucune
+purge d'une instance existante n'est autorisée par cette décision.
+**Cible A, non implémentée** : recherche instantanée sur titre/alias avec fautes,
+regroupement par jeu et contrôles de droits avant compteurs et classement.
 
-Après masquage d'une fiche par modération, le propriétaire peut encore modifier
-son exemplaire non archivé. La fiche reste masquée et l'exemplaire retiré du prêt ;
-aucun nouvel exemplaire de cette fiche ne peut être créé.
+### Ancien import local CSV (historique #22)
 
-## Import volontaire d'un catalogue CSV local
+Le code `import_games` et ses tests synthétiques existent encore dans `main` :
+import manuel idempotent par paire source/ID, sans mise à jour de fiches existantes,
+sans exemplaire créé et sans téléchargement. Il n'est pas exécuté au démarrage,
+par les migrations ou par le déploiement. Sa présence ne démontre ni l'existence
+de données importées dans une instance ni des droits d'utilisation d'un catalogue.
 
-Aucun appel API BGG, téléchargement d'image ou synchronisation. Le catalogue est
-stocké dans PostgreSQL ; l'application n'a besoin ni du CSV ni d'Internet après
-import. L'import n'est lancé ni au démarrage, ni par les migrations, tests,
-Compose ou déploiements. Les tests utilisent exclusivement des CSV synthétiques.
+**Décision actuelle : ne pas importer les anciens CSV BGG ou Wikidata.**
+Les anciennes instructions d'import ne constituent plus le parcours recommandé ;
+aucun import n'est réalisé par ces trois PR. B doit traiter explicitement l'avenir
+de cette commande et vérifier tous les chemins d'écriture selon les nouvelles règles.
+La [PR #25 Wikidata/Commons](https://github.com/tlamart/muqola/pull/25) est ouverte
+à la date de l'audit, non intégrée et sans dépendance requise pour ce plan.
 
-**Licence :** l'autorisation de stockage et d'affichage permanents des données BGG
-n'est pas confirmée. Ne pas importer ces données sur une instance publique avant
-clarification des droits et conditions applicables. Le code ne télécharge aucune
-donnée et ne prétend pas accorder de licence sur un fichier fourni séparément.
+Ne jamais versionner un catalogue réel, dump, fixture de catalogue ou photo privée,
+ni les embarquer dans l'image Docker. Les fichiers réels éventuels restent hors
+Git ; les exclusions `data/` Git/Docker sont déjà présentes. Les tests utilisent
+des jeux synthétiques minimaux. Ne jamais utiliser `git add -f` pour ces données.
 
-Format UTF-8 (BOM accepté), séparateur virgule, neuf colonnes obligatoires, dans
-un ordre quelconque ; valeurs facultatives vides :
+Si une instance possède des fiches héritées, conserver leurs UUID et références
+aux propriétaires, exemplaires, partages et prêts ; inventorier puis réviser
+selon le [plan de migration](docs/plan-b-a-c.md#stratégie-de-migration-et-de-retour).
+Ne pas supprimer de volume, masquer en masse, effacer des fiches ou changer leurs
+références pour « repartir vide ». Toute opération destructive requiert une
+autorisation explicite, sauvegarde restaurable et retour arrière.
 
-```csv
-title,year,publisher,players_min,players_max,duration,description,external_source,external_id
-Jeu entièrement fictif,2025,,2,4,30,,synthetic,example-game-1
-```
-
-Les limites et contraintes de `Game` sont validées : titre 120 caractères,
-éditeur 120, description 2000, année 1–2200, joueurs 1–100 avec min ≤ max,
-durée 1–10000 minutes, source 80 et identifiant 120 caractères. Le titre normalisé
-utilise la même fonction que la recherche. Un titre identique n'est pas une clé :
-deux éditions ayant des identifiants différents restent séparées.
-
-Conserver tout CSV réel dans `data/import/` (déjà couvert par `data/` dans
-`.gitignore`). Le nom `muqola_games_5000.csv` et les noms `*bgg*.csv` sont aussi
-ignorés hors de ce dossier. Tout autre export réel doit rester dans `data/`,
-quel que soit son format. Ne jamais utiliser `git add -f`. Aucun CSV réel, dump,
-fixture ou illustration BGG ne doit être poussé sur GitHub.
-Les mêmes données d'import sont exclues du contexte Docker par `.dockerignore`,
-pour qu'un build local ne les embarque pas dans l'image.
-
-Sur la pile locale lancée selon les instructions ci-dessus :
-
-```sh
-mkdir -p data/import
-# Copier volontairement le fichier externe dans ce dossier, sans le versionner.
-docker compose exec -T web python manage.py import_games /dev/stdin --dry-run < data/import/muqola_games_5000.csv
-docker compose exec -T web python manage.py import_games /dev/stdin < data/import/muqola_games_5000.csv
-# Si le fichier est déjà accessible depuis le processus Django :
-uv run --frozen python manage.py import_games /chemin/externe/catalogue.csv --dry-run
-uv run --frozen python manage.py import_games /chemin/externe/catalogue.csv
-```
-
-La sortie JSON donne `created`, `existing`, `ignored`, `invalid` et `dry_run`.
-En simulation, `created` signifie **seraient créées** : aucune écriture PostgreSQL,
-aucun compte technique créé. Les anomalies indiquent sur stderr la ligne physique
-(fin de l'enregistrement multiligne) et les champs concernés, sans recopier les données.
-Les lignes sans identifiant externe sont ignorées pour garantir l'idempotence ;
-une paire source/identifiant incomplète est invalide. Pour le fichier BGG, conserver
-`external_source=bgg` et l'identifiant fourni dans `external_id`.
-
-La paire `(external_source, external_id)` identifie une fiche : doublons du CSV et
-fiches déjà présentes sont comptés dans `existing`, **sans aucune mise à jour**,
-même si le titre ou le masquage diffère. Le fichier est lu par lots de 250 lignes,
-avec transactions et savepoints ; seuls les identifiants déjà rencontrés sont
-conservés en mémoire au-delà du lot. Les données invalides sont sautées. Une erreur
-fatale de fichier/base annule le lot courant, conserve les lots validés et interrompt
-la commande ; corriger puis relancer. La contrainte unique en base protège aussi
-les imports concurrents. Aucun `OwnedGame` n'est créé par l'import.
-
-Le premier import effectif valide crée, si nécessaire, le compte identifiable
-`catalogue-import@muqola.invalid`, nommé « Catalogue importé (compte technique) » :
-compte désactivé, non vérifié, sans mot de passe utilisable, `is_staff=False`,
-`is_superuser=False`. Ce n'est pas un compte humain ni un administrateur ; ne pas
-l'activer ni lui attribuer de mot de passe. Si l'adresse réservée désigne un compte
-interactif/privilégié, l'import refuse de le modifier. Les fiches importées ont ce
-créateur protégé par FK ; leurs identifiants externes permettent la traçabilité.
-
-Après import, les données restent dans le volume PostgreSQL : le CSV peut être
-retiré de la machine sans affecter la recherche. Ne pas supprimer le volume pour
-retirer des fiches. Pour contrôler les références importées, une console Django
-locale de confiance peut lire, sans données d'exemplaires :
-
-```python
-from muqola.catalogue.models import Game
-
-Game.objects.filter(external_source="bgg").values("id", "title", "external_source", "external_id")
-```
-
-Si les droits imposent un retrait : arrêter les nouveaux imports, identifier les
-fiches concernées, puis utiliser **explicitement pour chaque UUID validé** la
-console opérateur existante :
-
-```sh
-docker compose exec web python manage.py ops hide-game --operator operateur@example.test --game-id UUID --reason 'Retrait du catalogue importe valide par operateur'
-```
-
-Cette action requiert un opérateur actif/vérifié/superutilisateur et un accès OS de
-confiance ; elle est tracée. Elle masque la fiche, retire les copies du prêt et
-clôt les demandes inéligibles, sans supprimer les exemplaires ni les prêts actifs.
-Une relance d'import ne la réaffiche pas. Aucune suppression destructive automatique.
-Avant toute suppression définitive éventuelle, examiner séparément les obligations
-légales et les historiques protégés.
-
-**Futur VPS :** après autorisation des droits et validation de l'exploitant, prévoir
-une sauvegarde restaurable, transférer le CSV hors du dépôt avec un accès privé,
-exécuter d'abord la simulation puis l'import volontaire avec la configuration de
-cette instance, conserver le bilan et retirer le fichier de transit. Ne pas modifier
-le démarrage ou le déploiement pour lancer l'import. Aucune opération VPS réalisée
-ici ; les prérequis de production restent du lot 6.
-
-Vérification navigateur de l'ajout rapide sur une pile locale avec Mailpit et un
-jeu déjà présent (importé ou synthétique) :
+Vérification **du parcours actuel** sur pile locale avec Mailpit et jeu synthétique
+créé par formulaire (script à adapter aux propositions lors de B) :
 
 ```sh
 uv run --frozen --group browser python scripts/catalogue_browser_smoke.py --title "Titre déjà présent" --browser /usr/bin/chromium
@@ -443,7 +388,8 @@ comptes fictifs et leurs jeux via les vrais formulaires, puis vérifie 360, 390,
 1200 et 1280 px, menu, filtres, contenus longs et mode sans JS. Captures dans
 `work/ui-redesign/screenshots/` ; les comparaisons avant/après sont versionnées dans la documentation.
 Les tests serveur vérifient aussi les limites de visibilité des nouvelles présentations.
-Aucun changement des règles métier, de Gunicorn, ni démarrage du lot 6.
+Cette passe UI historique ne modifiait pas les règles métier ni Gunicorn.
+La préparation ultérieure du lot 6 est décrite dans son document dédié.
 
 Le scénario de contenus longs exige désormais, pour les trois formulaires (fiche
 jeu, exemplaire, communauté), une réponse POST 302 vers le détail attendu, puis
