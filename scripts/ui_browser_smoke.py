@@ -189,6 +189,10 @@ with sync_playwright() as playwright:
     # PR C : lecture membre, copie refusée avec solution manuelle et carte clavier.
     expect(bob.locator("#invitation-link")).to_have_value(invitation)
     expect(bob.get_by_text("Lien permanent · sans expiration", exact=True)).to_be_visible()
+    bob_context.grant_permissions(["clipboard-read", "clipboard-write"])
+    bob.get_by_role("button", name="Copier le lien", exact=True).click()
+    expect(bob.locator("[data-copy-status]")).to_have_text("Lien copié.")
+    check(bob.evaluate("navigator.clipboard.readText()") == invitation, "Copie du lien incorrecte")
     bob.evaluate(
         "Object.defineProperty(navigator, 'clipboard', {value: {"
         "writeText: () => Promise.reject(new Error('denied'))}, configurable: true})"
@@ -200,6 +204,7 @@ with sync_playwright() as playwright:
     expect(card).to_have_count(1)
     expect(card).to_contain_text("2 membres")
     expect(card).to_contain_text("Privée")
+    bob.screenshot(path=str(output / "communities-390.png"), full_page=True)
     card.focus()
     bob.keyboard.press("Enter")
     expect(bob).to_have_url(community_url)

@@ -17,6 +17,4 @@ class SecurityHeadersMiddleware:
         )
         response["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
         response["Cache-Control"] = "no-store"
-        if request.path.startswith("/communities/"):
-            response["Referrer-Policy"] = "no-referrer"
         return response

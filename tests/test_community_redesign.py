@@ -78,7 +78,7 @@ def test_current_link_membership_mutations_csrf_and_get(
     link = services.current_invitation(reader, community.pk)[1]
     assert link in response.content.decode() and "Lien permanent" in response.content.decode()
     assert response["Cache-Control"].find("no-store") >= 0
-    assert response["Referrer-Policy"] == "no-referrer"
+    assert response["Referrer-Policy"] == "same-origin"
     assert client.post(detail, {"action": "invite"}).status_code == 404
     revoke = reverse("communities:revoke", args=[community.pk, invitation.pk])
     assert client.post(revoke).status_code == 404
