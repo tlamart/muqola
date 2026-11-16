@@ -516,3 +516,19 @@ def test_uploaded_photo_is_explicitly_rejected_without_any_persistence(
         and not OwnedGame.objects.exists()
         and not GameIllustration.objects.exists()
     )
+
+
+def test_extension_form_names_approved_bases_without_revealing_private_proposals(
+    client: Client,
+) -> None:
+    alice, bob = member(), member("Bob")
+    base = approved_game(alice, {"title": "Base nommée et validée"})
+    private = write_game(alice, {"title": "Proposition strictement privée"})
+    client.force_login(bob)
+    response = client.get(reverse("catalogue:create"))
+    assert response.status_code == 200
+    assert f'value="{base.pk}">{base.title}</option>' in response.content.decode()
+    assert (
+        private.title not in response.content.decode()
+        and str(private.pk) not in response.content.decode()
+    )

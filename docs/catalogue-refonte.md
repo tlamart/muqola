@@ -103,7 +103,7 @@ Les parcours navigateur locaux/CI créent des propositions par les vrais formula
 
 ### Résultats locaux
 
-- `./scripts/check.sh` sur PostgreSQL 17 isolé : Ruff lint/format, mypy (95 sources), contrôles Django, absence de migration manquante, migrations, statiques et suite pytest complète : **284 tests réussis en 93,68 s**, réexécutés en série sans avertissement. Résultat CI final dans la PR.
+- `./scripts/check.sh` sur PostgreSQL 17 isolé : Ruff lint/format, mypy (95 sources), contrôles Django, absence de migration manquante, migrations, statiques et suite pytest complète exécutée en série sans avertissement, complétée par le contrôle des libellés et droits du formulaire de base. Nombre final de tests et résultat CI consignés dans la PR.
 - `check --deploy --fail-level WARNING` : succès (les deux avertissements volontairement neutralisés du socle sont conservés). Audit des dépendances runtime : aucune vulnérabilité connue détectée.
 - Build Docker et pile locale avec migration/worker/Mailpit : succès. Le certificat public du proxy Cloud a été fourni par le secret BuildKit `proxy_ca` déjà prévu au Dockerfile, sans le conserver dans l'image ; aucune désactivation TLS.
 - Parcours produit avec modération réelle, prêts et retrait de membre ; ajout avec/sans JS à 360/768/1280 px ; responsive/clavier/tactile, filtres, contenus longs et sans JS à 360/390/768/1200/1280 px : succès. Inspection visuelle du rendu 360 px effectuée.

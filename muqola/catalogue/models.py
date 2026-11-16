@@ -120,6 +120,9 @@ class Game(models.Model):
             ),
         ]
 
+    def __str__(self) -> str:
+        return self.title
+
     @property
     def lendable(self) -> bool:
         return (
