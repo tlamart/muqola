@@ -24,7 +24,12 @@ def test_page_query_count(client: Client, volume: int, view: str) -> None:
     community = Community.objects.create(name="Partagée", created_by=owner)
     Membership.objects.create(community=community, user=owner)
     Membership.objects.create(community=community, user=reader)
-    game = Game.objects.create(title="Jeu SQL", created_by=owner)
+    game = Game.objects.create(
+        moderation_status=Game.Status.APPROVED,
+        kind=Game.Kind.STANDALONE,
+        title="Jeu SQL",
+        created_by=owner,
+    )
     items = OwnedGame.objects.bulk_create(
         [OwnedGame(game=game, owner=owner) for _ in range(volume)]
     )
@@ -37,7 +42,9 @@ def test_page_query_count(client: Client, volume: int, view: str) -> None:
         response = client.get(url)
     assert response.status_code == 200
     print(f"SQL {view} volume={volume}: {len(captured)}")
-    assert len(captured) == {"inventory:index": 6, "inventory:mine": 4, "catalogue:detail": 9}[view]
+    assert (
+        len(captured) == {"inventory:index": 6, "inventory:mine": 4, "catalogue:detail": 11}[view]
+    )
     assert len(response.context["copies"]) == min(volume, 30)
 
 
@@ -48,7 +55,13 @@ def test_annotated_availability_matches_fallback_and_filter(
     restriction: str | None,
 ) -> None:
     owner, borrower = member(), member("Borrower")
-    game = Game.objects.create(title="États", created_by=owner, hidden=restriction == "hidden")
+    game = Game.objects.create(
+        moderation_status=Game.Status.APPROVED,
+        kind=Game.Kind.STANDALONE,
+        title="États",
+        created_by=owner,
+        hidden=restriction == "hidden",
+    )
     item = OwnedGame.objects.create(
         game=game,
         owner=owner,
@@ -80,7 +93,12 @@ def test_detail_pagination_preserves_visibility_and_global_availability(client: 
     Membership.objects.create(community=a, user=owner)
     membership = Membership.objects.create(community=a, user=reader)
     Membership.objects.create(community=b, user=owner)
-    game = Game.objects.create(title="Pagination", created_by=owner)
+    game = Game.objects.create(
+        moderation_status=Game.Status.APPROVED,
+        kind=Game.Kind.STANDALONE,
+        title="Pagination",
+        created_by=owner,
+    )
     items = OwnedGame.objects.bulk_create(
         [OwnedGame(id=UUID(int=i + 1), game=game, owner=owner) for i in range(65)]
     )
@@ -125,7 +143,7 @@ def test_detail_pagination_preserves_visibility_and_global_availability(client: 
         assert "SecretOwner" not in body
         assert "alice@example.test" not in body
         assert all(row["communities"] == ["Autorisée"] for row in response.context["copy_rows"])
-    assert counts == [9, 9, 9]
+    assert counts == [11, 11, 11]
     assert seen == [item.pk for item in items]
     assert private.pk not in seen and foreign.pk not in seen
     assert client.get(url, {"page": "invalide"}).context["copies"].number == 1
@@ -148,7 +166,12 @@ def test_detail_pagination_preserves_visibility_and_global_availability(client: 
 @pytest.mark.parametrize("volume", [1, 10, 30, 65])
 def test_available_explorer_query_count(client: Client, volume: int) -> None:
     owner = member()
-    game = Game.objects.create(title="Filtrés", created_by=owner)
+    game = Game.objects.create(
+        moderation_status=Game.Status.APPROVED,
+        kind=Game.Kind.STANDALONE,
+        title="Filtrés",
+        created_by=owner,
+    )
     OwnedGame.objects.bulk_create([OwnedGame(game=game, owner=owner) for _ in range(volume)])
     client.force_login(owner)
     with CaptureQueriesContext(connection) as captured:

@@ -79,7 +79,19 @@ def edit(
         if copy_id
         else None
     )
-    game = item.game if item else get_object_or_404(Game, pk=game_id, hidden=False)
+    game = (
+        item.game
+        if item
+        else get_object_or_404(
+            Game.objects.filter(
+                Q(moderation_status=Game.Status.APPROVED)
+                | Q(moderation_status=Game.Status.PENDING, created_by=actor(request))
+            ),
+            pk=game_id,
+            hidden=False,
+            merged_into__isnull=True,
+        )
+    )
     initial = (
         {
             "notes": item.notes,

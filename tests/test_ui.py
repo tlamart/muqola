@@ -4,11 +4,11 @@ import pytest
 from django.test import Client
 from django.urls import reverse
 
-from muqola.catalogue.services import write_game
 from muqola.communities import services as communities
 from muqola.communities.models import Membership
 from muqola.inventory.services import write_copy
 from muqola.loans import services as loans
+from tests.helpers import approved_game as write_game
 from tests.helpers import member
 from tests.test_loans import scenario
 

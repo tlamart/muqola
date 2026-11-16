@@ -5,6 +5,7 @@
 <p class="intro">Privés ou partagés, vos exemplaires restent les vôtres.</p>
 <a class="button button--accent" href="{% url 'catalogue:index' %}">Ajouter un jeu</a>
 </header>
+<p><a href="{% url 'catalogue:proposals' %}">Suivre mes propositions de jeux</a></p>
 <h2 class="visually-hidden">Les jeux de votre collection</h2>
 <ul class="game-grid">{% for copy in copies %}<li>{% include 'components/copy_card.html' with collection=True %}</li>{% empty %}<li class="empty-state">
 <h2>Votre collection commence ici</h2>

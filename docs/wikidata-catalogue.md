@@ -1,5 +1,10 @@
 # Catalogue Wikidata et illustrations Commons
 
+> Depuis la PR B, `import_games` et `import_wikidata_games` sont **désactivées**,
+> même en simulation. Les instructions d'ingestion ci-dessous sont historiques,
+> pas un parcours à exécuter. Les alias, illustrations, crédits et licences déjà
+> présents sont conservés. Voir [la refonte et ses migrations](catalogue-refonte.md).
+
 ## Périmètre et données
 
 Import local volontaire, sans API, téléchargement serveur, synchronisation ou
@@ -18,7 +23,7 @@ Git et le contexte Docker. Les noms `*wikidata*.csv` sont aussi ignorés ailleur
 Aucune donnée réelle n'est dans les migrations, fixtures, tests ou images Docker.
 Les tests créent uniquement des données synthétiques en mémoire/répertoire temporaire.
 
-## Commandes locales explicites
+## Ancien parcours d’import (désactivé)
 
 Installer les migrations sur la base locale avant la première simulation :
 

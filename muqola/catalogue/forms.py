@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from django import forms
 
@@ -12,10 +12,38 @@ else:
 
 
 class GameForm(GameModelForm):
+    kind = forms.ChoiceField(label="Type de jeu", choices=Game.Kind, required=False)
+    alternate_titles = forms.CharField(
+        label="Titres alternatifs (un par ligne)",
+        required=False,
+        max_length=2400,
+        widget=forms.Textarea,
+    )
+    proposal_reason = forms.CharField(
+        label="Pourquoi un jeu distinct ? (si un titre existe déjà, pas une autre édition)",
+        required=False,
+        max_length=500,
+        widget=forms.Textarea,
+    )
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        cast(
+            "forms.ModelChoiceField[Game]", self.fields["base_game"]
+        ).queryset = Game.objects.filter(
+            moderation_status=Game.Status.APPROVED, hidden=False, merged_into__isnull=True
+        )
+
+    def clean_kind(self) -> str:
+        return str(self.cleaned_data.get("kind") or Game.Kind.UNKNOWN)
+
     class Meta:
         model = Game
         fields = [
             "title",
+            "kind",
+            "base_game",
+            "proposal_reason",
             "publisher",
             "year",
             "players_min",
@@ -25,6 +53,7 @@ class GameForm(GameModelForm):
         ]
         labels = {
             "title": "Titre du jeu",
+            "base_game": "Jeu de base nécessaire",
             "publisher": "Éditeur",
             "year": "Année",
             "players_min": "Joueurs minimum",
@@ -46,8 +75,11 @@ class ReportForm(forms.Form):
 class QuickAddForm(CopyForm):
     game_id = forms.UUIDField(required=False, widget=forms.HiddenInput)
     title = forms.CharField(label="Titre du jeu", max_length=120, required=False)
-    distinct_edition = forms.BooleanField(
-        label="Il s'agit d'un autre jeu ou d'une autre édition", required=False
+    proposal_reason = forms.CharField(
+        label="Pourquoi un jeu distinct ? (pas une autre édition)",
+        max_length=500,
+        required=False,
+        widget=forms.Textarea,
     )
 
     def clean(self) -> dict[str, Any]:

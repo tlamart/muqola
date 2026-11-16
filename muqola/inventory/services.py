@@ -42,6 +42,8 @@ def visible(user: User) -> QuerySet[OwnedGame]:
             | Q(
                 withdrawn=False,
                 game__hidden=False,
+                game__merged_into__isnull=True,
+                game__moderation_status__in=[Game.Status.APPROVED, Game.Status.LEGACY],
                 visibilities__community__memberships__user=user,
                 visibilities__community__memberships__active=True,
             )
@@ -53,7 +55,12 @@ def visible(user: User) -> QuerySet[OwnedGame]:
 
 def available(query: QuerySet[OwnedGame]) -> QuerySet[OwnedGame]:
     return with_availability(query).filter(
-        withdrawn=False, archived=False, game__hidden=False, has_active_loan=False
+        withdrawn=False,
+        archived=False,
+        game__hidden=False,
+        game__merged_into__isnull=True,
+        game__moderation_status__in=[Game.Status.APPROVED, Game.Status.LEGACY],
+        has_active_loan=False,
     )
 
 
@@ -67,7 +74,13 @@ def write_copy(
 ) -> OwnedGame:
     with domain_write(user):
         if copy_id is None:
-            game = get_object_or_404(Game, pk=game_id, hidden=False)
+            game = get_object_or_404(Game, pk=game_id, hidden=False, merged_into__isnull=True)
+            if game.moderation_status != Game.Status.APPROVED and not (
+                game.moderation_status == Game.Status.PENDING and game.created_by_id == user.pk
+            ):
+                from django.http import Http404
+
+                raise Http404
             item = OwnedGame(game=game, owner=user)
         else:
             item = get_object_or_404(
@@ -81,6 +94,11 @@ def write_copy(
         )
         if not set(community_ids) <= allowed:
             raise ValidationError("Choisissez uniquement vos communautés actuelles.")
+        if game.moderation_status in (Game.Status.PENDING, Game.Status.REJECTED) and community_ids:
+            raise ValidationError(
+                "Une proposition reste privée jusqu'à validation. Partagez votre "
+                "exemplaire ensuite."
+            )
         # L'édition privée ne peut pas annuler le retrait imposé par la modération.
         item.notes, item.withdrawn = notes.strip(), withdrawn or game.hidden
         item.full_clean()
@@ -108,20 +126,13 @@ def add_to_collection(
     title: str,
     notes: str,
     community_ids: list[UUID],
-    distinct_edition: bool = False,
+    proposal_reason: str = "",
 ) -> OwnedGame:
-    from muqola.catalogue.services import matching_title, write_game
+    from muqola.catalogue.services import write_game
 
     with domain_write(user):
         if game_id is None:
-            if (
-                not distinct_edition
-                and matching_title(Game.objects.filter(hidden=False), title, exact=True).exists()
-            ):
-                raise ValidationError(
-                    "Un jeu de ce nom existe déjà. Sélectionnez-le ou confirmez une autre édition."
-                )
-            game_id = write_game(user, {"title": title}).pk
+            game_id = write_game(user, {"title": title, "proposal_reason": proposal_reason}).pk
         return write_copy(user, game_id, notes, community_ids)
 
 

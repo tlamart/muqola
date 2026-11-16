@@ -182,9 +182,12 @@ with sync_playwright() as playwright:
             page.get_by_role("button", name="Rechercher", exact=True).click()
             page.get_by_role("link", name="Mon jeu n’est pas dans la liste", exact=True).click()
             expect(page.get_by_label("Titre du jeu")).to_have_value(manual)
-            page.get_by_role("button", name="Créer ce jeu et l’ajouter", exact=True).click()
+            page.get_by_role(
+                "button", name="Proposer ce jeu et l’ajouter en privé", exact=True
+            ).click()
             page.wait_for_url("**/copies/*/")
             expect(page.get_by_role("heading", level=1)).to_have_text(manual)
+            expect(page.locator("main")).to_contain_text("Aucune communauté")
             if external:
                 raise RuntimeError("Appel BGG inattendu")
             ctx.close()

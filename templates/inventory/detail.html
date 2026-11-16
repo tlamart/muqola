@@ -5,6 +5,8 @@
 <p class="eyebrow">Un exemplaire physique</p>
 <h1>{{ copy.game.title }}</h1>
 <p class="intro">Exemplaire de {{ copy.owner.display_name }}</p>
+<p class="help">{{ copy.game.get_moderation_status_display }} · {{ copy.game.get_kind_display }}</p>
+{% if copy.game.moderation_status == 'pending' or copy.game.moderation_status == 'rejected' %}<p role="status">Cet exemplaire reste privé et ne peut pas être prêté avant validation de la fiche. <a href="{% url 'catalogue:proposals' %}">Suivre mes propositions</a>.</p>{% endif %}
 <p class="game-metadata muted">{% include 'components/game_metadata.html' with game=copy.game %}</p>{% with available=copy.available %}<span class="badge{% if available %} badge--available{% endif %}">{% if copy.withdrawn %}Retiré du prêt{% elif available %}Disponible{% else %}Indisponible{% endif %}</span>
 <div class="panel">
 <h2>À propos de cet exemplaire</h2>

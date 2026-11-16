@@ -11,7 +11,6 @@ from django.test import Client
 from django.urls import reverse
 from django.utils import timezone
 
-from muqola.catalogue.services import write_game
 from muqola.communities import services as communities
 from muqola.communities.models import Community, Membership
 from muqola.identity.models import User
@@ -19,6 +18,7 @@ from muqola.inventory.models import OwnedGame
 from muqola.inventory.services import archive, visible, write_copy
 from muqola.loans import services
 from muqola.loans.models import Loan, LoanEvent
+from tests.helpers import approved_game as write_game
 from tests.helpers import member
 
 pytestmark = pytest.mark.django_db

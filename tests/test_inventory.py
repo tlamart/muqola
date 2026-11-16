@@ -9,13 +9,14 @@ from django.test import Client
 from django.urls import reverse
 
 from muqola.catalogue.models import Game, GameReport
-from muqola.catalogue.services import report, search, write_game
+from muqola.catalogue.services import report, search
 from muqola.communities import services as communities
 from muqola.communities.models import Membership
 from muqola.inventory.models import GameVisibility, OwnedGame
 from muqola.inventory.services import archive, available, visible, write_copy
 from muqola.loans import services as loans
 from muqola.operations.services import moderate_game
+from tests.helpers import approved_game as write_game
 from tests.helpers import member
 from tests.test_loans import scenario
 
@@ -93,7 +94,12 @@ def test_member_removal_revokes_access_and_owner_departure_removes_visibility() 
 def test_reused_game_cannot_be_rewritten_even_after_other_copy_is_archived() -> None:
     alice, bob = member(), member("Bob")
     game = write_game(alice, {"title": "Original"})
-    write_game(alice, {"title": "Corrigé"}, game.pk)
+    with pytest.raises(ValidationError):
+        write_game(alice, {"title": "Correction directe refusée"}, game.pk)
+    from muqola.catalogue.moderation import correct
+    from tests.helpers import catalogue_operator
+
+    correct(catalogue_operator(), game.pk, "Correction validée", {"title": "Corrigé"})
     copy = write_copy(bob, game.pk, "", [])
     copy.archived = True
     copy.save()
@@ -189,7 +195,15 @@ def test_hidden_copy_notes_can_change_without_restoring_visibility_or_lending() 
 @pytest.mark.parametrize("hidden", [False, True])
 def test_copy_edit_form_saves_notes_and_respects_moderation(client: Client, hidden: bool) -> None:
     alice, bob, clara, community, item = scenario()
-    write_game(alice, {"title": "Exemplaire de régression MUQ-04"}, item.game_id)
+    from muqola.catalogue.moderation import correct
+    from tests.helpers import catalogue_operator
+
+    correct(
+        catalogue_operator(),
+        item.game_id,
+        "Correction synthétique",
+        {"title": "Exemplaire de régression MUQ-04"},
+    )
     if hidden:
         hide_game(item)
     client.force_login(alice)

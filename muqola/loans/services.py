@@ -28,7 +28,7 @@ def participant_loans(user: User) -> QuerySet[Loan]:
 
 
 def eligible(borrower: User, item: OwnedGame) -> bool:
-    if borrower.pk == item.owner_id or item.withdrawn or item.archived or item.game.hidden:
+    if borrower.pk == item.owner_id or item.withdrawn or item.archived or not item.game.lendable:
         return False
     if not User.objects.filter(
         pk=borrower.pk, is_active=True, email_verified_at__isnull=False
