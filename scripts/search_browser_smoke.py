@@ -10,8 +10,9 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import urlparse
 
+from browser_checks import expected_search_abort
 from catalogue_fixture import local_command
-from playwright.sync_api import Route, expect, sync_playwright
+from playwright.sync_api import Request, Route, expect, sync_playwright
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--browser", default="/usr/bin/chromium")
@@ -169,11 +170,37 @@ with sync_playwright() as playwright:
     input.fill("")
     page.clock.run_for(250)
     expect(page.locator("#search-results")).to_have_attribute("aria-busy", "false")
-    # A failed fetch preserves the choice and gives a working native GET retry.
+    # Exercise the responsive smoke's network collector with real Chromium events:
+    # only a marked same-origin fragment's ERR_ABORTED is an expected cancellation.
+    network_failures: list[Request] = []
+
+    def collect_failure(request: Request) -> None:
+        network_failures.append(request)
+
+    page.on("requestfailed", collect_failure)
+    page.route("**/games/?**", lambda route: route.abort("aborted"))
+    input.fill("Annulation " + prefix)
+    page.clock.run_for(250)
+    expect(page.locator("#search-status")).to_contain_text("indisponible")
+    check(len(network_failures) == 1, "Chromium reported the cancelled fragment")
+    cancelled = network_failures[-1]
+    check(expected_search_abort(cancelled, args.url), "Expected local search cancellation")
+    check(
+        not expected_search_abort(cancelled, "https://example.test"),
+        "An unrelated origin is never exempted",
+    )
+    page.unroute("**/games/?**")
+    # A genuine failed fetch stays an error and gives a working native GET retry.
     page.route("**/games/?**", lambda route: route.abort())
     input.fill("Quete " + prefix)
     page.clock.run_for(250)
     expect(page.locator("#search-status")).to_contain_text("indisponible")
+    check(len(network_failures) == 2, "Chromium reported the failed fragment")
+    check(
+        not expected_search_abort(network_failures[-1], args.url),
+        "A genuine network failure must still fail the responsive smoke",
+    )
+    page.remove_listener("requestfailed", collect_failure)
     expect(page.locator("#selected-game")).to_have_value(selected)
     page.unroute("**/games/?**")
     input.press("Enter")
@@ -231,6 +258,7 @@ print(
                 "abort/stale",
                 "selection/notes/shares",
                 "network/native retry",
+                "cancelled versus failed fragments",
                 "grouping/pagination/filters",
                 "CSP",
                 "360px",

@@ -406,6 +406,10 @@ comptes fictifs et leurs jeux via les vrais formulaires, puis vérifie 360, 390,
 1200 et 1280 px, menu, filtres, contenus longs et mode sans JS. Captures dans
 `work/ui-redesign/screenshots/` ; les comparaisons avant/après sont versionnées dans la documentation.
 Les tests serveur vérifient aussi les limites de visibilité des nouvelles présentations.
+Le smoke distingue les fragments de recherche locaux annulés volontairement
+(`ERR_ABORTED`) des vraies erreurs réseau ; les annulations sont comptées dans
+`result.json`. Le parcours de recherche contrôle cette distinction dans Chrome,
+avec une annulation puis une panne réseau forcées.
 Cette passe UI historique ne modifiait pas les règles métier ni Gunicorn.
 La préparation ultérieure du lot 6 est décrite dans son document dédié.
 

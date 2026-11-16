@@ -66,3 +66,12 @@ synthétiques ; l'application locale de l'utilisateur et sa base restent intacte
 Les bilans 309 tests ci-dessus restent des preuves historiques sur la base
 précédente. La CI GitHub de la nouvelle tête doit être vérifiée avant fusion ;
 aucune fusion de PR ni opération de production effectuée ici.
+
+Le collecteur réseau du smoke UI distingue désormais les annulations attendues
+de la recherche A : uniquement `net::ERR_ABORTED` sur un `fetch` same-origin de
+`/games/` ou `/copies/` portant le marqueur `live-search`. Les annulations sont
+comptées dans le résultat ; les autres erreurs, y compris une panne de ce même
+fragment, continuent de faire échouer le smoke. Le parcours de recherche vérifie
+ce contrat avec de vrais événements Chromium : annulation forcée, origine
+étrangère non exemptée et panne réseau conservée comme erreur. Aucun changement
+du comportement de recherche ou des règles métier de l'application.

@@ -14,8 +14,9 @@ from pathlib import Path
 from urllib.request import urlopen
 from zoneinfo import ZoneInfo
 
+from browser_checks import expected_search_abort
 from catalogue_fixture import approve_proposal
-from playwright.sync_api import Browser, Page, expect, sync_playwright
+from playwright.sync_api import Browser, Page, Request, expect, sync_playwright
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--browser", default="/usr/bin/chromium")
@@ -172,9 +173,18 @@ with sync_playwright() as playwright:
     bob_context = browser.new_context(viewport={"width": 390, "height": 844}, has_touch=True)
     alice, bob = alice_context.new_page(), bob_context.new_page()
     failures: list[str] = []
+    cancelled_searches: list[str] = []
+
+    def request_failed(request: Request) -> None:
+        # Une nouvelle saisie ou pagehide annule volontairement le fetch précédent.
+        if expected_search_abort(request, args.url):
+            cancelled_searches.append(request.url)
+        else:
+            failures.append(f"{request.url} ({request.failure})")
+
     for page in (alice, bob):
         page.on("pageerror", lambda error: failures.append(str(error)))
-        page.on("requestfailed", lambda request: failures.append(request.url))
+        page.on("requestfailed", request_failed)
     register(browser, alice, "Alice")
     alice.goto(args.url + "/communities/new/")
     community_name = "Amis · Démo " + secrets.token_hex(2)
@@ -383,6 +393,7 @@ with sync_playwright() as playwright:
                 "without_js": "passed",
                 "long_content": "passed",
                 "network_errors": failures,
+                "cancelled_searches": len(cancelled_searches),
             },
             indent=2,
         )
