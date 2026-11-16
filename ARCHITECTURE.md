@@ -3,7 +3,7 @@
 ## Stack et portée
 La stack est **déjà validée** dans [ADR 0001](docs/adr/0001-stack.md) : Python 3.12, Django 5.2 LTS, PostgreSQL 17, templates HTML/CSS/JS locaux, Gunicorn/WhiteNoise et Docker Compose. La conserver ; ne pas réinitialiser le projet ni relancer un choix de framework pour les PR B/A/C.
 
-L'[audit du code et des écarts](docs/plan-b-a-c.md) décrit `main` à `e0fa4ca`, après fusion de la PR #25, et détaille les décisions proposées. [SPEC](SPEC.md) fixe la cible ; [TASKS](TASKS.md) détaille les trois PR et leurs validations. Le catalogue B est implémenté selon [son document de schéma et migrations](docs/catalogue-refonte.md) ; A est décrite dans [recherche intelligente](docs/recherche-intelligente.md) ; C reste un **plan**. Le socle de préproduction séparé/Caddy existe depuis #24 ; il n'autorise aucun déploiement.
+L'[audit du code et des écarts](docs/plan-b-a-c.md) conserve la photographie de `main` à `e0fa4ca`, après fusion de la PR #25, et détaille les décisions validées. [SPEC](SPEC.md) fixe le comportement ; [TASKS](TASKS.md) détaille les trois PR et leurs validations. B (#29) et A (#30) sont intégrées dans `main` ; C (#28) est mise à jour sur cette base. Voir le [schéma et les migrations B](docs/catalogue-refonte.md), la [recherche intelligente A](docs/recherche-intelligente.md) et les [communautés/invitations C](docs/communautes-refonte.md). Le socle de préproduction séparé/Caddy existe depuis #24 ; il n'autorise aucun déploiement.
 
 ## Contraintes non négociables
 - Monolithe modulaire, pas de microservices, Kubernetes ou architecture événementielle distribuée.

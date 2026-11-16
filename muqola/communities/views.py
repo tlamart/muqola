@@ -1,38 +1,51 @@
 import re
 from uuid import UUID
 
-from cryptography.fernet import InvalidToken
-from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from django.core.paginator import Paginator
+from django.db.models import Count, Q
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
-from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from muqola.communities import services
 from muqola.communities.forms import CommunityForm, InviteForm
 from muqola.communities.models import Membership, PendingJoin
 from muqola.core.http import actor
-from muqola.core.secrets import secret_cipher
 from muqola.identity.ratelimit import allowed
 from muqola.identity.services import token_digest
 from muqola.identity.views import throttled
 
 
-@require_http_methods(["GET", "POST"])
+@require_GET
 def index(request: HttpRequest) -> HttpResponse:
+    members = (
+        Membership.objects.select_related("community")
+        .filter(user=actor(request), active=True)
+        .annotate(
+            member_count=Count(
+                "community__memberships",
+                filter=Q(
+                    community__memberships__active=True,
+                    community__memberships__user__is_active=True,
+                    community__memberships__user__email_verified_at__isnull=False,
+                ),
+            )
+        )
+    )
+    return render(request, "communities/index.html", {"memberships": members})
+
+
+@require_http_methods(["GET", "POST"])
+def create(request: HttpRequest) -> HttpResponse:
     form = CommunityForm(request.POST if request.method == "POST" else None)
     if request.method == "POST" and form.is_valid():
         if not allowed(request, "community", actor(request).email):
             return throttled(request, "community")
         community = services.create(actor(request), **form.cleaned_data)
+        messages.success(request, "Votre communauté privée est créée.")
         return redirect("communities:detail", community_id=community.pk)
-    members = Membership.objects.select_related("community").filter(
-        user=actor(request), active=True
-    )
-    return render(request, "communities/index.html", {"memberships": members, "form": form})
+    return render(request, "communities/create.html", {"form": form})
 
 
 @require_http_methods(["GET", "POST"])
@@ -40,7 +53,11 @@ def detail(request: HttpRequest, community_id: UUID) -> HttpResponse:
     member = services.membership(actor(request), community_id)
     admin = member.role == Membership.Role.ADMIN
     form = CommunityForm(
-        initial={"name": member.community.name, "description": member.community.description}
+        initial={
+            "name": member.community.name,
+            "description": member.community.description,
+            "illustration": member.community.illustration,
+        }
     )
     invite_form = InviteForm()
     if request.method == "POST":
@@ -57,28 +74,7 @@ def detail(request: HttpRequest, community_id: UUID) -> HttpResponse:
             if form.is_valid():
                 services.update(actor(request), community_id, **form.cleaned_data)
                 return redirect("communities:detail", community_id=community_id)
-    invitations = []
-    invitation_page = None
-    if admin:
-        invitation_page = Paginator(member.community.invites.order_by("-created_at"), 20).get_page(
-            request.GET.get("page")
-        )
-        for item in invitation_page:
-            link = ""
-            active = item.revoked_at is None and item.expires_at > timezone.now()
-            if active and item.encrypted_token:
-                try:
-                    raw = (
-                        secret_cipher("community-invite")
-                        .decrypt(item.encrypted_token.encode())
-                        .decode()
-                    )
-                except InvalidToken:
-                    # Une rotation de clé ne doit pas bloquer la révocation du lien.
-                    pass
-                else:
-                    link = f"{settings.APP_BASE_URL}/communities/invite/{raw}/"
-            invitations.append((item, link, active))
+    invitation, link = services.current_invitation(actor(request), community_id)
     return render(
         request,
         "communities/detail.html",
@@ -90,8 +86,8 @@ def detail(request: HttpRequest, community_id: UUID) -> HttpResponse:
             "members": Membership.objects.filter(
                 community_id=community_id, active=True
             ).select_related("user"),
-            "invitations": invitations,
-            "invitation_page": invitation_page,
+            "invitation": invitation,
+            "invitation_link": link,
         },
     )
 
@@ -160,5 +156,8 @@ def member_action(
 
 @require_POST
 def revoke(request: HttpRequest, community_id: UUID, invite_id: UUID) -> HttpResponse:
+    services.membership(actor(request), community_id, admin=True)
+    if not allowed(request, "invite", actor(request).email):
+        return throttled(request, "invite")
     services.revoke(actor(request), community_id, invite_id)
     return redirect("communities:detail", community_id=community_id)

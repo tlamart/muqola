@@ -72,7 +72,7 @@ with sync_playwright() as playwright:
     alice, bob = alice_context.new_page(), bob_context.new_page()
     alice_email = register(browser, alice, "Alice")
     check("Aucune communauté" in alice.locator("main").inner_text(), "État vide absent")
-    alice.goto(args.url + "/communities/")
+    alice.goto(args.url + "/communities/new/")
     community_name = "Voisins " + secrets.token_hex(3)
     alice.get_by_label("Nom de la communauté").fill(community_name)
     alice.get_by_role("button", name="Créer ma communauté", exact=True).click()

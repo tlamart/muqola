@@ -83,3 +83,21 @@ document.addEventListener('error', event => restoreGameCover(event.target), true
 document.querySelectorAll('img[data-commons-image]').forEach(image => {
   if (image.complete && image.naturalWidth === 0) restoreGameCover(image);
 });
+
+// Le champ readonly reste disponible sans JS et si Clipboard est refusé.
+const copyInvitation = document.querySelector('[data-copy-invitation]');
+if (copyInvitation) {
+  copyInvitation.hidden = false;
+  copyInvitation.addEventListener('click', async () => {
+    const field = document.getElementById('invitation-link');
+    const message = document.querySelector('[data-copy-status]');
+    try {
+      await navigator.clipboard.writeText(field.value);
+      message.textContent = 'Lien copié.';
+    } catch {
+      field.focus();
+      field.select();
+      message.textContent = 'Copie automatique indisponible. Copiez le texte sélectionné manuellement.';
+    }
+  });
+}

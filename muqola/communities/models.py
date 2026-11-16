@@ -6,6 +6,18 @@ from django.utils import timezone
 
 
 class Community(models.Model):
+    class Illustration(models.TextChoices):
+        TABLE = "table", "Autour de la table"
+        CARDS = "cards", "Cartes et rencontres"
+        DICE = "dice", "À vous de jouer"
+
+    illustration = models.CharField(max_length=8, choices=Illustration.choices, default="table")
+
+    @property
+    def illustration_path(self) -> str:
+        key = self.illustration if self.illustration in self.Illustration.values else "table"
+        return f"communities/{key}.svg"
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100)
     description = models.CharField(max_length=1000, blank=True)
@@ -45,13 +57,14 @@ class CommunityInvite(models.Model):
     digest = models.CharField(max_length=64, unique=True)
     encrypted_token = models.TextField()
     created_at = models.DateTimeField(default=timezone.now)
-    expires_at = models.DateTimeField()
+    expires_at = models.DateTimeField(null=True, blank=True)
     revoked_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(expires_at__gt=models.F("created_at")),
+                condition=models.Q(expires_at__isnull=True)
+                | models.Q(expires_at__gt=models.F("created_at")),
                 name="invite_future_expiry",
             )
         ]
@@ -60,4 +73,14 @@ class CommunityInvite(models.Model):
 class PendingJoin(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     digest = models.CharField(max_length=64)
+    created_at = models.DateTimeField(default=timezone.now)
+
+
+class InvitationEvent(models.Model):
+    community = models.ForeignKey(Community, on_delete=models.PROTECT)
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    action = models.CharField(
+        max_length=10, choices=[("rotate", "Régénération"), ("revoke", "Révocation")]
+    )
+    reason = models.CharField(max_length=32, default="admin_request", editable=False)
     created_at = models.DateTimeField(default=timezone.now)

@@ -19,17 +19,23 @@
 <h2>Paramètres</h2>
 <form method="post">{% csrf_token %}{% if form.errors %}<p role="alert">Vérifiez les paramètres.</p>{% endif %}{{ form.as_div }}<button type="submit">Enregistrer les paramètres</button>
 </form>
-<h2>Invitation partageable</h2>
-<p>Seules les personnes ayant ce lien pourront demander à rejoindre, après vérification de leur e-mail. Ne le publiez pas.</p>
-<form method="post">{% csrf_token %}<input type="hidden" name="action" value="invite">{% if invite_form.errors %}<p role="alert">Vérifiez la durée de l’invitation.</p>{% endif %}{{ invite_form.as_div }}<button type="submit">Créer un lien d'invitation</button>
-</form>
-</section>
-<ul class="cards">{% for invitation, link, active in invitations %}<li>
-<p>Expiration : {{ invitation.expires_at|date:'d/m/Y H:i' }} UTC{% if invitation.revoked_at %} · Révoquée{% endif %}</p>{% if active %}{% if link %}<label for="invite-{{ invitation.pk }}">Lien à copier et partager</label>
-<textarea id="invite-{{ invitation.pk }}" readonly rows="3">{{ link }}</textarea>
-{% else %}<p role="status">Ce lien ne peut plus être affiché. Révoquez cette invitation et créez-en une nouvelle. Un lien déjà partagé reste valable jusqu'à révocation ou expiration.</p>{% endif %}
-<form method="post" action="{% url 'communities:revoke' community.pk invitation.pk %}">{% csrf_token %}<button class="secondary" type="submit">Révoquer ce lien</button>
-</form>{% endif %}</li>{% empty %}<li>Aucune invitation créée.</li>{% endfor %}</ul>{% include "pagination.html" with page=invitation_page %}{% endif %}
+</section>{% endif %}
+<section class="account" aria-labelledby="invitation-heading"><h2 id="invitation-heading">Invitation partageable</h2>
+<p>Ce lien donne accès à cette communauté privée après vérification de l'e-mail et confirmation. Ne le publiez pas.</p>
+{% if invitation %}<p>{% if invitation.expires_at %}Expiration : {{ invitation.expires_at|date:'d/m/Y H:i' }} UTC{% else %}Lien permanent · sans expiration{% endif %}</p>
+{% if invitation_link %}<label for="invitation-link">Lien à copier et partager</label>
+<textarea id="invitation-link" readonly rows="3">{{ invitation_link }}</textarea>
+<button type="button" class="secondary" data-copy-invitation hidden>Copier le lien</button>
+<p data-copy-status role="status" aria-live="polite">Vous pouvez aussi sélectionner et copier le lien manuellement.</p>
+{% else %}<p role="status">Ce lien ne peut plus être affiché. Un lien déjà partagé reste valable jusqu'à révocation ou expiration. Demandez à un administrateur de le remplacer.</p>{% endif %}
+{% if admin %}<details><summary>Révoquer ce lien</summary><p>Le lien courant deviendra inutilisable. Les membres déjà inscrits restent membres.</p>
+<form method="post" action="{% url 'communities:revoke' community.pk invitation.pk %}">{% csrf_token %}<button class="secondary" type="submit">Confirmer la révocation</button></form></details>{% endif %}
+{% else %}<p>Aucun lien actif. Demandez à un administrateur d'en générer un.</p>{% endif %}
+{% if admin %}<details{% if not invitation or invite_form.errors %} open{% endif %}><summary>{% if invitation %}Régénérer le lien{% else %}Générer un lien{% endif %}</summary>
+<p>Cette action invalide tous les anciens liens de cette communauté, même ceux encore valides. Un lien déjà copié ne peut pas être repris : régénérez-le si nécessaire après un retrait.</p>
+<form method="post">{% csrf_token %}<input type="hidden" name="action" value="invite">
+{% if invite_form.errors %}<p role="alert">Vérifiez la durée de l’invitation.</p>{% endif %}{{ invite_form.as_div }}
+<button type="submit">{% if invitation %}Confirmer la régénération{% else %}Créer un lien d'invitation{% endif %}</button></form></details>{% endif %}</section>
 <details>
 <summary>Quitter cette communauté</summary>
 <p>Votre accès cessera. Un administrateur doit d'abord transférer son rôle s'il est le dernier.</p>

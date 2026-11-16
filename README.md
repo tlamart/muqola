@@ -17,8 +17,11 @@ La préparation documentaire du 15 novembre 2026 porte sur **B : catalogue**,
 **A : recherche intelligente**, puis **C : communautés**. Le
 [plan détaillé](TASKS.md#prochaines-pr--b--a--c-arbitrages-validés) et
 l'[audit des écarts et arbitrages](docs/plan-b-a-c.md) ont leurs arbitrages B1–B4/C1–C2 validés.
-Les PR B et A implémentent le catalogue et la recherche ; C reste à réaliser. [SPEC](SPEC.md) décrit B/A ainsi que la cible de C. C peut être développée en parallèle de B ; A
-dépend du schéma de B. Les communautés restent privées conformément à C2 ; aucune découverte publique prévue. Aucun déploiement, purge ou merge automatique.
+B (#29) et A (#30) sont intégrées dans `main` ; C (#28) implémente les communautés
+sur cette base. [SPEC](SPEC.md) décrit le comportement des trois lots ;
+[le bilan de C](docs/communautes-refonte.md) détaille son intégration et sa validation.
+Les communautés restent privées conformément à C2 ; aucune découverte publique prévue.
+Aucun déploiement, purge ou merge automatique.
 
 ## Démarrer localement
 
@@ -258,9 +261,10 @@ La rotation seule ne révoque pas les liens déjà partagés : leurs digests res
 valides jusqu'à révocation explicite ou expiration. Un GET ne modifie ni les
 invitations ni les appartenances. Aucun ancien secret n'est consulté pour
 déchiffrer les invitations ; les liens illisibles sont remplacés explicitement.
-La cible C prévoit des liens permanents : ne plus compter sur une échéance pour
-leur invalidation ; garder la révocation/régénération explicite et adapter cette
-procédure lors de son implémentation.
+Les nouveaux liens sont permanents par défaut : ne pas attendre une échéance
+pour les invalider. La régénération admin remplace atomiquement tous les liens
+encore valides ; les membres doivent copier et partager le nouveau lien.
+[Contrat, migration et vérifications PR C](docs/communautes-refonte.md).
 
 ## Tester sur Android avec GitHub Codespaces
 
@@ -402,6 +406,10 @@ comptes fictifs et leurs jeux via les vrais formulaires, puis vérifie 360, 390,
 1200 et 1280 px, menu, filtres, contenus longs et mode sans JS. Captures dans
 `work/ui-redesign/screenshots/` ; les comparaisons avant/après sont versionnées dans la documentation.
 Les tests serveur vérifient aussi les limites de visibilité des nouvelles présentations.
+Le smoke distingue les fragments de recherche locaux annulés volontairement
+(`ERR_ABORTED`) des vraies erreurs réseau ; les annulations sont comptées dans
+`result.json`. Le parcours de recherche contrôle cette distinction dans Chrome,
+avec une annulation puis une panne réseau forcées.
 Cette passe UI historique ne modifiait pas les règles métier ni Gunicorn.
 La préparation ultérieure du lot 6 est décrite dans son document dédié.
 

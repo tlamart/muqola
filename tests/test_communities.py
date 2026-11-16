@@ -31,11 +31,7 @@ def test_create_multiuse_invite_join_explicit_and_unique(client: Client) -> None
     invitation = services.invite(alice, community.pk)
     token = raw(invitation)
     assert token != invitation.digest and token not in invitation.encrypted_token
-    assert (
-        timedelta(days=6, hours=23)
-        < invitation.expires_at - invitation.created_at
-        < timedelta(days=7, seconds=1)
-    )
+    assert invitation.expires_at is None
     client.force_login(bob)
     response = client.get(reverse("communities:receive-invite", args=[token]), follow=True)
     assert response.status_code == 200
@@ -87,7 +83,7 @@ def test_key_rotation_keeps_invitation_management_usable(
         assert client.post(reverse("communities:join")).status_code == 302
         member_page = client.get(detail)
         assert member_page.status_code == 200
-        assert new_token not in member_page.content.decode()
+        assert new_token in member_page.content.decode()
         assert "Ce lien ne peut plus être affiché." not in member_page.content.decode()
         assert client.post(revoke).status_code == 404
 

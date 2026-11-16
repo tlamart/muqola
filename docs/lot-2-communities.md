@@ -1,5 +1,8 @@
 # Lot 2 — communautés privées
 
+> Document historique : la [refonte PR C](communautes-refonte.md) remplace les
+> règles d’expiration et de consultation ci-dessous, sans changer les preuves passées.
+
 Branche empilée sur Codespaces (PR 3), elle-même sur les comptes (PR 2).
 Aucune fusion automatique. Ce lot livre communautés privées, noms/descriptions,
 adhésion explicite par lien multiusage, révocation, départ/retrait et transfert

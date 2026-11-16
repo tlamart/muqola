@@ -14,8 +14,9 @@ from pathlib import Path
 from urllib.request import urlopen
 from zoneinfo import ZoneInfo
 
+from browser_checks import expected_search_abort
 from catalogue_fixture import approve_proposal
-from playwright.sync_api import Browser, Page, expect, sync_playwright
+from playwright.sync_api import Browser, Page, Request, expect, sync_playwright
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--browser", default="/usr/bin/chromium")
@@ -172,11 +173,20 @@ with sync_playwright() as playwright:
     bob_context = browser.new_context(viewport={"width": 390, "height": 844}, has_touch=True)
     alice, bob = alice_context.new_page(), bob_context.new_page()
     failures: list[str] = []
+    cancelled_searches: list[str] = []
+
+    def request_failed(request: Request) -> None:
+        # Une nouvelle saisie ou pagehide annule volontairement le fetch précédent.
+        if expected_search_abort(request, args.url):
+            cancelled_searches.append(request.url)
+        else:
+            failures.append(f"{request.url} ({request.failure})")
+
     for page in (alice, bob):
         page.on("pageerror", lambda error: failures.append(str(error)))
-        page.on("requestfailed", lambda request: failures.append(request.url))
+        page.on("requestfailed", request_failed)
     register(browser, alice, "Alice")
-    alice.goto(args.url + "/communities/")
+    alice.goto(args.url + "/communities/new/")
     community_name = "Amis · Démo " + secrets.token_hex(2)
     alice.get_by_label("Nom de la communauté").fill(community_name)
     alice.get_by_role("button", name="Créer ma communauté", exact=True).click()
@@ -187,6 +197,41 @@ with sync_playwright() as playwright:
     bob_email, bob_password = register(browser, bob, "Bob")
     bob.goto(invitation)
     bob.get_by_role("button", name="Confirmer mon adhésion", exact=True).click()
+    # PR C : lecture membre, copie refusée avec solution manuelle et carte clavier.
+    expect(bob.locator("#invitation-link")).to_have_value(invitation)
+    expect(bob.get_by_text("Lien permanent · sans expiration", exact=True)).to_be_visible()
+    bob_context.grant_permissions(["clipboard-read", "clipboard-write"])
+    bob.get_by_role("button", name="Copier le lien", exact=True).click()
+    expect(bob.locator("[data-copy-status]")).to_have_text("Lien copié.")
+    check(bob.evaluate("navigator.clipboard.readText()") == invitation, "Copie du lien incorrecte")
+    bob.evaluate(
+        "Object.defineProperty(navigator, 'clipboard', {value: {"
+        "writeText: () => Promise.reject(new Error('denied'))}, configurable: true})"
+    )
+    bob.get_by_role("button", name="Copier le lien", exact=True).click()
+    expect(bob.locator("[data-copy-status]")).to_contain_text("Copie automatique indisponible")
+    bob.goto(args.url + "/communities/")
+    card = bob.locator(".community-card")
+    expect(card).to_have_count(1)
+    expect(card).to_contain_text("2 membres")
+    expect(card).to_contain_text("Privée")
+    bob.screenshot(path=str(output / "communities-390.png"), full_page=True)
+    card.focus()
+    bob.keyboard.press("Enter")
+    expect(bob).to_have_url(community_url)
+    for width in (360, 768, 1280):
+        bob.set_viewport_size({"width": width, "height": 900})
+        geometry(bob)
+    manual_context = browser.new_context(
+        storage_state=bob_context.storage_state(),
+        java_script_enabled=False,
+        viewport={"width": 360, "height": 900},
+    )
+    manual = manual_context.new_page()
+    manual.goto(community_url)
+    expect(manual.locator("#invitation-link")).to_have_value(invitation)
+    geometry(manual)
+    manual_context.close()
     game_urls: dict[str, str] = {}
     copy_urls: dict[str, str] = {}
     for title in ("Odin", "Régicide", "7 Wonders", "Cascadia"):
@@ -348,6 +393,7 @@ with sync_playwright() as playwright:
                 "without_js": "passed",
                 "long_content": "passed",
                 "network_errors": failures,
+                "cancelled_searches": len(cancelled_searches),
             },
             indent=2,
         )

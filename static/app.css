@@ -380,3 +380,11 @@ details { min-width: 0; }
 .game-art--compact { max-width: 12rem; margin-bottom: 8px; }
 .game-art--compact .game-cover { min-height: 90px; max-height: 110px; }
 .game-art--compact .game-cover__title { font-size: .875rem; }
+
+/* Cartes privées : un seul lien sémantique, toute la surface est tactile. */
+.community-cards > li { padding: 0; overflow: hidden; }
+.community-card { display: block; height: 100%; color: inherit; text-decoration: none; }
+.community-card > img { display: block; width: 100%; height: 10rem; object-fit: cover; }
+.community-card > div { padding: 1.25rem; overflow-wrap: anywhere; }
+.community-card:focus-visible { outline: 3px solid currentColor; outline-offset: -4px; }
+.community-card:hover h2 { text-decoration: underline; }
