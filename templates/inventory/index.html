@@ -4,16 +4,13 @@
 <h1>Explorer les jeux</h1>
 <p class="intro">Des jeux à emprunter dans vos communautés.</p>
 </header>
-<form method="get" class="search-form" aria-label="Recherche de jeux">
+<form method="get" class="search-form" aria-label="Recherche de jeux" data-live-search data-results="search-results" data-status="search-status"><button type="submit" hidden>Appliquer la recherche</button>
   <label class="visually-hidden" for="{{ form.title.id_for_label }}">Rechercher un jeu par titre</label>
   <div class="search-bar">
-<span aria-hidden="true">⌕</span>{{ form.title }}<button type="submit" aria-label="Rechercher">
-<span class="search-button-label">Rechercher</span>
-<span class="search-button-icon" aria-hidden="true">→</span>
-</button>
+<span aria-hidden="true">⌕</span>{{ form.title }}
 </div>{{ form.title.errors }}
   <div class="filter-controls">
-    <a href="{% querystring only_available=None page=None %}"{% if not form.only_available.value %} aria-current="true"{% endif %}>Tous les jeux</a>
+    <a data-search-reset href="{% querystring only_available=None page=None %}"{% if not form.only_available.value %} aria-current="true"{% endif %}>Tous les jeux</a>
     <div class="filter-choice">{{ form.only_available }}<label for="{{ form.only_available.id_for_label }}">Disponibles</label>
 </div>
     <details id="community-filters" class="filter-disclosure"{% if form.community.value or form.players.value or request.GET.filters == 'community' %} open{% endif %}>
@@ -23,25 +20,14 @@
 <label for="{{ form.community.id_for_label }}">Communauté</label>{{ form.community }}{{ form.community.errors }}</div>
 <div>
 <label for="{{ form.players.id_for_label }}">Nombre de joueurs</label>{{ form.players }}{{ form.players.errors }}</div>
-<p class="help">Validez vos filtres avec « Rechercher ».</p>
+<p class="help">Les filtres s’appliquent automatiquement. Sans JavaScript, validez le titre avec Entrée.</p>
 </div>
 </details>
   </div>
   {% if form.errors %}<p role="alert">Vérifiez les filtres indiqués.</p>{{ form.non_field_errors }}{% endif %}
 </form>
-<section aria-labelledby="results-title">
-<h2 class="visually-hidden" id="results-title">Exemplaires accessibles</h2>
-  <p class="results-heading">{{ copies.paginator.count }} exemplaire{{ copies.paginator.count|pluralize }} accessible{{ copies.paginator.count|pluralize }}{% if form.title.value %} pour « {{ form.title.value }} »{% endif %}</p>
-  <ul class="game-grid">{% for copy in copies %}<li>{% include 'components/copy_card.html' %}</li>{% empty %}<li class="empty-state">
-<h3>Aucun jeu ne correspond</h3>
-<p>Essayez un autre titre ou adaptez vos filtres. Les collections privées des autres membres restent invisibles.</p>
-<div class="actions">
-<a href="{% url 'inventory:index' %}">Réinitialiser la recherche</a>
-<a href="{% url 'communities:index' %}">Mes communautés</a>
-</div>
-</li>{% endfor %}</ul>
-  {% include 'pagination.html' with page=copies %}
-</section>
+<p id="search-status" role="status" aria-live="polite"></p>
+<div id="search-results" aria-busy="false">{% include 'inventory/results.html' %}</div>
 <div class="actions">
 <a href="{% url 'catalogue:index' %}">Ajouter un jeu à partir d’une fiche</a>
 <a href="{% url 'inventory:mine' %}">Ma collection privée</a>

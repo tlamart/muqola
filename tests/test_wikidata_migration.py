@@ -120,6 +120,9 @@ def test_additive_migrations_preserve_all_references_and_loan_states(previous: s
         assert before_inventory["schema"] == "before_refonte_b"
         assert before_inventory["games"] == 2 and before_inventory["copies"] == 7
         assert before_inventory["references"]
+        # Tables/recorder now exist in our isolated schema; pg_trgm lives in public.
+        with connection.cursor() as cursor:
+            cursor.execute(f"SET search_path TO {schema}, public")
         MigrationExecutor(connection).migrate(latest)
         assert list(OwnedGame.objects.order_by("pk").values()) == before["copies"]
         assert list(Loan.objects.order_by("pk").values()) == before["loans"]

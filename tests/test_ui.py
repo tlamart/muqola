@@ -105,7 +105,7 @@ def test_explorer_count_reflects_filtered_authorized_results(client: Client) -> 
     write_copy(clara, hidden.pk, "", [])
     client.force_login(bob)
     response = client.get(reverse("inventory:index"), {"title": "Second"})
-    assert response.context["copies"].paginator.count == 1
+    assert response.context["games"].paginator.count == 1
     body = response.content.decode()
     assert "Second jeu" in body and "Second secret" not in body
     assert "1 exemplaire accessible" in body
@@ -116,7 +116,7 @@ def test_owner_can_still_open_copy_when_its_generic_game_is_hidden(client: Clien
     copy.game.hidden = True
     copy.game.save()
     client.force_login(alice)
-    body = client.get(reverse("inventory:index")).content.decode()
+    body = client.get(reverse("inventory:mine")).content.decode()
     assert reverse("inventory:detail", args=[copy.pk]) in body
     assert reverse("catalogue:detail", args=[copy.game_id]) not in body
     assert client.get(reverse("inventory:detail", args=[copy.pk])).status_code == 200

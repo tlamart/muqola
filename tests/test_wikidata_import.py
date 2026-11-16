@@ -82,7 +82,9 @@ def test_fr_english_alias_search_is_unique_private_and_works_for_copies(client: 
     shared = add_to_collection(alice, game.pk, "", "Visible", [community.pk])
     client.force_login(bob)
     response = client.get(reverse("inventory:index"), {"title": "FICTIONAL TOKENS"})
-    assert list(response.context["copies"]) == [shared]
+    assert list(response.context["games"]) == [game]
+    assert response.context["games"][0].copy_count == 1
+    assert client.get(reverse("inventory:detail", args=[shared.pk])).status_code == 200
     assert client.get(reverse("inventory:detail", args=[private.pk])).status_code == 404
     with pytest.raises(ValidationError, match="existe déjà"):
         add_to_collection(bob, None, "Fictional Tokens", "", [])

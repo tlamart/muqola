@@ -1,0 +1,16 @@
+<p data-result-count="{{ games.paginator.count }}">{{ games.paginator.count }} fiche{{ games.paginator.count|pluralize }} correspondante{{ games.paginator.count|pluralize }}</p>
+<fieldset><legend>{% if manual %}Jeux proches{% else %}Choisissez votre jeu{% endif %}</legend>
+<ul class="catalogue-choices">{% for game in games %}<li class="game-card">
+{% if game.illustration.displayable %}{% include 'components/game_cover.html' with compact=True %}{% endif %}
+{% if not manual %}<label class="game-choice" for="game-{{ game.pk }}">
+<input type="radio" id="game-{{ game.pk }}" name="game_id" value="{{ game.pk }}" required
+{% if form.game_id.value|stringformat:'s' == game.pk|stringformat:'s' %}checked{% endif %}>
+<span><span class="visually-hidden">Choisir </span><strong>{{ game.title }}</strong>
+{% else %}<div><strong>{{ game.title }}</strong>{% endif %}
+<span class="game-card__metadata">{% if game.year %}{{ game.year }} · {% endif %}{% include 'components/game_metadata.html' %}{% if game.publisher %} · {{ game.publisher }}{% endif %}</span>
+{% if not manual %}</span></label>{% else %}</div>{% endif %}
+<a class="help" href="{% url 'catalogue:detail' game.pk %}" aria-label="Voir les détails de {{ game.title }}">Détails</a>
+</li>{% empty %}<li class="empty-state"><h2>Aucun jeu ne correspond</h2>
+<p>Vous pouvez ajouter le vôtre avec son titre uniquement.</p></li>{% endfor %}</ul>
+</fieldset>
+{% include 'pagination.html' with page=games %}

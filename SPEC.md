@@ -1,8 +1,8 @@
 # Muqola — Spécifications produit (MVP)
 
-> La PR B implémente le catalogue de la section 5 ; les sections 4 et 6 restent les cibles des PR C et A.
+> Les PR B et A implémentent le catalogue (section 5) et la recherche (section 6) ; la section 4 reste la cible de C.
 > État du code, écarts et arbitrages : [audit](docs/plan-b-a-c.md).
-> Arbitrages B1–B4 validés ; bilan, schéma et commandes : [catalogue B](docs/catalogue-refonte.md).
+> Arbitrages B1–B4 validés ; [catalogue B](docs/catalogue-refonte.md) et [recherche A : classement, confidentialité et mesures](docs/recherche-intelligente.md).
 
 ## 1. Vision
 Muqola est une application web responsive, mobile-first, gratuite au lancement, permettant à des membres de communautés privées (amis, voisins, collègues) de partager leurs **exemplaires physiques de jeux de société** et de gérer leurs prêts. L'inscription à la plateforme est **ouverte à tous**, y compris pendant la bêta ; les communautés restent privées. Le nom Muqola est provisoire jusqu'à vérification des droits et du domaine.
@@ -74,7 +74,7 @@ La recherche d'alias et les modèles `GameAlias`/`GameIllustration` existent dep
 - Toute suppression de données ou réinitialisation d'une instance exige une validation explicite distincte, une sauvegarde restaurable et un retour arrière. La PR B ne supprime pas les données historiques ni les anciennes migrations.
 - Les commandes historiques `import_games` et `import_wikidata_games` existent dans le code actuel : elles ne sont pas un parcours de la cible. Aucun import BGG/Wikidata dans ces trois PR. Les identifiants externes facultatifs conservés ne constituent pas une intégration externe.
 
-## 6. Découverte et recherche — cible PR A
+## 6. Découverte et recherche — PR A
 - Recherche instantanée **sans bouton « Rechercher »**, résultats actualisés sans rechargement après environ **deux caractères**, debounce d'environ **250 ms**. Les requêtes courtes affichent une aide ou l'état initial ; vider la saisie restaure cet état. Conserver un parcours de repli utilisable sans JavaScript.
 - Chercher dans le titre principal et les titres alternatifs, avec casse, accents et espaces normalisés ; tolérer les fautes d'orthographe. Privilégier titre exact, puis préfixe/contenu, puis proximité approximative, avec ordre stable. PostgreSQL et `pg_trgm` si approprié ; ni Meilisearch ni Elasticsearch.
 - Deux périmètres explicites : **catalogue validé** pour ajouter un exemplaire (sans informations de possession), **jeux accessibles dans les communautés** pour emprunter. Le mode emprunt ne doit pas suggérer un jeu trouvé uniquement dans le catalogue global ou une collection privée.

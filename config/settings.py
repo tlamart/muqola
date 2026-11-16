@@ -16,6 +16,7 @@ if len(SECRET_KEY) < 50 or SECRET_KEY.startswith("CHANGE_ME"):
     raise ImproperlyConfigured("DJANGO_SECRET_KEY doit contenir au moins 50 caractères aléatoires.")
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1,[::1]").split(",")
 INSTALLED_APPS = [
+    "django.contrib.postgres",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -67,7 +68,11 @@ DATABASES = {
         "HOST": os.environ.get("POSTGRES_HOST", "127.0.0.1"),
         "PORT": os.environ.get("POSTGRES_PORT", "5432"),
         "CONN_MAX_AGE": 60,
-        "OPTIONS": {"connect_timeout": 3},
+        "OPTIONS": {
+            "connect_timeout": 3,
+            # Indexed candidates; final ranking applies its stricter threshold.
+            "options": "-c pg_trgm.similarity_threshold=0.2",
+        },
     }
 }
 AUTH_USER_MODEL = "identity.User"

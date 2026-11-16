@@ -12,7 +12,7 @@ class SecurityHeadersMiddleware:
         response["Content-Security-Policy"] = (
             "default-src 'none'; script-src 'self'; style-src 'self'; "
             "img-src 'self' https://commons.wikimedia.org https://upload.wikimedia.org; "
-            "font-src 'self'; "
+            "font-src 'self'; connect-src 'self'; "
             "form-action 'self'; frame-ancestors 'none'; base-uri 'none'"
         )
         response["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"

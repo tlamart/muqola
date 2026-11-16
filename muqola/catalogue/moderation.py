@@ -43,6 +43,20 @@ def add_aliases(game: Game, titles: list[str]) -> None:
         alias.save()
 
 
+def similar(game: Game) -> QuerySet[Game]:
+    """Operator suggestions use the same ranked engine; approval guards stay exact."""
+    from muqola.catalogue.matching import ranked
+
+    return ranked(
+        Game.objects.filter(
+            hidden=False,
+            merged_into__isnull=True,
+            moderation_status__in=[Game.Status.APPROVED, Game.Status.LEGACY],
+        ).exclude(pk=game.pk),
+        game.title,
+    )
+
+
 def duplicates(game: Game) -> QuerySet[Game]:
     keys = {game.title_key, *game.aliases.values_list("title_key", flat=True)}
     return (
