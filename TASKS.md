@@ -3,7 +3,7 @@
 > Les durées ne sont pas des engagements. Chaque lot doit être démontrable avant de passer au suivant.
 > Les lots 0–5 ci-dessous décrivent les livraisons historiques ; leurs cases cochées
 > ne valident pas les nouvelles exigences. Le prochain travail est le plan **B → A → C** en fin de document.
-> Arbitrages **B1–B4 et C1–C2 validés le 16 novembre 2026** ; aucune de ces PR n'est encore implémentée.
+> Arbitrages **B1–B4 et C1–C2 validés le 16 novembre 2026** ; C est implémentée sur sa branche dédiée ; B/A restent à réaliser.
 
 ## Lot 0 — Décision technique et socle
 - [x] Lire le kit, rédiger `docs/adr/0001-stack.md` et documenter les compromis.
@@ -74,7 +74,7 @@ Intégration/synchronisation externe, rappels automatiques, chat, événements, 
 
 ## Prochaines PR — B → A → C (arbitrages validés)
 
-**État :** le plan documentaire de la PR #26 est intégré. Arbitrages fonctionnels B1–B4 et C1–C2 **validés par le propriétaire le 16 novembre 2026** et détaillés ci-dessous ; leurs implémentations restent à réaliser dans des PR séparées. [Audit sourcé et décisions](docs/plan-b-a-c.md). Base auditée le 15 novembre, réconciliée le 16 novembre après fusion de #25.
+**État :** le plan documentaire de la PR #26 est intégré. Arbitrages fonctionnels B1–B4 et C1–C2 **validés par le propriétaire le 16 novembre 2026** et détaillés ci-dessous ; B/A restent à réaliser ; C est implémentée dans sa PR séparée (bilan ci-dessous). [Audit sourcé et décisions](docs/plan-b-a-c.md). Base auditée le 15 novembre, réconciliée le 16 novembre après fusion de #25.
 
 Créer une branche/PR par lot ci-dessous, sans pousser directement sur `main` ; chaque PR doit fonctionner et passer la CI sans attendre la suivante. **B et C peuvent démarrer indépendamment depuis `main`**, A dépend de B fusionnée ; intégration recommandée B → A → C avec rebase/tests de C. Ne pas confondre ces lettres avec les anciens lots 0–6 ou des numéros GitHub.
 

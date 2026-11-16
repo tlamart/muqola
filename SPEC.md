@@ -1,6 +1,7 @@
 # Muqola — Spécifications produit (MVP)
 
-> Les sections 4–6 décrivent la cible validée des PR B → A → C, encore à implémenter.
+> Les sections 4–6 décrivent la cible validée des PR B → A → C.
+> La PR C est implémentée sur sa branche dédiée ; B/A restent à réaliser.
 > État du code, écarts et arbitrages : [audit](docs/plan-b-a-c.md).
 > Le plan doit être validé avant toute implémentation fonctionnelle.
 
