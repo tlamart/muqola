@@ -93,7 +93,7 @@ with sync_playwright() as playwright:
         "Groupe fictif B " + secrets.token_hex(3),
     ]
     for name in community_names:
-        page.goto(args.url + "/communities/")
+        page.goto(args.url + "/communities/new/")
         page.get_by_label("Nom de la communauté").fill(name)
         page.get_by_role("button", name="Créer ma communauté", exact=True).click()
         page.wait_for_url("**/communities/*/")

@@ -1,0 +1,4 @@
+{% extends 'base.html' %}{% block title %}Créer une communauté — Muqola{% endblock %}
+{% block content %}<section class="account"><a href="{% url 'communities:index' %}">Mes communautés</a>
+<h1>Créer une communauté privée</h1><p>Seules les personnes invitées et vérifiées pourront la rejoindre.</p>
+<form method="post">{% csrf_token %}{% if form.errors %}<p role="alert">Vérifiez les champs indiqués.</p>{% endif %}{{ form.as_div }}<button type="submit">Créer ma communauté</button></form></section>{% endblock %}

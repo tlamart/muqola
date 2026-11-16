@@ -260,9 +260,10 @@ La rotation seule ne révoque pas les liens déjà partagés : leurs digests res
 valides jusqu'à révocation explicite ou expiration. Un GET ne modifie ni les
 invitations ni les appartenances. Aucun ancien secret n'est consulté pour
 déchiffrer les invitations ; les liens illisibles sont remplacés explicitement.
-La cible C prévoit des liens permanents : ne plus compter sur une échéance pour
-leur invalidation ; garder la révocation/régénération explicite et adapter cette
-procédure lors de son implémentation.
+Les nouveaux liens sont permanents par défaut : ne pas attendre une échéance
+pour les invalider. La régénération admin remplace atomiquement tous les liens
+encore valides ; les membres doivent copier et partager le nouveau lien.
+[Contrat, migration et vérifications PR C](docs/communautes-refonte.md).
 
 ## Tester sur Android avec GitHub Codespaces
 

@@ -5,6 +5,7 @@ from muqola.communities import views
 app_name = "communities"
 urlpatterns = [
     path("", views.index, name="index"),
+    path("new/", views.create, name="create"),
     path("invite/<str:raw>/", views.receive_invite, name="receive-invite"),
     path("join/", views.join, name="join"),
     path("<uuid:community_id>/", views.detail, name="detail"),
