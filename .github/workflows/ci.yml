@@ -47,6 +47,17 @@ jobs:
           uv export --frozen --no-dev --no-emit-project --output-file requirements.txt
           git diff --exit-code -- requirements.txt
       - run: ./scripts/check.sh
+      - name: Synthetic PostgreSQL search benchmark (dedicated empty database)
+        run: |
+          mkdir -p work
+          uv run --frozen python - <<'PY'
+          import psycopg
+          import os
+          with psycopg.connect(dbname=os.environ["POSTGRES_DB"], user=os.environ["POSTGRES_USER"], password=os.environ["POSTGRES_PASSWORD"], host=os.environ["POSTGRES_HOST"], autocommit=True) as conn:
+              conn.execute("CREATE DATABASE muqola_search_benchmark")
+          PY
+          POSTGRES_DB=muqola_search_benchmark uv run --frozen python manage.py migrate --noinput
+          POSTGRES_DB=muqola_search_benchmark uv run --frozen python manage.py benchmark_search --games 1000 --samples 10 > work/search-benchmark.json
       - name: Django production settings check
         run: APP_BASE_URL=https://muqola.example.test APP_ENV=production uv run --frozen python manage.py check --deploy --fail-level WARNING
       - name: Audit runtime dependencies
@@ -89,16 +100,15 @@ jobs:
         run: |
           uv run --frozen --group browser python scripts/browser_smoke.py --browser "$(command -v google-chrome || command -v chromium)"
           uv run --frozen --group browser python scripts/accounts_browser_smoke.py --browser "$(command -v google-chrome || command -v chromium)"
+      - name: Instant search, controlled responses and no-JavaScript fallback
+        run: uv run --frozen --group browser python scripts/search_browser_smoke.py --browser "$(command -v google-chrome || command -v chromium)"
       - name: Product journey
         run: uv run --frozen --group browser python scripts/product_browser_smoke.py --browser "$(command -v google-chrome || command -v chromium)"
       - name: Quick add with and without JavaScript
         run: uv run --frozen --group browser python scripts/catalogue_browser_smoke.py --browser "$(command -v google-chrome || command -v chromium)"
       - name: Wikidata aliases and Commons credits (synthetic, no external image download)
         run: |
-          docker compose exec -T web python manage.py import_wikidata_games /dev/stdin <<'CSV'
-          wikidata_id,title_fr,title_en,bgg_ids,data_source,data_license,image_url,image_commons_file,image_source_url,image_license,image_license_url,image_artist,image_attribution,image_review_status
-          Q999999999,Les Pions du Canal fictifs,Fictional Canal Tokens,,Wikidata,CC0,https://commons.wikimedia.org/wiki/Special:FilePath/Synthetic_game.jpg,File:Synthetic game.jpg,https://commons.wikimedia.org/wiki/File:Synthetic_game.jpg,CC BY-SA 4.0,https://creativecommons.org/licenses/by-sa/4.0,Auteur fictif,Photographie synthétique,approved_by_owner
-          CSV
+          uv run --frozen python scripts/catalogue_fixture.py
           uv run --frozen --group browser python scripts/catalogue_browser_smoke.py --title "Fictional Canal Tokens" --expected-title "Les Pions du Canal fictifs" --commons-fixture --browser "$(command -v google-chrome || command -v chromium)"
       - name: Responsive UI, navigation, filters and no-JavaScript journey
         run: uv run --frozen --group browser python scripts/ui_browser_smoke.py --browser "$(command -v google-chrome || command -v chromium)"
@@ -110,6 +120,9 @@ jobs:
           path: |
             work/ui-redesign/screenshots/*.png
             work/ui-redesign/result.json
+            work/search/*.png
+            work/search-benchmark.json
+            work/search-benchmark-plans.json
           if-no-files-found: ignore
           retention-days: 7
       - name: Validate Dev Container configuration

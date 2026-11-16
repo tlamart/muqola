@@ -1,9 +1,8 @@
 # Muqola — Spécifications produit (MVP)
 
-> Les sections 4–6 décrivent la cible validée des PR B → A → C.
-> La PR C est implémentée sur sa branche dédiée ; B/A restent à réaliser.
+> B et A sont intégrées dans `main` ; la PR C implémente les communautés de la section 4 sur cette base.
 > État du code, écarts et arbitrages : [audit](docs/plan-b-a-c.md).
-> Le plan doit être validé avant toute implémentation fonctionnelle.
+> Arbitrages B1–B4 validés ; [catalogue B](docs/catalogue-refonte.md) et [recherche A : classement, confidentialité et mesures](docs/recherche-intelligente.md).
 
 ## 1. Vision
 Muqola est une application web responsive, mobile-first, gratuite au lancement, permettant à des membres de communautés privées (amis, voisins, collègues) de partager leurs **exemplaires physiques de jeux de société** et de gérer leurs prêts. L'inscription à la plateforme est **ouverte à tous**, y compris pendant la bêta ; les communautés restent privées. Le nom Muqola est provisoire jusqu'à vérification des droits et du domaine.
@@ -27,7 +26,7 @@ Deux personnes appartenant à une même communauté peuvent : créer leur compte
 - Suppression de compte : fournir un moyen effectif de demander la suppression dès le lancement ; prévoir la suppression/anonymisation des données qui peuvent l'être et la résolution des prêts actifs avant clôture définitive, en informant l'utilisateur. Aucune conservation indéfinie par défaut ; détailler la politique réelle dans les documents légaux.
 - Pas de connexion sociale, paiement, profil public ni annuaire public au MVP.
 
-## 4. Communautés et invitations — cible PR C
+## 4. Communautés et invitations — PR C
 - Tout utilisateur actif et vérifié peut créer une communauté et en devient administrateur. Un bouton « Créer une communauté » ouvre une **page dédiée** ; le formulaire n'est plus intégré à la liste.
 - Une communauté conserve identifiant, nom, description facultative, créateur et dates. Chaque carte affiche une illustration **prédéfinie locale** choisie par l'administrateur (ou un visuel local par défaut), le nom, le nombre d'appartenances actives de comptes actifs et vérifiés, et le badge « Privée ». Toute la carte ouvre son détail via un lien sémantique accessible au clavier, sans liens/boutons imbriqués.
 - **Décision C2 confirmée le 16 novembre 2026 : toutes les communautés restent privées.** Pas de mode public, pas d'annuaire ni de découverte publique, pas d'accès aux membres, exemplaires ou prêts hors des autorisations existantes. Illustrations locales prédéfinies uniquement ; aucun upload ni URL d'image arbitraire. Une éventuelle découverte publique nécessiterait une future décision produit séparée.
@@ -75,7 +74,7 @@ La recherche d'alias et les modèles `GameAlias`/`GameIllustration` existent dep
 - Toute suppression de données ou réinitialisation d'une instance exige une validation explicite distincte, une sauvegarde restaurable et un retour arrière. La PR B ne supprime pas les données historiques ni les anciennes migrations.
 - Les commandes historiques `import_games` et `import_wikidata_games` existent dans le code actuel : elles ne sont pas un parcours de la cible. Aucun import BGG/Wikidata dans ces trois PR. Les identifiants externes facultatifs conservés ne constituent pas une intégration externe.
 
-## 6. Découverte et recherche — cible PR A
+## 6. Découverte et recherche — PR A
 - Recherche instantanée **sans bouton « Rechercher »**, résultats actualisés sans rechargement après environ **deux caractères**, debounce d'environ **250 ms**. Les requêtes courtes affichent une aide ou l'état initial ; vider la saisie restaure cet état. Conserver un parcours de repli utilisable sans JavaScript.
 - Chercher dans le titre principal et les titres alternatifs, avec casse, accents et espaces normalisés ; tolérer les fautes d'orthographe. Privilégier titre exact, puis préfixe/contenu, puis proximité approximative, avec ordre stable. PostgreSQL et `pg_trgm` si approprié ; ni Meilisearch ni Elasticsearch.
 - Deux périmètres explicites : **catalogue validé** pour ajouter un exemplaire (sans informations de possession), **jeux accessibles dans les communautés** pour emprunter. Le mode emprunt ne doit pas suggérer un jeu trouvé uniquement dans le catalogue global ou une collection privée.

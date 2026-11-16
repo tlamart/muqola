@@ -1,0 +1,4 @@
+{% extends 'base.html' %}{% block title %}Mes propositions — Muqola{% endblock %}
+{% block content %}<header class="page-heading"><h1>Mes propositions</h1><p>Suivez la validation de vos fiches. Les propositions en attente restent privées ; vos exemplaires restent dans votre collection.</p></header>
+<ul class="cards">{% for game in games %}<li><h2><a href="{% url 'catalogue:detail' game.pk %}">{{ game.title }}</a></h2><p>{{ game.get_moderation_status_display }}{% if game.merged_into_id %} · Fiche fusionnée{% endif %}</p></li>{% empty %}<li>Aucune proposition en attente.</li>{% endfor %}</ul>
+{% include 'pagination.html' with page=games %}<a class="button" href="{% url 'catalogue:index' %}">Ajouter un jeu</a>{% endblock %}

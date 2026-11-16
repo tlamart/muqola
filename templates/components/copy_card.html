@@ -8,3 +8,5 @@
   <p class="game-card__owner">{% if copy.owner_id == user.pk %}Votre exemplaire{% else %}Exemplaire de {{ copy.owner.display_name }}{% endif %}</p>
   {% if copy.withdrawn %}<span class="badge badge--withdrawn">Retiré du prêt</span>{% elif available %}<span class="badge badge--available">Disponible</span>{% else %}<span class="badge badge--unavailable">Indisponible</span>{% endif %}
 </article>{% endwith %}
+
+{% if collection %}<p class="help">{{ copy.game.get_moderation_status_display }}</p>{% endif %}

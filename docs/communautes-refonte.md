@@ -1,6 +1,9 @@
 # PR C — Communautés privées et invitations
 
-Branche indépendante `feat/communautes-refonte`, depuis `main` 46362f1. C1 et C2 appliqués ; aucun changement catalogue B/A, aucun déploiement.
+Branche `feat/communautes-refonte`, initialement créée depuis `main` 46362f1,
+puis mise à jour sur `main` 47b47ff (B #29 et A #30) par un commit de fusion
+conservant l'historique. C1 et C2 appliqués ; aucun changement des règles B/A,
+aucun déploiement.
 
 ## Parcours et droits
 
@@ -28,8 +31,38 @@ Tests dédiés `test_community_redesign.py` : permissions/CSRF/GET, compte/budge
 
 Le smoke UI vérifie carte clavier, lien permanent membre, Clipboard refusé, solution sans JS et géométrie 360/768/1280 ; les scénarios existants conservent cinq largeurs et contenus longs. Les trois scripts créateurs utilisent la page dédiée.
 
-L’intégration après A reste une porte de validation : rebaser et rejouer toute la CI si main évolue. Validation téléphone physique/lecteur d’écran hors environnement Cloud ; contrôles navigateur automatisés seulement.
+Si main évolue, mettre à jour la branche et rejouer les contrôles ; la CI GitHub
+doit passer sur la tête finale avant fusion. Les contrôles navigateur automatisés
+ne remplacent pas un audit humain sur téléphone physique ou lecteur d'écran.
 
 Résultats locaux : `./scripts/check.sh` — Ruff, formatage, mypy (94 sources), contrôles Django/migrations/statiques et **309 tests réussis en 58,40 s** sur PostgreSQL 17. `check --deploy --fail-level WARNING` en configuration production synthétique : succès. Image Docker construite avec CA proxy montée comme secret BuildKit ; pile Compose locale saine. Résultats navigateur et CI à consulter dans le bilan de PR.
 
 Validation finale locale après correction du référent de formulaire : **309 tests en 59,67 s** ; smoke Chromium complet réussi, dont copie Clipboard réelle puis refus simulé, carte clavier, membre sans JS, contrôles responsive cinq largeurs et contenus longs. Capture de carte à 390 px inspectée. Audit runtime : aucune vulnérabilité connue. Aucun critère fonctionnel C.1–C.9 laissé incomplet ; porte de validation après A/B volontairement ouverte, ainsi que tests sur matériel réel hors Cloud.
+
+## Validation après intégration de B et A
+
+Le 16 novembre 2026, intégration de `main` 47b47ff dans la branche C, sans force
+push. Les conflits explicites de SPEC/TASKS réconcilient les états des trois lots.
+Les trois scripts navigateur conservent à la fois la création dédiée de communauté
+et les propositions/validations B ; `app.js` conserve le repli Commons et la copie
+d'invitation. Le moteur A, les règles B, les migrations historiques et le code
+communautés C ne sont pas réécrits pour résoudre ces conflits.
+
+Validation dans un worktree et une pile Compose isolés, uniquement avec données
+synthétiques ; l'application locale de l'utilisateur et sa base restent intactes :
+
+- `./scripts/check.sh` : Ruff lint/format, mypy (101 sources), Django,
+  `makemigrations --check --dry-run`, migrations, statiques et **322 tests réussis
+  en 109,43 s** sur PostgreSQL 17, dont migrations et concurrence B/A/C.
+- `check --deploy --fail-level WARNING` : succès ; audit runtime : aucune
+  vulnérabilité connue détectée. Image Docker construite et pile saine.
+- Les sept parcours Chrome de la CI passent : accueil, comptes, recherche contrôlée
+  min2/250 ms/IME/réponses obsolètes, produit/prêts après retrait, ajout rapide,
+  alias/crédits/Commons synthétiques et UI complète. Copie réelle puis refusée,
+  membre sans JS, carte clavier et contenus longs aux cinq largeurs conservés.
+  Capture de carte 390 px inspectée.
+- `git diff --check` : succès ; aucun catalogue réel, secret ou export ajouté.
+
+Les bilans 309 tests ci-dessus restent des preuves historiques sur la base
+précédente. La CI GitHub de la nouvelle tête doit être vérifiée avant fusion ;
+aucune fusion de PR ni opération de production effectuée ici.

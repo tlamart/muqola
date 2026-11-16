@@ -6,6 +6,7 @@ from muqola.inventory.views import edit
 app_name = "catalogue"
 urlpatterns = [
     path("", views.index, name="index"),
+    path("proposals/", views.proposals, name="proposals"),
     path("new/", views.edit, name="create"),
     path("<uuid:game_id>/", views.detail, name="detail"),
     path("<uuid:game_id>/edit/", views.edit, name="edit"),

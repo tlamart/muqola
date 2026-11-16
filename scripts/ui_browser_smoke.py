@@ -14,6 +14,7 @@ from pathlib import Path
 from urllib.request import urlopen
 from zoneinfo import ZoneInfo
 
+from catalogue_fixture import approve_proposal
 from playwright.sync_api import Browser, Page, expect, sync_playwright
 
 parser = argparse.ArgumentParser(description=__doc__)
@@ -226,11 +227,14 @@ with sync_playwright() as playwright:
     for title in ("Odin", "Régicide", "7 Wonders", "Cascadia"):
         alice.goto(args.url + "/games/new/")
         alice.get_by_label("Titre du jeu").fill(title)
+        alice.locator("[name=proposal_reason]").fill("Jeu synthétique distinct pour la validation")
         alice.get_by_label("Joueurs minimum").fill("1" if title == "Régicide" else "2")
         alice.get_by_label("Joueurs maximum").fill("4" if title == "Régicide" else "6")
         alice.get_by_label("Durée (minutes)").fill("30" if title == "Régicide" else "15")
         alice.get_by_role("button", name="Enregistrer", exact=True).click()
         game_urls[title] = alice.url
+        approve_proposal(alice.url)
+        alice.reload()
         alice.get_by_role("link", name="Ajouter mon exemplaire", exact=True).click()
         alice.get_by_label(community_name, exact=True).check()
         alice.get_by_role("button", name="Enregistrer", exact=True).click()
@@ -283,17 +287,20 @@ with sync_playwright() as playwright:
     expect(bob.locator(".menu-toggle")).to_be_hidden()
     bob.goto(routes["explorer"])
     bob.get_by_label("Rechercher un jeu par titre").fill("regicide")
-    bob.get_by_role("button", name="Rechercher", exact=True).click()
+    bob.get_by_label("Rechercher un jeu par titre").press("Enter")
+    expect(bob.locator("#search-results")).to_have_attribute("aria-busy", "false")
     expect(bob.locator(".game-card")).to_have_count(1)
     expect(bob.locator(".game-card h3")).to_have_text("Régicide")
     bob.locator(".filter-disclosure > summary").click()
     bob.get_by_label("Communauté", exact=True).select_option(label=community_name)
     bob.get_by_label("Nombre de joueurs", exact=True).fill("2")
     bob.get_by_label("Disponibles uniquement", exact=True).check()
-    bob.get_by_role("button", name="Rechercher", exact=True).click()
+    bob.get_by_label("Rechercher un jeu par titre").press("Enter")
+    expect(bob.locator("#search-results")).to_have_attribute("aria-busy", "false")
     expect(bob.locator(".game-card")).to_have_count(1)
     bob.get_by_label("Rechercher un jeu par titre").fill("Aucun jeu de ce nom")
-    bob.get_by_role("button", name="Rechercher", exact=True).click()
+    bob.get_by_label("Rechercher un jeu par titre").press("Enter")
+    expect(bob.locator("#search-results")).to_have_attribute("aria-busy", "false")
     expect(bob.get_by_role("heading", name="Aucun jeu ne correspond")).to_be_visible()
     bob.goto(game_urls["Régicide"])
     bob.get_by_role("link", name="Demander ce jeu", exact=True).click()
@@ -316,11 +323,16 @@ with sync_playwright() as playwright:
     expect(nojs.get_by_label("Communauté", exact=True)).to_be_visible()
     nojs.goto(routes["explorer"])
     nojs.get_by_label("Rechercher un jeu par titre").fill("Cascadia")
-    nojs.get_by_role("button", name="Rechercher", exact=True).click()
+    nojs.get_by_label("Rechercher un jeu par titre").press("Enter")
     expect(nojs.locator(".game-card")).to_have_count(1)
     geometry(nojs)
     nojs_context.close()
     # Données longues saisies par les formulaires, après les captures de référence.
+    # Validated metadata is operator-only. Long user content is tested on a private proposal.
+    alice.goto(args.url + "/games/new/")
+    alice.get_by_label("Titre du jeu").fill("Proposition longue " + secrets.token_hex(6))
+    alice.get_by_role("button", name="Enregistrer", exact=True).click()
+    game_urls["Régicide"] = alice.url
     alice.goto(game_urls["Régicide"] + "edit/")
     long_title = "Partage" * 17
     alice.get_by_label("Titre du jeu").fill(long_title)

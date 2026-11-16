@@ -18,7 +18,7 @@ window.addEventListener('offline', () => {
 });
 document.addEventListener('submit', event => {
   const form = event.target;
-  if (!(form instanceof HTMLFormElement)) return;
+  if (!(form instanceof HTMLFormElement) || event.defaultPrevented) return;
   form.setAttribute('aria-busy', 'true');
   if (status) { status.textContent = 'Envoi en cours…'; status.hidden = false; }
   setTimeout(() => form.querySelectorAll('button[type="submit"]').forEach(button => {

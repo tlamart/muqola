@@ -248,7 +248,7 @@ def test_operator_permissions_audit_and_preservation_of_active_loan() -> None:
     copy.refresh_from_db()
     loan.refresh_from_db()
     assert copy.withdrawn and loan.state == "ACCEPTED"
-    assert OperatorAction.objects.get().action == "hide_game"
+    assert OperatorAction.objects.filter(action="hide_game").get().action == "hide_game"
     operations.disable_user(operator, bob.pk, "Compte abusif")
     bob.refresh_from_db()
     assert not bob.is_active
@@ -290,7 +290,13 @@ def test_empty_dashboard_and_paginated_private_collection(client: Client) -> Non
     client.force_login(user)
     response = client.get(reverse("identity:dashboard"))
     assert "aucune communauté" in response.content.decode().lower()
-    game = Game.objects.create(title="Jeu", title_key="jeu", created_by=user)
+    game = Game.objects.create(
+        moderation_status=Game.Status.APPROVED,
+        kind=Game.Kind.STANDALONE,
+        title="Jeu",
+        title_key="jeu",
+        created_by=user,
+    )
     OwnedGame.objects.bulk_create([OwnedGame(owner=user, game=game) for _ in range(31)])
     url = reverse("inventory:mine")
     assert len(client.get(url).context["copies"]) == 30

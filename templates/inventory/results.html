@@ -1,0 +1,13 @@
+<section aria-labelledby="results-title">
+<h2 class="visually-hidden" id="results-title" tabindex="-1">Jeux à emprunter</h2>
+<p class="results-heading" data-result-count="{{ games.paginator.count }}">{{ games.paginator.count }} jeu{{ games.paginator.count|pluralize }} à emprunter{% if form.title.value %} pour « {{ form.title.value }} »{% endif %}</p>
+<ul class="game-grid">{% for game in games %}<li><article class="game-card">
+<a class="game-card__link" href="{% url 'inventory:game' game.pk %}">
+{% include 'components/game_cover.html' with defer_credits=True %}<h3>{{ game.title }}</h3></a>
+{% include 'components/game_credits.html' %}
+<p class="game-card__metadata">{% include 'components/game_metadata.html' %}</p>
+<p>{{ game.copy_count }} exemplaire{{ game.copy_count|pluralize }} accessible{{ game.copy_count|pluralize }}</p>
+{% if game.available_count %}<span class="badge badge--available">{{ game.available_count }} disponible{{ game.available_count|pluralize }}</span>{% else %}<span class="badge badge--unavailable">Actuellement indisponible</span>{% endif %}
+</article></li>{% empty %}<li class="empty-state"><h3>Aucun jeu ne correspond</h3><p>Essayez un autre titre ou adaptez vos filtres. Les collections privées des autres membres restent invisibles.</p><a href="{% url 'communities:index' %}">Mes communautés</a></li>{% endfor %}</ul>
+{% include 'pagination.html' with page=games %}
+</section>

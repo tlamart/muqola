@@ -34,3 +34,19 @@ Expliquer en trois étapes : « Créez votre communauté », « Partagez vos jeu
 - Recherche : sans bouton Rechercher, résultats sans rechargement à partir d'environ deux caractères après ~250 ms ; repli GET avec Entrée sans JS. Labels, focus conservé, annonce discrète des résultats/erreurs/chargement, résultat par jeu avec seules copies autorisées. Deux intentions claires : ajouter depuis le catalogue, emprunter dans les communautés accessibles.
 - Communautés : bouton « Créer une communauté » vers page dédiée, cartes entièrement ouvrables avec illustration facultative/fallback, nom, membres actifs et visibilité. Garder un seul lien sémantique par carte, sans boutons imbriqués. Badge « Privée » uniquement ; aucune découverte publique, droits privés conservés.
 - Invitation : lien courant consultable par tout membre actif/vérifié, bouton copier avec annonce et solution manuelle ; mention « permanent » si sans échéance, absence de lien et lien illisible traités. Révocation/régénération réservées aux administrateurs avec confirmation claire de l'invalidation de l'ancien lien.
+
+
+### Recherche intelligente (A)
+
+Explorer regroupe les exemplaires autorisés par jeu ; la carte affiche le nombre
+d'exemplaires et de disponibles après les filtres, sans propriétaire ni e-mail.
+Le détail liste les exemplaires dans les communautés actuelles. « Ma collection »
+reste distincte. L'ajout recherche seulement les fiches validées et conserve le
+choix, les notes et les partages lorsque les résultats changent.
+
+La saisie attend deux caractères et 250 ms ; les filtres relancent la recherche,
+vider le titre restaure la liste initiale. Les résultats portent `aria-busy` et
+un statut poli annonce chargement, nombre et panne. Le focus de saisie reste
+stable. Aucun bouton Rechercher visible ; Entrée assure le GET natif sans JS et
+la reprise après panne. Un bouton de soumission masqué permet la soumission
+implicite HTML même en présence du champ numérique « joueurs ».

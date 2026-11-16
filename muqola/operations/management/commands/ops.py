@@ -8,6 +8,7 @@ from django.core.management.base import BaseCommand, CommandError, CommandParser
 from django.db.models import Count
 
 from muqola.catalogue.models import GameReport
+from muqola.catalogue.services import FIELDS
 from muqola.identity.models import User
 from muqola.notifications.models import EmailOutbox
 from muqola.operations import services
@@ -29,6 +30,12 @@ class Command(BaseCommand):
                 "recover-community-admin",
                 "hide-game",
                 "correct-game",
+                "catalogue-inventory",
+                "catalogue-review",
+                "approve-game",
+                "reject-game",
+                "request-game-changes",
+                "merge-games",
             ],
         )
         parser.add_argument("--operator", required=True)
@@ -37,6 +44,11 @@ class Command(BaseCommand):
         parser.add_argument("--game-id", type=UUID)
         parser.add_argument("--metadata-file", type=Path)
         parser.add_argument("--reason", default="")
+        parser.add_argument("--homonym-reason", default="")
+        parser.add_argument("--target-game-id", type=UUID)
+        mode = parser.add_mutually_exclusive_group()
+        mode.add_argument("--apply", action="store_true")
+        mode.add_argument("--dry-run", action="store_true")
 
     def handle(self, *args: Any, **options: Any) -> None:
         user = User.objects.filter(
@@ -49,9 +61,27 @@ class Command(BaseCommand):
             raise CommandError(
                 "Opérateur non autorisé. Cette console exige aussi un accès OS de confiance."
             )
+        result: Any
         action = options["action"]
-        if action == "outbox-status":
-            result: Any = list(EmailOutbox.objects.values("status").annotate(count=Count("id")))
+        if (options["apply"] or options["dry_run"]) and action != "merge-games":
+            raise CommandError("--apply/--dry-run sont réservés à merge-games.")
+        if action in {
+            "catalogue-inventory",
+            "catalogue-review",
+            "approve-game",
+            "reject-game",
+            "request-game-changes",
+            "merge-games",
+            "correct-game",
+        }:
+            try:
+                result = self.catalogue_action(user, action, options)
+            except (ValidationError, ValueError, TypeError, OSError) as error:
+                if isinstance(error, ValidationError):
+                    raise CommandError(" ".join(error.messages)) from error
+                raise CommandError("Paramètres ou fichier JSON invalides.") from error
+        elif action == "outbox-status":
+            result = list(EmailOutbox.objects.values("status").annotate(count=Count("id")))
         elif action == "retry-failed":
             result = {"requeued": services.retry_notifications(user)}
         elif action == "reports":
@@ -93,3 +123,82 @@ class Command(BaseCommand):
                 raise CommandError(" ".join(error.messages)) from error
             result = {"status": "recorded"}
         self.stdout.write(json.dumps(result, default=str, ensure_ascii=True))
+
+    def catalogue_action(self, user: User, action: str, options: dict[str, Any]) -> Any:
+        from muqola.catalogue import moderation
+        from muqola.catalogue.models import Game
+
+        if action == "catalogue-inventory":
+            return moderation.inventory(user)
+        if action == "catalogue-review":
+            query = Game.objects.filter(merged_into__isnull=True).order_by("created_at", "id")
+            if options["game_id"]:
+                query = query.filter(pk=options["game_id"])
+            else:
+                query = query.filter(
+                    moderation_status__in=[Game.Status.PENDING, Game.Status.LEGACY]
+                )
+            return [
+                {
+                    "id": str(game.pk),
+                    "title": game.title,
+                    "kind": game.kind,
+                    "base_game_id": str(game.base_game_id) if game.base_game_id else None,
+                    "status": game.moderation_status,
+                    "hidden": game.hidden,
+                    "proposal_reason": game.proposal_reason,
+                    "external_ids": list(game.external_identifiers.values("source", "identifier")),
+                    "legacy_external_reference": {
+                        "source": game.external_source,
+                        "identifier": game.external_id,
+                        "bgg_ids": game.bgg_ids,
+                    },
+                    "metadata": {field: getattr(game, field) for field in FIELDS},
+                    "aliases": list(game.aliases.values_list("title", flat=True)),
+                    "exact_duplicates": list(
+                        moderation.duplicates(game).values("id", "title", "moderation_status")[:20]
+                    ),
+                    "similar": list(
+                        moderation.similar(game).values("id", "title", "moderation_status")[:20]
+                    ),
+                }
+                for game in query[:100]
+            ]
+        if options["game_id"] is None:
+            raise CommandError("--game-id est obligatoire.")
+        if action == "merge-games":
+            if options["target_game_id"] is None:
+                raise CommandError("--target-game-id est obligatoire.")
+            return moderation.merge(
+                user,
+                options["game_id"],
+                options["target_game_id"],
+                options["reason"],
+                dry_run=not options["apply"],
+            )
+        metadata: dict[str, Any] = {}
+        if options["metadata_file"] is not None:
+            metadata = json.loads(options["metadata_file"].read_text())
+            if not isinstance(metadata, dict):
+                raise CommandError("Objet JSON de métadonnées attendu.")
+        if action == "correct-game":
+            if not metadata:
+                raise CommandError("--metadata-file JSON est obligatoire pour une correction.")
+            moderation.correct(
+                user, options["game_id"], options["reason"], metadata, options["homonym_reason"]
+            )
+        else:
+            status = {
+                "approve-game": Game.Status.APPROVED,
+                "reject-game": Game.Status.REJECTED,
+                "request-game-changes": Game.Status.PENDING,
+            }[action]
+            moderation.decide(
+                user,
+                options["game_id"],
+                status,
+                options["reason"],
+                metadata,
+                options["homonym_reason"],
+            )
+        return {"status": "recorded"}

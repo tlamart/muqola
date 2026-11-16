@@ -1,6 +1,6 @@
 # Préparation des PR B, A et C — audit et arbitrages
 
-Audit initial : 15 novembre 2026 ; réconciliation après fusion de #25 : 16 novembre 2026. **Analyse documentaire #26 intégrée ; arbitrages B1–B4 et C1–C2 validés par le propriétaire le 16 novembre 2026. Fonctionnalités non encore implémentées.**
+Audit initial : 15 novembre 2026 ; réconciliation après fusion de #25 : 16 novembre 2026. **Analyse documentaire #26 intégrée ; arbitrages B1–B4 et C1–C2 validés par le propriétaire le 16 novembre 2026. B (#29) et A (#30) sont intégrées dans main ; C (#28) est implémentée sur cette base.** Les tableaux ci-dessous conservent la photographie initiale ; les bilans de réalisation sont en fin de document.
 
 ## Périmètre et preuve de l'état audité
 
@@ -47,7 +47,7 @@ Les livrables sont répartis sans duplication : [SPEC](../SPEC.md) fixe les règ
 
 ## Arbitrages B/C validés et orientations A
 
-**B1–B4 et C1–C2 sont des décisions fonctionnelles validées le 16 novembre 2026, pas des fonctionnalités déjà livrées.** Les options alternatives mentionnées dans la version initiale de l'audit sont désormais écartées pour ces PR. A1/A2 restent des orientations techniques à vérifier lors de l'implémentation. Tout changement de périmètre, confidentialité ou données devra être revalidé.
+**B1–B4 et C1–C2 ont été validés le 16 novembre 2026.** Les réalisations sont détaillées dans les bilans [B](catalogue-refonte.md), [A](recherche-intelligente.md) et [C](communautes-refonte.md). Les options alternatives de l'audit initial sont écartées ; A1/A2 ont été vérifiées lors de l'implémentation A. Tout changement de périmètre, confidentialité ou données devra être revalidé.
 
 | ID | Décision ou orientation | Conséquences et vérifications |
 | --- | --- | --- |
@@ -89,3 +89,26 @@ Le découpage technique exact (noms des statuts/modèles, index concurrents ou n
 ## Réconciliation de #26 après fusion de #25
 
 Le 16 novembre 2026, intégration de `main` (`e0fa4ca`) dans la branche documentaire avec résolution de README/SPEC et mise à jour de TASKS/ARCHITECTURE/du présent audit. Les modèles, services, templates, tests, CSP et la migration de #25 sont conservés **à l'identique de main** ; seules les différences documentaires subsistent dans #26. Le plan B → A → C était alors à valider ; ses arbitrages B1–B4/C1–C2 ont été approuvés ensuite le 16 novembre 2026 (voir la section ci-dessus). Les résultats de tests ci-dessus concernent l'ancienne base ; la CI de la nouvelle tête doit être vérifiée séparément.
+
+
+## Implémentation B
+
+Le schéma, les statuts, la console opérateur, la fusion et la stratégie de migration sont détaillés dans [catalogue-refonte.md](catalogue-refonte.md). La synthèse ci-dessus conserve la photographie de départ après #25 ; TASKS porte les tâches réellement vérifiées de B, sans cocher A/C.
+
+
+## Réalisation A après fusion B
+
+La PR B #29 est fusionnée dans `main` (`fdf9268`). La branche A part de ce commit ;
+le plan historique ci-dessus est conservé comme photographie. L'implémentation,
+les seuils, les garanties de confidentialité et les mesures sont décrits dans
+[recherche-intelligente.md](recherche-intelligente.md). TASKS suit les preuves
+réellement exécutées. A ne change pas les arbitrages B1–B4 et n'implémente pas C.
+
+## Intégration C après B et A
+
+La PR C #28 intègre `main` 47b47ff (B #29 et A #30) par un commit de fusion,
+sans réécrire l'historique de sa branche. Les conflits de SPEC/TASKS sont résolus
+en conservant les exigences et les preuves des trois lots ; les adaptations des
+scripts navigateur et du JavaScript sont conservées ensemble. Les migrations
+historiques B/A/C restent inchangées. La validation sur base synthétique isolée
+est consignée dans [le bilan C](communautes-refonte.md).
