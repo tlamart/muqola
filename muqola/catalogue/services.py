@@ -103,7 +103,9 @@ def write_game(user: User, data: dict[str, Any], game_id: UUID | None = None) ->
         if (
             matching_title(
                 Game.objects.filter(
-                    created_by=user, moderation_status=Game.Status.PENDING, merged_into__isnull=True
+                    created_by=user,
+                    moderation_status__in=[Game.Status.PENDING, Game.Status.REJECTED],
+                    merged_into__isnull=True,
                 ),
                 game.title,
                 exact=True,
@@ -131,7 +133,13 @@ def write_game(user: User, data: dict[str, Any], game_id: UUID | None = None) ->
                 "Un titre alternatif correspond déjà à une fiche : réutilisez-la "
                 "ou justifiez un jeu distinct."
             )
-        if duplicates(game).filter(created_by=user, moderation_status=Game.Status.PENDING).exists():
+        if (
+            duplicates(game)
+            .filter(
+                created_by=user, moderation_status__in=[Game.Status.PENDING, Game.Status.REJECTED]
+            )
+            .exists()
+        ):
             raise ValidationError(
                 "Vous avez déjà proposé un titre équivalent. Consultez vos propositions."
             )

@@ -1,6 +1,7 @@
 """Pending metadata is scoped by copies; moderation never erases physical loans."""
 
 from datetime import timedelta
+from typing import Any
 
 import pytest
 from django.core.exceptions import PermissionDenied, ValidationError
@@ -354,3 +355,23 @@ def test_rejected_active_loan_survives_loss_of_community(state: str, client: Cli
     loans.transition(owner, loan.pk, "return")
     loan.refresh_from_db()
     assert loan.state == Loan.State.RETURNED and loans.contacts(reader, loan.pk) is None
+
+
+@pytest.mark.parametrize(
+    "proposal",
+    [
+        {"title": "  CONSTELLATION fictive "},
+        {"title": "ETOILES FICTIVES"},
+        {"title": "Nouveau titre", "aliases": ["Étoiles fictives"]},
+    ],
+)
+def test_author_cannot_clone_own_rejected_title_or_alias_to_restore_lending(
+    proposal: dict[str, Any],
+) -> None:
+    owner, reader, _, _, item = scenario()
+    moderation.decide(catalogue_operator(), item.game_id, Game.Status.REJECTED, "Rejet")
+    before = Game.objects.count()
+    with pytest.raises(ValidationError):
+        write_game(owner, proposal)
+    assert Game.objects.count() == before
+    assert not borrowable(reader).exists()

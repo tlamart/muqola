@@ -130,3 +130,9 @@ Chat, avis/réputation, paiements, dons, abonnements, assurance, événements, o
 13. Deux exemplaires autorisés du même jeu sont regroupés ; une copie privée ou une communauté étrangère ne modifie aucun compteur ni résultat.
 14. Un rejet interdit immédiatement les nouveaux prêts, sans perdre les exemplaires, partages ni prêts acceptés ; validation, correction et fusion préservent leurs UUID et participants.
 15. Une base neuve reste vide ; une migration sur base peuplée conserve les références et les prêts de tous états, sans import ni purge.
+
+
+Une nouvelle proposition de l’auteur ne peut pas reprendre exactement le titre
+ou un alias normalisé de sa propre fiche rejetée pour rétablir le prêt. La garde
+existante des doublons propres en attente s’étend aux propres rejets, sans exposer
+les propositions privées d’un tiers ni imposer une unicité globale des titres.

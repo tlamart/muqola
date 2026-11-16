@@ -96,9 +96,8 @@ validation, le valide pendant le prêt actif puis vérifie réemploi, retrait de
 membre et remise/retour. L’ajout rapide avec/sans JS et les parcours A/C restent
 contrôlés par la CI.
 
-Résultats locaux : `scripts/check.sh` complet, **353 tests réussis**, puis les deux
-cas supplémentaires de clôture après rejet et perte de communauté dans les
-**22 tests P1 réussis** (355 tests distincts dans l’état final). Ruff lint/format,
+Résultats locaux : `scripts/check.sh` complet, **353 tests réussis**, puis **57 tests ciblés réussis**, dont les **25 tests P1** de permissions,
+conservation et doublons (358 tests distincts dans l’état final). Ruff lint/format,
 mypy (102 sources), Django, collecte statique, migration/plan et absence de
 migration manquante : succès. Contrôle production et audit runtime réussis ;
 build Docker, stack locale, produit/prêt pending et validation pendant prêt,
@@ -111,3 +110,9 @@ ne peut plus fausser le comptage des erreurs. Les vraies pannes fetch ne sont pa
 ignorées ; l’assertion de classification ERR_ABORTED est conservée.
 Validation sur données synthétiques et Chromium, pas de téléphone physique ni
 d’audit humain avec un lecteur d’écran dédié. Aucun merge ou déploiement.
+
+
+Une nouvelle proposition de l’auteur ne peut pas reprendre exactement le titre
+ou un alias normalisé de sa propre fiche rejetée pour rétablir le prêt. La garde
+existante des doublons propres en attente s’étend aux propres rejets, sans exposer
+les propositions privées d’un tiers ni imposer une unicité globale des titres.
