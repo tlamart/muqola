@@ -94,3 +94,12 @@ Le 16 novembre 2026, intégration de `main` (`e0fa4ca`) dans la branche document
 ## Implémentation B
 
 Le schéma, les statuts, la console opérateur, la fusion et la stratégie de migration sont détaillés dans [catalogue-refonte.md](catalogue-refonte.md). La synthèse ci-dessus conserve la photographie de départ après #25 ; TASKS porte les tâches réellement vérifiées de B, sans cocher A/C.
+
+
+## Réalisation A après fusion B
+
+La PR B #29 est fusionnée dans `main` (`fdf9268`). La branche A part de ce commit ;
+le plan historique ci-dessus est conservé comme photographie. L'implémentation,
+les seuils, les garanties de confidentialité et les mesures sont décrits dans
+[recherche-intelligente.md](recherche-intelligente.md). TASKS suit les preuves
+réellement exécutées. A ne change pas les arbitrages B1–B4 et n'implémente pas C.

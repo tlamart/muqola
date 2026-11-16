@@ -2,10 +2,13 @@ from typing import Any
 from uuid import UUID
 
 from django.core.exceptions import ValidationError
-from django.db.models import Exists, OuterRef, Q, QuerySet
+from django.db.models import Q, QuerySet
 from django.shortcuts import get_object_or_404
 
-from muqola.catalogue.models import Game, GameAlias, GameReport, normalized_title
+from muqola.catalogue.matching import matching_title as matching_title
+from muqola.catalogue.matching import ranked
+from muqola.catalogue.matching import title_condition as title_condition
+from muqola.catalogue.models import Game, GameReport, normalized_title
 from muqola.core.transactions import domain_write, verified
 from muqola.identity.models import User
 
@@ -22,21 +25,9 @@ FIELDS = {
 }
 
 
-def title_condition(title: str, *, exact: bool = False) -> Q:
-    key = normalized_title(title[:120])
-    lookup = "title_key" if exact else "title_key__contains"
-    aliases = GameAlias.objects.filter(game_id=OuterRef("pk"), **{lookup: key})
-    return Q(**{lookup: key}) | Q(Exists(aliases))
-
-
-def matching_title(query: QuerySet[Game], title: str, *, exact: bool = False) -> QuerySet[Game]:
-    """The caller supplies an already authorized queryset."""
-    return query.filter(title_condition(title, exact=exact)) if title or exact else query
-
-
 def search(user: User, title: str = "") -> QuerySet[Game]:
     verified(user)
-    return matching_title(
+    return ranked(
         Game.objects.filter(
             hidden=False, merged_into__isnull=True, moderation_status=Game.Status.APPROVED
         ).select_related("illustration"),

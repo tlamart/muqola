@@ -3,7 +3,6 @@ from uuid import UUID
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
-from django.db.models import Case, Value, When
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_http_methods
@@ -13,19 +12,17 @@ from muqola.catalogue.forms import GameForm, QuickAddForm, ReportForm
 from muqola.catalogue.models import Game, GameIllustration
 from muqola.communities.models import Membership
 from muqola.core.http import actor
+from muqola.core.search import bounded_search
 from muqola.inventory.models import GameVisibility
-from muqola.inventory.services import add_to_collection, available, visible
+from muqola.inventory.services import add_to_collection, available, borrowable, visible
 
 
 @require_http_methods(["GET", "POST"])
+@bounded_search
 def index(request: HttpRequest) -> HttpResponse:
     title = request.GET.get("title", "")[:120]
     manual = request.GET.get("manual") == "1"
-    matches = services.search(actor(request), title).order_by(
-        Case(When(services.title_condition(title, exact=True), then=Value(0)), default=Value(1)),
-        "title_key",
-        "id",
-    )
+    matches = services.search(actor(request), title)
     form = QuickAddForm(
         request.POST if request.method == "POST" else None,
         user=actor(request),
@@ -50,7 +47,9 @@ def index(request: HttpRequest) -> HttpResponse:
             return redirect("inventory:detail", copy_id=saved.pk)
     return render(
         request,
-        "catalogue/index.html",
+        "catalogue/results.html"
+        if request.method == "GET" and request.headers.get("X-Requested-With") == "live-search"
+        else "catalogue/index.html",
         {
             "games": Paginator(matches, 10).get_page(request.GET.get("page")),
             "title_query": title,
@@ -109,11 +108,17 @@ def edit(request: HttpRequest, game_id: UUID | None = None) -> HttpResponse:
 
 
 @require_GET
-def detail(request: HttpRequest, game_id: UUID) -> HttpResponse:
+def detail(request: HttpRequest, game_id: UUID, borrowing: bool = False) -> HttpResponse:
+    if borrowing:
+        get_object_or_404(
+            Game.objects.filter(pk__in=borrowable(actor(request)).values("game_id")), pk=game_id
+        )
     game = services.canonical(actor(request), game_id)
     if game.pk != game_id:
         return redirect("catalogue:detail", game_id=game.pk)
-    accessible = visible(actor(request)).filter(game=game)
+    accessible = (borrowable(actor(request)) if borrowing else visible(actor(request))).filter(
+        game=game
+    )
     copies = Paginator(accessible, 30).get_page(request.GET.get("page"))
     page_copies = list(copies)
     # Les noms de communautés sont eux-mêmes privés : seulement celles du lecteur.

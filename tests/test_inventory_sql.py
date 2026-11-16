@@ -43,9 +43,13 @@ def test_page_query_count(client: Client, volume: int, view: str) -> None:
     assert response.status_code == 200
     print(f"SQL {view} volume={volume}: {len(captured)}")
     assert (
-        len(captured) == {"inventory:index": 6, "inventory:mine": 4, "catalogue:detail": 11}[view]
+        len(captured) == {"inventory:index": 9, "inventory:mine": 4, "catalogue:detail": 11}[view]
     )
-    assert len(response.context["copies"]) == min(volume, 30)
+    if view == "inventory:index":
+        assert len(response.context["games"]) == 1
+        assert response.context["games"][0].copy_count == volume
+    else:
+        assert len(response.context["copies"]) == min(volume, 30)
 
 
 @pytest.mark.parametrize("state", [None, *Loan.State.values])
@@ -150,7 +154,7 @@ def test_detail_pagination_preserves_visibility_and_global_availability(client: 
     assert client.get(url, {"page": 999}).context["copies"].number == 3
     assert (
         client.get(reverse("inventory:index"), {"only_available": "on"})
-        .context["copies"]
+        .context["games"]
         .paginator.count
         == 1
     )
@@ -165,18 +169,27 @@ def test_detail_pagination_preserves_visibility_and_global_availability(client: 
 
 @pytest.mark.parametrize("volume", [1, 10, 30, 65])
 def test_available_explorer_query_count(client: Client, volume: int) -> None:
-    owner = member()
+    owner, reader = member(), member("Reader")
+    community = Community.objects.create(name="Commune", created_by=owner)
+    Membership.objects.create(community=community, user=owner)
+    Membership.objects.create(community=community, user=reader)
     game = Game.objects.create(
         moderation_status=Game.Status.APPROVED,
         kind=Game.Kind.STANDALONE,
         title="Filtrés",
         created_by=owner,
     )
-    OwnedGame.objects.bulk_create([OwnedGame(game=game, owner=owner) for _ in range(volume)])
-    client.force_login(owner)
+    items = OwnedGame.objects.bulk_create(
+        [OwnedGame(game=game, owner=owner) for _ in range(volume)]
+    )
+    GameVisibility.objects.bulk_create(
+        [GameVisibility(owned_game=item, community=community) for item in items]
+    )
+    client.force_login(reader)
     with CaptureQueriesContext(connection) as captured:
         response = client.get(reverse("inventory:index"), {"only_available": "on"})
     assert response.status_code == 200
-    assert len(captured) == 6
-    assert response.context["copies"].paginator.count == volume
-    assert len(response.context["copies"]) == min(volume, 30)
+    assert len(captured) == 9
+    assert response.context["games"].paginator.count == 1
+    assert response.context["games"][0].copy_count == volume
+    assert response.context["games"][0].available_count == volume

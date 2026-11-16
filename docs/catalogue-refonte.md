@@ -109,3 +109,8 @@ Les parcours navigateur locaux/CI créent des propositions par les vrais formula
 - Parcours produit avec modération réelle, prêts et retrait de membre ; ajout avec/sans JS à 360/768/1280 px ; responsive/clavier/tactile, filtres, contenus longs et sans JS à 360/390/768/1200/1280 px : succès. Inspection visuelle du rendu 360 px effectuée.
 - Des fixtures synthétiques remplacent les imports dans la CI. Les données préexistantes et les migrations #25 restent préservées. Les anciens scénarios d'import ne sont plus des fonctionnalités à livrer ; les tests attestent leur refus sans lecture ni écriture.
 - Aucun critère fonctionnel B volontairement reporté. Limites : pas de données de production, pas de téléphone physique, pas de restauration sur une instance réelle ; migration de schéma irréversible et ancien binaire non utilisable comme rollback sûr, conformément à la stratégie décrite ci-dessus. Aucun déploiement ni merge automatique.
+
+
+Le bilan B ci-dessus reste historique. Après fusion de #29, la PR A ajoute la
+[recherche intelligente](recherche-intelligente.md), sans changer les règles B
+ni les migrations 0001–0003. C reste hors de ce lot.

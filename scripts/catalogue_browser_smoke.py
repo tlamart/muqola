@@ -118,8 +118,9 @@ with sync_playwright() as playwright:
             )
             page.goto(args.url + "/games/")
             page.get_by_label("Rechercher un jeu par titre", exact=True).fill(args.title)
-            page.get_by_role("button", name="Rechercher", exact=True).click()
-            choice = page.locator("input[name=game_id]").first
+            page.get_by_label("Rechercher un jeu par titre", exact=True).press("Enter")
+            page.wait_for_url(re.compile(r"[?&]title="))
+            choice = page.locator("input[type=radio][name=game_id]").first
             expect(choice).to_be_visible()
             choice.focus()
             page.keyboard.press("Space")
@@ -179,7 +180,8 @@ with sync_playwright() as playwright:
             manual = "Jeu absent fictif " + secrets.token_hex(5)
             page.goto(args.url + "/games/")
             page.get_by_label("Rechercher un jeu par titre", exact=True).fill(manual)
-            page.get_by_role("button", name="Rechercher", exact=True).click()
+            page.get_by_label("Rechercher un jeu par titre", exact=True).press("Enter")
+            page.wait_for_url(re.compile(r"[?&]title="))
             page.get_by_role("link", name="Mon jeu n’est pas dans la liste", exact=True).click()
             expect(page.get_by_label("Titre du jeu")).to_have_value(manual)
             page.get_by_role(

@@ -4,7 +4,8 @@ from typing import TYPE_CHECKING, TypedDict
 from uuid import UUID
 
 from django.core.exceptions import ValidationError
-from django.db.models import Exists, OuterRef, Q, QuerySet
+from django.db.models import Count, Exists, IntegerField, OuterRef, Q, QuerySet, Subquery
+from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 
 from muqola.catalogue.models import Game
@@ -34,22 +35,67 @@ def with_availability(
 
 
 def visible(user: User) -> QuerySet[OwnedGame]:
-    verified(user)
     return (
         with_availability(OwnedGame.objects.filter(archived=False))
-        .filter(
-            Q(owner=user)
-            | Q(
-                withdrawn=False,
-                game__hidden=False,
-                game__merged_into__isnull=True,
-                game__moderation_status__in=[Game.Status.APPROVED, Game.Status.LEGACY],
-                visibilities__community__memberships__user=user,
-                visibilities__community__memberships__active=True,
-            )
-        )
+        .filter(Q(owner=user) | Q(pk__in=borrowable(user).values("pk")))
         .select_related("game", "game__illustration", "owner")
         .distinct()
+    )
+
+
+def borrowable(user: User, community_id: str = "") -> QuerySet[OwnedGame]:
+    """Copies in a CURRENT common community, excluding the reader's collection.
+
+    Two correlated membership tests cover the reader and the owner; neither a
+    stale visibility nor an inactive owner can leak a copy. No joining duplicate
+    edges, including copies shared in several communities.
+    """
+    verified(user)
+    common = GameVisibility.objects.filter(
+        owned_game_id=OuterRef("pk"),
+        community_id__in=Membership.objects.filter(user=user, active=True).values("community_id"),
+    ).filter(
+        community_id__in=Membership.objects.filter(
+            user_id=OuterRef("owned_game__owner_id"), active=True
+        ).values("community_id")
+    )
+    if community_id:
+        common = common.filter(community_id=community_id)
+    return with_availability(
+        OwnedGame.objects.filter(
+            archived=False,
+            withdrawn=False,
+            owner__is_active=True,
+            owner__email_verified_at__isnull=False,
+            game__hidden=False,
+            game__merged_into__isnull=True,
+            game__moderation_status__in=[Game.Status.APPROVED, Game.Status.LEGACY],
+        )
+        .exclude(owner=user)
+        .filter(Exists(common))
+    ).select_related("game", "game__illustration", "owner")
+
+
+def grouped(copies: QuerySet[OwnedGame], title: str = "") -> QuerySet[Game]:
+    from muqola.catalogue.matching import ranked
+
+    scoped = copies.order_by().filter(game_id=OuterRef("pk"))
+    counts = scoped.values("game_id").annotate(total=Count("pk"))
+    available_counts = (
+        with_availability(scoped)
+        .filter(has_active_loan=False)
+        .values("game_id")
+        .annotate(total=Count("pk"))
+    )
+    return (
+        ranked(Game.objects.filter(pk__in=copies.order_by().values("game_id")), title)
+        .annotate(
+            copy_count=Coalesce(Subquery(counts.values("total")), 0, output_field=IntegerField()),
+            available_count=Coalesce(
+                Subquery(available_counts.values("total")), 0, output_field=IntegerField()
+            ),
+        )
+        .select_related("illustration")
     )
 
 

@@ -79,3 +79,19 @@ notamment les permissions et les transitions de prêt.
   migrations nouvelles, migration locale, collecte statique et **206 tests réussis**.
 - Construction de `muqola:muq05` réussie ; `python manage.py check` dans l'image
   sans dépendances de développement : aucun problème détecté.
+
+
+## Adaptation A — recherche groupée
+
+Explorer affiche au plus 30 **jeux** par page et annote leurs nombres de copies
+autorisées/disponibles. `Exists` sur les appartenances des deux personnes évite
+les doublons multicommunautés. Les cardinalités 1/10/30/65 et plusieurs alias
+restent testées, avec ordre/pagination et invariance face aux copies invisibles.
+
+Budget exact A (tests PostgreSQL réels) : Explorer **9** requêtes, Mes jeux **4**,
+détail catalogue **11**. Les trois requêtes ajoutées à Explorer sont BEGIN/SET
+local/COMMIT (SAVEPOINT/SET/RELEASE dans le test transactionnel) pour limiter les
+lectures à 5 s par instruction et désactiver localement le JIT. Le nombre est
+constant avec 1/10/30/65 copies, 65 jeux et leurs alias ; aucun N+1 déplacé vers
+les badges. Les autres vues gardent les budgets issus de B. Les mesures de
+latence et plans plus volumineux sont dans [recherche A](recherche-intelligente.md).

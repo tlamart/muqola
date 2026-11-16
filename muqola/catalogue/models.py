@@ -3,6 +3,7 @@ import uuid
 from typing import Any
 
 from django.conf import settings
+from django.contrib.postgres.indexes import GinIndex
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
@@ -74,6 +75,9 @@ class Game(models.Model):
 
     class Meta:
         ordering = ["title_key", "id"]
+        indexes = [
+            GinIndex(fields=["title_key"], opclasses=["gin_trgm_ops"], name="game_title_trgm")
+        ]
         constraints = [
             models.CheckConstraint(
                 condition=models.Q(
@@ -185,6 +189,9 @@ class GameAlias(models.Model):
     title_key = models.CharField(max_length=300, db_index=True, editable=False)
 
     class Meta:
+        indexes = [
+            GinIndex(fields=["title_key"], opclasses=["gin_trgm_ops"], name="alias_title_trgm")
+        ]
         constraints = [
             models.UniqueConstraint(fields=["game", "title_key"], name="game_alias_unique")
         ]

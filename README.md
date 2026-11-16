@@ -17,7 +17,7 @@ La préparation documentaire du 15 novembre 2026 porte sur **B : catalogue**,
 **A : recherche intelligente**, puis **C : communautés**. Le
 [plan détaillé](TASKS.md#prochaines-pr--b--a--c-arbitrages-validés) et
 l'[audit des écarts et arbitrages](docs/plan-b-a-c.md) ont leurs arbitrages B1–B4/C1–C2 validés.
-La PR B implémente le catalogue ; A et C restent à réaliser. [SPEC](SPEC.md) décrit B ainsi que les cibles des futures PR A/C. C peut être développée en parallèle de B ; A
+Les PR B et A implémentent le catalogue et la recherche ; C reste à réaliser. [SPEC](SPEC.md) décrit B/A ainsi que la cible de C. C peut être développée en parallèle de B ; A
 dépend du schéma de B. Les communautés restent privées conformément à C2 ; aucune découverte publique prévue. Aucun déploiement, purge ou merge automatique.
 
 ## Démarrer localement
@@ -319,7 +319,7 @@ titre seul puis validation administrative avec type/base si applicable,
 gestion modérée des alias existants, corrections et fusions sans perte de références ;
 aucun upload photo, illustrations Commons approuvées ou visuel local de remplacement. Une base neuve démarre vide ; aucune
 purge d'une instance existante n'est autorisée par cette décision.
-**Cible A, non implémentée** : recherche instantanée sur titre/alias avec fautes,
+**Recherche A implémentée** : recherche instantanée sur titre/alias avec fautes,
 regroupement par jeu et contrôles de droits avant compteurs et classement.
 
 ### Imports locaux existants (historiques #22 et #25)
@@ -434,6 +434,29 @@ avec date UTC, type d'exception et localisation applicative lorsque disponibles.
 Messages libres, requêtes, secrets et tracebacks ne sont jamais sérialisés par
 le formateur. Le document décrit le contrat, ses limites et le choix de différer
 la corrélation plutôt que de reprendre une valeur client.
+
+## Recherche intelligente — PR A
+
+[Classement, périmètres, migration pg_trgm, privilèges, mesures et protocole](docs/recherche-intelligente.md).
+
+`/games/` recherche les seules fiches validées pour ajouter un exemplaire. `/copies/`
+cherche les jeux possédant des exemplaires autorisés dans les communautés actuelles,
+avec une carte par jeu et un détail dédié `/copies/games/<uuid>/`. La collection
+personnelle reste dans `/copies/mine/`. Le moteur normalise titres/alias et tolère
+les fautes à partir de quatre caractères. La saisie instantanée (250 ms) conserve
+le choix et les champs ; Entrée fonctionne aussi sans JavaScript.
+
+```sh
+uv run --frozen --group browser python scripts/search_browser_smoke.py --browser /usr/bin/chromium
+```
+
+Ce test ne vise que Compose local et crée des données synthétiques. Le benchmark
+requiert une base **vide dédiée** dont le nom finit par `_benchmark`, `APP_ENV=test`
+et les migrations appliquées. Ses données sont annulées en fin de transaction :
+
+```sh
+POSTGRES_DB=muqola_search_benchmark APP_ENV=test uv run --frozen python manage.py benchmark_search --games 10000 --samples 30
+```
 
 ## Comptage SQL (MUQ-05)
 

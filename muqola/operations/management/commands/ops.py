@@ -155,8 +155,11 @@ class Command(BaseCommand):
                     },
                     "metadata": {field: getattr(game, field) for field in FIELDS},
                     "aliases": list(game.aliases.values_list("title", flat=True)),
-                    "similar": list(
+                    "exact_duplicates": list(
                         moderation.duplicates(game).values("id", "title", "moderation_status")[:20]
+                    ),
+                    "similar": list(
+                        moderation.similar(game).values("id", "title", "moderation_status")[:20]
                     ),
                 }
                 for game in query[:100]
