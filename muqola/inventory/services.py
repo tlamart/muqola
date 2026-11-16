@@ -46,7 +46,7 @@ def visible(user: User) -> QuerySet[OwnedGame]:
                 visibilities__community__memberships__active=True,
             )
         )
-        .select_related("game", "owner")
+        .select_related("game", "game__illustration", "owner")
         .distinct()
     )
 
@@ -110,14 +110,13 @@ def add_to_collection(
     community_ids: list[UUID],
     distinct_edition: bool = False,
 ) -> OwnedGame:
-    from muqola.catalogue.models import normalized_title
-    from muqola.catalogue.services import write_game
+    from muqola.catalogue.services import matching_title, write_game
 
     with domain_write(user):
         if game_id is None:
             if (
                 not distinct_edition
-                and Game.objects.filter(hidden=False, title_key=normalized_title(title)).exists()
+                and matching_title(Game.objects.filter(hidden=False), title, exact=True).exists()
             ):
                 raise ValidationError(
                     "Un jeu de ce nom existe déjà. Sélectionnez-le ou confirmez une autre édition."

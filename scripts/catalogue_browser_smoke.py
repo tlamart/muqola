@@ -5,6 +5,7 @@ product_browser_smoke.py en CI. Aucune donnée externe embarquée dans ce script
 """
 
 import argparse
+import base64
 import json
 import re
 import secrets
@@ -13,13 +14,19 @@ from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import urlopen
 
-from playwright.sync_api import expect, sync_playwright
+from playwright.sync_api import Route, expect, sync_playwright
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--browser", default="/usr/bin/chromium")
 parser.add_argument("--url", default="http://localhost:8000")
 parser.add_argument("--mailpit", default="http://127.0.0.1:8025")
 parser.add_argument("--title", default="Jeu scénario")
+parser.add_argument("--expected-title", default="")
+parser.add_argument(
+    "--commons-fixture",
+    action="store_true",
+    help="Image synthétique interceptée, sans réseau Wikimedia.",
+)
 args = parser.parse_args()
 if any(
     urlparse(url).hostname not in {"localhost", "127.0.0.1"}
@@ -31,6 +38,16 @@ output = Path("work/catalogue-quick-add")
 output.mkdir(parents=True, exist_ok=True)
 email = "quick-" + secrets.token_hex(8) + "@example.test"
 password = secrets.token_urlsafe(24)
+SYNTHETIC_PIXEL = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a7k0AAAAASUVORK5CYII="
+)
+
+
+def commons_fixture(route: Route) -> None:
+    if route.request.headers.get("referer"):
+        raise RuntimeError("Référent privé transmis à l'image Commons")
+    route.fulfill(content_type="image/png", body=SYNTHETIC_PIXEL)
+
 
 with sync_playwright() as playwright:
     browser = playwright.chromium.launch(executable_path=args.browser)
@@ -90,6 +107,8 @@ with sync_playwright() as playwright:
                 viewport={"width": width, "height": 900},
             )
             page = ctx.new_page()
+            if args.commons_fixture:
+                page.route("https://commons.wikimedia.org/**", commons_fixture)
             external: list[str] = []
             page.on(
                 "request",
@@ -105,6 +124,12 @@ with sync_playwright() as playwright:
             choice.focus()
             page.keyboard.press("Space")
             expect(choice).to_be_checked()
+            if args.commons_fixture:
+                image = page.locator(".catalogue-choices img[data-commons-image]").first
+                image.scroll_into_view_if_needed()
+                expect(image).to_have_js_property("naturalWidth", 1)
+                expect(page.locator(".image-credit").first).to_contain_text("CC BY-SA 4.0")
+                expect(page.locator(".image-credit").first).to_contain_text("Auteur fictif")
             page.get_by_label("État et commentaires de mon exemplaire").fill(
                 "Ajout rapide synthétique"
             )
@@ -119,11 +144,38 @@ with sync_playwright() as playwright:
             page.get_by_role("button", name="Ajouter à ma collection", exact=True).click()
             page.wait_for_url("**/copies/*/")
             expect(page.locator("main")).to_contain_text("Ajout rapide synthétique")
+            if args.expected_title:
+                expect(page.get_by_role("heading", level=1)).to_have_text(args.expected_title)
+            if args.commons_fixture and javascript:
+                page.unroute("https://commons.wikimedia.org/**")
+                page.route("https://commons.wikimedia.org/**", lambda route: route.abort())
+                page.reload()
+                failed_image = page.locator("img[data-commons-image]").first
+                expect(failed_image).to_be_hidden()
+                expect(page.locator(".game-cover").first).to_be_visible()
+                expect(page.locator(".image-credit").first).to_contain_text("CC BY-SA 4.0")
             if width == 360:
                 expect(page.locator("main")).to_contain_text("Aucune communauté")
             else:
                 for name in community_names:
                     expect(page.locator("main")).to_contain_text(name)
+            if args.commons_fixture:
+                saved_url = page.url
+                saved_path = urlparse(saved_url).path
+                page.goto(args.url + "/copies/mine/")
+                card = (
+                    page.locator(".game-card")
+                    .filter(has=page.locator(f'a.game-card__link[href="{saved_path}"]'))
+                    .first
+                )
+                primary = card.locator("a.game-card__link")
+                expect(primary).to_have_count(1)
+                expect(primary.locator("h3")).to_have_count(1)
+                expect(primary.locator("img[data-commons-image]")).to_have_count(1)
+                expect(primary.locator(".image-credit")).to_have_count(0)
+                expect(card.locator(".image-credit a")).to_have_count(2)
+                primary.click()
+                page.wait_for_url(saved_url)
             manual = "Jeu absent fictif " + secrets.token_hex(5)
             page.goto(args.url + "/games/")
             page.get_by_label("Rechercher un jeu par titre", exact=True).fill(manual)
@@ -141,4 +193,14 @@ with sync_playwright() as playwright:
                 "privé/partagé, création manuelle, aucun appel BGG",
                 flush=True,
             )
+            if args.commons_fixture:
+                print(
+                    "PASS alias Wikidata, crédits et image synthétique"
+                    + (
+                        " ; remplacement après erreur vérifié (JS actif)"
+                        if javascript
+                        else " ; chargement vérifié sans JS"
+                    ),
+                    flush=True,
+                )
     browser.close()

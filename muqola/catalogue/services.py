@@ -2,19 +2,31 @@ from typing import Any
 from uuid import UUID
 
 from django.core.exceptions import ValidationError
-from django.db.models import QuerySet
+from django.db.models import Exists, OuterRef, Q, QuerySet
 from django.shortcuts import get_object_or_404
 
-from muqola.catalogue.models import Game, GameReport, normalized_title
+from muqola.catalogue.models import Game, GameAlias, GameReport, normalized_title
 from muqola.core.transactions import domain_write, verified
 from muqola.identity.models import User
 
 FIELDS = {"title", "publisher", "year", "players_min", "players_max", "duration", "description"}
 
 
+def title_condition(title: str, *, exact: bool = False) -> Q:
+    key = normalized_title(title[:120])
+    lookup = "title_key" if exact else "title_key__contains"
+    aliases = GameAlias.objects.filter(game_id=OuterRef("pk"), **{lookup: key})
+    return Q(**{lookup: key}) | Q(Exists(aliases))
+
+
+def matching_title(query: QuerySet[Game], title: str, *, exact: bool = False) -> QuerySet[Game]:
+    """Filtre sans autorisation implicite ; le lecteur doit déjà restreindre query."""
+    return query.filter(title_condition(title, exact=exact)) if title or exact else query
+
+
 def search(user: User, title: str = "") -> QuerySet[Game]:
     verified(user)
-    return Game.objects.filter(hidden=False, title_key__contains=normalized_title(title[:120]))
+    return matching_title(Game.objects.filter(hidden=False).select_related("illustration"), title)
 
 
 def write_game(user: User, data: dict[str, Any], game_id: UUID | None = None) -> Game:

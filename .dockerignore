@@ -14,3 +14,5 @@ staticfiles
 data
 **/muqola_games_5000.csv
 **/*bgg*.csv
+**/muqola_wikidata_import_1539.csv
+**/*wikidata*.csv
