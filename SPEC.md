@@ -1,8 +1,8 @@
 # Muqola — Spécifications produit (MVP)
 
-> Les sections 4–6 décrivent la cible validée des PR B → A → C, encore à implémenter.
+> La PR B implémente le catalogue de la section 5 ; les sections 4 et 6 restent les cibles des PR C et A.
 > État du code, écarts et arbitrages : [audit](docs/plan-b-a-c.md).
-> Le plan doit être validé avant toute implémentation fonctionnelle.
+> Arbitrages B1–B4 validés ; bilan, schéma et commandes : [catalogue B](docs/catalogue-refonte.md).
 
 ## 1. Vision
 Muqola est une application web responsive, mobile-first, gratuite au lancement, permettant à des membres de communautés privées (amis, voisins, collègues) de partager leurs **exemplaires physiques de jeux de société** et de gérer leurs prêts. L'inscription à la plateforme est **ouverte à tous**, y compris pendant la bêta ; les communautés restent privées. Le nom Muqola est provisoire jusqu'à vérification des droits et du domaine.

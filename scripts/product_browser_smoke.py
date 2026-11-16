@@ -10,6 +10,7 @@ from pathlib import Path
 from urllib.request import urlopen
 from zoneinfo import ZoneInfo
 
+from catalogue_fixture import approve_proposal
 from playwright.sync_api import Browser, Page, sync_playwright
 
 parser = argparse.ArgumentParser()
@@ -104,6 +105,13 @@ with sync_playwright() as playwright:
     alice.get_by_label("Joueurs maximum").fill("4")
     alice.get_by_role("button", name="Enregistrer", exact=True).click()
     game_url = alice.url
+    check(
+        "En attente de validation" in alice.locator("main").inner_text(),
+        "Proposition publiée avant revue",
+    )
+    check(bob.goto(game_url).status == 404, "Proposition divulguée avant validation")
+    approve_proposal(game_url)
+    alice.reload()
     alice.get_by_role("link", name="Ajouter mon exemplaire", exact=True).click()
     alice.get_by_label(community_name, exact=True).check()
     alice.get_by_label("État et commentaires de mon exemplaire").fill("Boîte Alice")

@@ -7,10 +7,10 @@ from django.test import Client
 from django.urls import reverse
 
 from muqola.catalogue.models import Game
-from muqola.catalogue.services import write_game
 from muqola.communities.services import create
 from muqola.inventory.models import OwnedGame
 from muqola.inventory.services import add_to_collection, visible
+from tests.helpers import approved_game as write_game
 from tests.helpers import member
 
 pytestmark = pytest.mark.django_db
@@ -50,10 +50,24 @@ def test_manual_creation_is_atomic_and_supports_multiple_communities(client: Cli
     client.force_login(alice)
     url = reverse("catalogue:index") + "?manual=1&title=Inédit"
     assert client.get(url).status_code == 200
-    response = client.post(url, {"title": "Inédit", "communities": [str(a.pk), str(b.pk)]})
+    response = client.post(url, {"title": "Inédit"})
     assert response.status_code == 302
     owned = OwnedGame.objects.get(owner=alice)
-    assert owned.game.title == "Inédit" and owned.visibilities.count() == 2
+    assert owned.game.title == "Inédit" and owned.visibilities.count() == 0
+    assert owned.game.moderation_status == Game.Status.PENDING
+    from muqola.catalogue.moderation import decide
+    from muqola.inventory.services import write_copy
+    from tests.helpers import catalogue_operator
+
+    decide(
+        catalogue_operator(),
+        owned.game_id,
+        Game.Status.APPROVED,
+        "Validation",
+        {"kind": "standalone"},
+    )
+    write_copy(alice, owned.game_id, "", [a.pk, b.pk], copy_id=owned.pk)
+    assert owned.visibilities.count() == 2
     before = Game.objects.count()
     assert (
         client.post(
@@ -71,7 +85,7 @@ def test_manual_creation_is_atomic_and_supports_multiple_communities(client: Cli
     assert Game.objects.count() == before
 
 
-def test_manual_duplicate_needs_explicit_distinct_edition_confirmation(client: Client) -> None:
+def test_manual_duplicate_cannot_bypass_review_with_distinct_edition(client: Client) -> None:
     alice = member()
     existing = write_game(alice, {"title": "Câtan"})
     client.force_login(alice)
@@ -84,8 +98,12 @@ def test_manual_duplicate_needs_explicit_distinct_edition_confirmation(client: C
     with pytest.raises(ValidationError, match="existe déjà"):
         add_to_collection(alice, None, "CATAN", "", [])
     assert Game.objects.count() == 1
-    item = add_to_collection(alice, None, "Catan", "", [], distinct_edition=True)
+    assert client.post(url, {"title": "CATAN", "distinct_edition": "on"}).status_code == 400
+    item = add_to_collection(
+        alice, None, "Catan", "", [], proposal_reason="Jeu différent à vérifier"
+    )
     assert item.game_id != existing.pk and Game.objects.count() == 2
+    assert item.game.moderation_status == Game.Status.PENDING
 
 
 def test_hidden_games_and_foreign_copy_ids_cannot_be_used(client: Client) -> None:

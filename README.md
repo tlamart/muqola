@@ -15,12 +15,10 @@ du lot 6 restent à faire ([état exact](docs/lot-6-infrastructure.md)).
 
 La préparation documentaire du 15 novembre 2026 porte sur **B : catalogue**,
 **A : recherche intelligente**, puis **C : communautés**. Le
-[plan détaillé](TASKS.md#prochaines-pr--b--a--c-plan-à-valider) et
-l'[audit des écarts et arbitrages](docs/plan-b-a-c.md) sont à valider avant toute
-implémentation fonctionnelle. [SPEC](SPEC.md) décrit cette **cible**, pas des
-fonctionnalités déjà livrées. C peut être développée en parallèle de B ; A
-dépend du schéma de B. Les droits privés sont conservés ; la découverte publique
-reste à préciser avant implémentation. Aucun déploiement, purge ou merge automatique.
+[plan détaillé](TASKS.md#prochaines-pr--b--a--c-arbitrages-validés) et
+l'[audit des écarts et arbitrages](docs/plan-b-a-c.md) ont leurs arbitrages B1–B4/C1–C2 validés.
+La PR B implémente le catalogue ; A et C restent à réaliser. [SPEC](SPEC.md) décrit B ainsi que les cibles des futures PR A/C. C peut être développée en parallèle de B ; A
+dépend du schéma de B. Les communautés restent privées conformément à C2 ; aucune découverte publique prévue. Aucun déploiement, purge ou merge automatique.
 
 ## Démarrer localement
 
@@ -288,14 +286,21 @@ Si la désactivation du seul administrateur bloque la gestion, une
 permet de promouvoir un membre existant ; aucune promotion automatique.
 [Schéma, permissions, concurrence et vérifications](docs/lot-2-communities.md).
 
-## Catalogue et collection — état actuel et cible
+## Catalogue et collection — PR B
 
-**Actuellement dans `main`** : ajout rapide par titre principal ou alias (accents/casse normalisés),
+[Statuts, revue opérateur, fusion, migrations et retour](docs/catalogue-refonte.md).
+**Mes propositions** permet de suivre les motifs de correction/refus ; les nouveaux
+exemplaires restent privés jusqu’à validation et partage explicite ultérieur.
+Aucun upload photo ni saisie d’URL d’image.
+
+**Avec B** : ajout rapide par titre principal ou alias (accents/casse normalisés),
 10 résultats/page, priorité au titre exact, sélection et création d'exemplaire
 atomiques, parcours sans JS ; zéro communauté = exemplaire privé. Plusieurs
 exemplaires d'un jeu sont possibles sans exposer les quantités privées.
-La création manuelle publie directement une fiche et la case « autre édition »
-permet un doublon explicite : ce fonctionnement historique doit évoluer en B.
+La création manuelle propose une fiche privée, puis un opérateur la valide. La
+case « autre édition » est supprimée ; une homonymie nécessite une justification
+et une revue administrative. Les fiches héritées restent à réviser, avec leurs
+exemplaires et prêts conservés ; elles ne sont plus réutilisables dans le catalogue validé.
 Après masquage, le propriétaire peut encore modifier son exemplaire non archivé,
 sans rétablir son prêt ni autoriser une nouvelle copie de la fiche masquée.
 [Schéma et invariants historiques](docs/lot-3-catalogue.md).
@@ -306,31 +311,30 @@ illustrations Commons approuvées sont affichées avec crédits et licence propr
 à chaque image, distincts des données Wikidata CC0. Sans illustration valide,
 le visuel local reste utilisé ; aucune URL/image n'est saisie par les utilisateurs.
 Le [document technique Wikidata/Commons](docs/wikidata-catalogue.md) décrit ce
-fonctionnement existant. Le plan B doit le réutiliser et préserver ses références,
+fonctionnement existant. B réutilise ce socle et préserve ses références,
 sans considérer `approved_by_owner` comme une modération des futures photos utilisateur.
 
-**Cible B, non implémentée** : une fiche par jeu (pas par édition), propositions
+**Catalogue B implémenté** : une fiche par jeu (pas par édition), propositions
 titre seul puis validation administrative avec type/base si applicable,
-gestion modérée des alias existants, corrections et fusions sans perte de références ; photo de boîte privée
-par défaut et visuel local de remplacement. Une base neuve démarre vide ; aucune
+gestion modérée des alias existants, corrections et fusions sans perte de références ;
+aucun upload photo, illustrations Commons approuvées ou visuel local de remplacement. Une base neuve démarre vide ; aucune
 purge d'une instance existante n'est autorisée par cette décision.
 **Cible A, non implémentée** : recherche instantanée sur titre/alias avec fautes,
 regroupement par jeu et contrôles de droits avant compteurs et classement.
 
 ### Imports locaux existants (historiques #22 et #25)
 
-Les commandes `import_games` et `import_wikidata_games` et leurs tests synthétiques
-existent dans `main` :
-import manuel idempotent par paire source/ID, sans mise à jour de fiches existantes,
-sans exemplaire créé et sans téléchargement. Aucun de ces imports n'est exécuté
+Les commandes `import_games` et `import_wikidata_games` sont conservées comme
+entrées désactivées. Elles refusaient les doublons par paire source/ID dans
+leur ancien parcours manuel ; B interdit désormais toute nouvelle ingestion. Aucun de ces imports n'est exécuté
 au démarrage, par les migrations ou par le déploiement. Leur présence ne démontre ni l'existence
 de données importées dans une instance ni des droits d'utilisation d'un catalogue.
 
 **Décision actuelle : ne pas importer les anciens CSV BGG ou Wikidata.**
 Les anciennes instructions d'import ne constituent plus le parcours recommandé ;
-aucun import n'est réalisé par ces trois PR. B doit traiter explicitement l'avenir
-de ces deux commandes et vérifier tous les chemins d'écriture selon les nouvelles
-règles. La PR #25 est désormais intégrée à la base du plan ; sa fusion n'exécute
+aucun import n'est réalisé par ces trois PR. B définit le comportement
+de ces deux commandes : **elles sont maintenant désactivées**, y compris en
+simulation et par leur entrée Python. Les métadonnées existantes sont conservées. La PR #25 est désormais intégrée à la base du plan ; sa fusion n'exécute
 aucun import et n'autorise ni purge ni nouvel import dans ces trois PR.
 
 Ne jamais versionner un catalogue réel, dump, fixture de catalogue ou photo privée,
@@ -346,7 +350,7 @@ références pour « repartir vide ». Toute opération destructive requiert une
 autorisation explicite, sauvegarde restaurable et retour arrière.
 
 Vérification **du parcours actuel** sur pile locale avec Mailpit et jeu synthétique
-créé par formulaire (script à adapter aux propositions lors de B) :
+proposé par formulaire puis validé par la console opérateur (script adapté à B) :
 
 ```sh
 uv run --frozen --group browser python scripts/catalogue_browser_smoke.py --title "Titre déjà présent" --browser /usr/bin/chromium

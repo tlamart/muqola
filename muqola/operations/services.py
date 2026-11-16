@@ -5,8 +5,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
-from muqola.catalogue.models import Game, GameReport, normalized_title
-from muqola.catalogue.services import FIELDS
+from muqola.catalogue.models import Game, GameReport
 from muqola.communities.models import Membership
 from muqola.core.transactions import domain_write, verified
 from muqola.identity.models import User
@@ -75,24 +74,21 @@ def recover_community_admin(user: User, community_id: UUID, target_id: int, reas
 def moderate_game(
     user: User, game_id: UUID, reason: str, metadata: dict[str, Any] | None = None
 ) -> None:
+    if metadata is not None:
+        from muqola.catalogue.moderation import correct
+
+        correct(user, game_id, reason, metadata)
+        return
     with domain_write(user):
         operator(user)
-        game = get_object_or_404(Game, pk=game_id)
-        audit(user, "correct_game" if metadata is not None else "hide_game", str(game.pk), reason)
-        if metadata is None:
-            game.hidden = True
-            OwnedGame.objects.filter(game=game).update(withdrawn=True)
-        else:
-            if not set(metadata) <= FIELDS:
-                raise ValidationError("Métadonnées génériques seulement.")
-            for key, value in metadata.items():
-                setattr(game, key, value.strip() if isinstance(value, str) else value)
-        game.title_key = normalized_title(game.title)
+        game = get_object_or_404(Game, pk=game_id, merged_into__isnull=True)
+        audit(user, "hide_game", str(game.pk), reason)
+        game.hidden = True
+        OwnedGame.objects.filter(game=game).update(withdrawn=True)
         game.full_clean()
         game.save()
-        if metadata is None:
-            for copy_id in OwnedGame.objects.filter(game=game).values_list("pk", flat=True):
-                close_ineligible_requests(user, copy_id=copy_id)
+        for copy_id in OwnedGame.objects.filter(game=game).values_list("pk", flat=True):
+            close_ineligible_requests(user, copy_id=copy_id)
         GameReport.objects.filter(game=game, resolved_at__isnull=True).update(
             resolved_at=timezone.now()
         )

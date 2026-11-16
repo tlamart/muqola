@@ -22,7 +22,7 @@ class OwnedGame(models.Model):
         return (
             not self.withdrawn
             and not self.archived
-            and not self.game.hidden
+            and self.game.lendable
             and not self._has_active_loan()
         )
 
