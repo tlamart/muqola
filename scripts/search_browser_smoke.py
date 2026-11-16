@@ -8,7 +8,7 @@ import json
 import secrets
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from browser_checks import expected_search_abort
 from catalogue_fixture import local_command
@@ -64,6 +64,17 @@ def check(condition: bool, message: str) -> None:
 with sync_playwright() as playwright:
     browser = playwright.chromium.launch(executable_path=args.browser)
     context = browser.new_context(viewport={"width": 360, "height": 844})
+    # Existing local Commons fixtures must not introduce unrelated network
+    # failures into the controlled transport test. Credits/image behavior has
+    # its own smoke; here no Wikimedia download is required.
+    for host in ("commons.wikimedia.org", "upload.wikimedia.org"):
+        context.route(
+            f"https://{host}/**",
+            lambda route: route.fulfill(
+                content_type="image/svg+xml",
+                body='<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>',
+            ),
+        )
     page = context.new_page()
     violations: list[str] = []
     page.add_init_script(
@@ -179,10 +190,19 @@ with sync_playwright() as playwright:
 
     page.on("requestfailed", collect_failure)
     page.route("**/games/?**", lambda route: route.abort("aborted"))
-    input.fill("Annulation " + prefix)
-    page.clock.run_for(250)
+    with page.expect_event(
+        "requestfailed",
+        predicate=lambda request: (
+            parse_qs(urlparse(request.url).query).get("title") == ["Annulation " + prefix]
+        ),
+    ):
+        input.fill("Annulation " + prefix)
+        page.clock.run_for(250)
     expect(page.locator("#search-status")).to_contain_text("indisponible")
-    check(len(network_failures) == 1, "Chromium reported the cancelled fragment")
+    check(
+        len(network_failures) == 1,
+        f"Cancelled fragment failures: {[request.failure for request in network_failures]}",
+    )
     cancelled = network_failures[-1]
     check(expected_search_abort(cancelled, args.url), "Expected local search cancellation")
     check(
@@ -192,8 +212,14 @@ with sync_playwright() as playwright:
     page.unroute("**/games/?**")
     # A genuine failed fetch stays an error and gives a working native GET retry.
     page.route("**/games/?**", lambda route: route.abort())
-    input.fill("Quete " + prefix)
-    page.clock.run_for(250)
+    with page.expect_event(
+        "requestfailed",
+        predicate=lambda request: (
+            parse_qs(urlparse(request.url).query).get("title") == ["Quete " + prefix]
+        ),
+    ):
+        input.fill("Quete " + prefix)
+        page.clock.run_for(250)
     expect(page.locator("#search-status")).to_contain_text("indisponible")
     check(len(network_failures) == 2, "Chromium reported the failed fragment")
     check(

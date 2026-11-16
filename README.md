@@ -294,14 +294,17 @@ permet de promouvoir un membre existant ; aucune promotion automatique.
 
 [Statuts, revue opérateur, fusion, migrations et retour](docs/catalogue-refonte.md).
 **Mes propositions** permet de suivre les motifs de correction/refus ; les nouveaux
-exemplaires restent privés jusqu’à validation et partage explicite ultérieur.
+exemplaires peuvent être partagés et prêtés immédiatement dans les communautés choisies,
+même si la fiche est encore en attente. Sans partage, ils restent privés.
 Aucun upload photo ni saisie d’URL d’image.
 
 **Avec B** : ajout rapide par titre principal ou alias (accents/casse normalisés),
 10 résultats/page, priorité au titre exact, sélection et création d'exemplaire
 atomiques, parcours sans JS ; zéro communauté = exemplaire privé. Plusieurs
 exemplaires d'un jeu sont possibles sans exposer les quantités privées.
-La création manuelle propose une fiche privée, puis un opérateur la valide. La
+La création manuelle propose une fiche hors du catalogue général ; un opérateur
+la valide pour le réemploi global. La revue ne bloque pas le prêt entre membres
+autorisés. [Décision P1 et gestion du rejet](docs/pret-fiches-en-attente.md). La
 case « autre édition » est supprimée ; une homonymie nécessite une justification
 et une revue administrative. Les fiches héritées restent à réviser, avec leurs
 exemplaires et prêts conservés ; elles ne sont plus réutilisables dans le catalogue validé.

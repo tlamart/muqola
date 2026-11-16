@@ -8,8 +8,9 @@
     <header class="game-summary">
     <h1 id="game-title">{{ game.title }}</h1>
     <p class="badge">{{ game.get_moderation_status_display }} · {{ game.get_kind_display }}</p>
+{% include 'components/game_moderation.html' %}
     {% if game.base_game %}<p>Jeu de base : <a href="{% url 'catalogue:detail' game.base_game_id %}">{{ game.base_game.title }}</a></p>{% endif %}
-    {% if private_proposal %}<p role="status">Votre proposition reste privée. Aucun prêt ni partage avant validation. Vous pourrez ensuite choisir les communautés de votre exemplaire.</p>{% endif %}
+    {% if private_proposal %}<p role="status">Cette fiche reste hors du catalogue général. Les exemplaires en attente peuvent être partagés et prêtés dans les communautés choisies ; un rejet bloque les nouvelles demandes sans interrompre les prêts acceptés.</p>{% endif %}
     {% for decision in decisions %}<p>{{ decision.get_status_display }} : {{ decision.reason }}</p>{% endfor %}
     {% if game.data_source %}<p class="help">Données : {{ game.data_source }} · {{ game.data_license }}</p>{% endif %}
     <p class="game-metadata muted">{% include 'components/game_metadata.html' %}</p>
@@ -33,7 +34,7 @@
     <section class="panel collection-actions">
 <h2>Une fiche, plusieurs exemplaires</h2>
 <p class="muted">Les fiches validées sont partagées entre les comptes vérifiés. Chaque exemplaire a son propriétaire et ses règles de visibilité.</p>
-{% if can_add %}<a class="button" href="{% url 'catalogue:add-copy' game.pk %}">Ajouter mon exemplaire{% if private_proposal %} privé{% endif %}</a>{% endif %}
+{% if can_add %}<a class="button" href="{% url 'catalogue:add-copy' game.pk %}">Ajouter mon exemplaire</a>{% endif %}
 <div class="actions">{% if can_edit %}<a href="{% url 'catalogue:edit' game.pk %}">Corriger la fiche générique</a>{% endif %}<a href="{% url 'catalogue:report' game.pk %}">Signaler ou proposer une correction</a>
 </div>
 </section>

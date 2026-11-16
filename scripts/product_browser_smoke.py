@@ -110,21 +110,24 @@ with sync_playwright() as playwright:
         "Proposition publiée avant revue",
     )
     check(bob.goto(game_url).status == 404, "Proposition divulguée avant validation")
-    approve_proposal(game_url)
-    alice.reload()
     alice.get_by_role("link", name="Ajouter mon exemplaire", exact=True).click()
     alice.get_by_label(community_name, exact=True).check()
     alice.get_by_label("État et commentaires de mon exemplaire").fill("Boîte Alice")
     alice.get_by_role("button", name="Enregistrer", exact=True).click()
     copy_url = alice.url
     bob.goto(game_url)
-    bob.get_by_role("link", name="Ajouter mon exemplaire", exact=True).click()
-    bob.get_by_label("État et commentaires de mon exemplaire").fill("Copie Bob privée")
-    bob.get_by_role("button", name="Enregistrer", exact=True).click()
-    bob_private_url = bob.url
-    response = alice.goto(bob_private_url)
-    check(response is not None and response.status == 404, "Fuite d'exemplaire privé")
-    alice.goto(copy_url)
+    check(
+        "Fiche en attente de validation" in bob.locator("main").inner_text(),
+        "Fiche partagée en attente inaccessible",
+    )
+    bob.goto(args.url + "/games/?title=" + title)
+    check(
+        bob.locator(
+            f'.catalogue-choices input[value="{game_url.rstrip("/").split("/")[-1]}"]'
+        ).count()
+        == 0,
+        "Proposition publiée dans le catalogue général",
+    )
     bob.goto(copy_url)
     check("Boîte Alice" in bob.locator("main").inner_text(), "Exemplaire partagé invisible")
     outsider_context = browser.new_context(viewport={"width": 360, "height": 900})
@@ -140,8 +143,7 @@ with sync_playwright() as playwright:
         )
         bob.screenshot(path=f"work/copy-{width}.png", full_page=True)
     print(
-        "PASS catalogue/exemplaires : fiche réutilisée, partage choisi, "
-        "copie privée, accès croisés refusés"
+        "PASS catalogue/exemplaires : fiche pending partagée hors catalogue, accès croisés refusés"
     )
     bob.get_by_role("link", name="Demander ce jeu", exact=True).click()
     due_date = (datetime.now(ZoneInfo("Europe/Paris")).date() + timedelta(days=7)).isoformat()
@@ -153,6 +155,22 @@ with sync_playwright() as playwright:
     alice.get_by_role("button", name="Accepter la demande", exact=True).click()
     bob.reload()
     check(bob.locator("a[href^='mailto:']").count() == 2, "Contacts actifs absents")
+    check(
+        "Fiche en attente de validation" in bob.locator("main").inner_text(),
+        "Prêt pending non indiqué",
+    )
+    approve_proposal(game_url)
+    bob.goto(game_url)
+    bob.get_by_role("link", name="Ajouter mon exemplaire", exact=True).click()
+    bob.get_by_label("État et commentaires de mon exemplaire").fill("Copie Bob privée")
+    bob.get_by_role("button", name="Enregistrer", exact=True).click()
+    bob_private_url = bob.url
+    response = alice.goto(bob_private_url)
+    check(response is not None and response.status == 404, "Fuite d'exemplaire privé")
+    alice.goto(copy_url)
+    bob.goto(loan_url)
+    check(bob.locator("a[href^='mailto:']").count() == 2, "Validation a interrompu le prêt accepté")
+
     response = outsider.goto(loan_url)
     check(response is not None and response.status == 404, "Prêt visible par un tiers")
     alice.goto(community_url)
@@ -175,7 +193,7 @@ with sync_playwright() as playwright:
         )
         bob.screenshot(path=f"work/loan-{width}.png", full_page=True)
     print(
-        "PASS prêts : demande, acceptation, contacts temporaires, "
+        "PASS prêts : demande et acceptation sans validation, validation en cours de prêt, "
         "retrait de membre, remise et retour"
     )
     expected = {f"Muqola — {state}" for state in ("Demandé", "Accepté", "Remis", "Rendu")}

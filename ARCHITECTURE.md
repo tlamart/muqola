@@ -55,3 +55,19 @@ Variables d'environnement pour URL publique, base PostgreSQL, secrets de session
 - **C :** mutations invitation sérialisées avec adhésion, pas de génération sur GET ; rotation invalide tous les anciens liens actifs, consultation réservée aux membres, droits privés maintenus. Pas de dépendance de schéma à B ; A dépend de B. Résoudre conflits CSS/JS/scripts/docs au rebase.
 - Pas d'import BGG/Wikidata ni de catalogue réel dans Git/image. Une base neuve reste vide ; sur base existante, aucune purge, reset, réactivation ou suppression de références automatique. Sauvegarde/retour à tester avant toute migration réelle autorisée.
 - Pas d'upload/URL d'image arbitraire ; photo utilisateur privée par défaut. Une collecte éventuelle exige stockage privé, validation de fichier/droits et approbation de publication, sinon conserver le visuel local. Les nouvelles règles ne valent pas autorisation d'ouvrir un service externe.
+
+
+## Décision P1 — partage et prêt sans approbation préalable
+
+`Game.LENDABLE_STATUSES` centralise pending/approved/legacy pour la propriété
+`lendable` et les sélecteurs SQL `borrowable`/`available`. Le catalogue général
+garde son filtre approved. `readable` n’ouvre pending qu’à l’auteur/opérateur ou
+par un exemplaire actuellement visible ; aucun accès trans-communauté par UUID.
+Les décisions et explications de revue ne sont pas rendues aux emprunteurs.
+
+Le rejet et les demandes/acceptations utilisent le même `domain_write`. Le rejet
+clôt les seules REQUESTED de la fiche et écrit leurs événements/outbox ; aucun
+DELETE, aucune modification des prêts ACCEPTED/HANDED_OVER. Correction auteur
+sans changement du statut rejeté. Fusions et validations gardent les références
+physiques et permissions existantes. Aucun changement de schéma ni migration de
+données requis. [Détail et vérification](docs/pret-fiches-en-attente.md).

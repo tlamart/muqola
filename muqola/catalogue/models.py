@@ -34,6 +34,8 @@ class Game(models.Model):
         EXPANSION = "expansion", "Extension nécessitant un jeu de base"
         STANDALONE_EXPANSION = "standalone_expansion", "Extension jouable seule"
 
+    LENDABLE_STATUSES = (Status.PENDING, Status.APPROVED, Status.LEGACY)
+
     moderation_status = models.CharField(
         max_length=20, choices=Status, default=Status.PENDING, db_index=True
     )
@@ -132,7 +134,7 @@ class Game(models.Model):
         return (
             not self.hidden
             and self.merged_into_id is None
-            and self.moderation_status in (self.Status.APPROVED, self.Status.LEGACY)
+            and self.moderation_status in self.LENDABLE_STATUSES
         )
 
     def clean(self) -> None:

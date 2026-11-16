@@ -1,5 +1,7 @@
 # Préparation des PR B, A et C — audit et arbitrages
 
+> Mise à jour produit P1 (16 novembre 2026) : la restriction initiale B1 ci-dessous est remplacée par le partage/prêt immédiat des copies pending dans les communautés autorisées. Aucun accès global avant approbation. Voir [P1](pret-fiches-en-attente.md) ; la photographie de l’audit reste historique.
+
 Audit initial : 15 novembre 2026 ; réconciliation après fusion de #25 : 16 novembre 2026. **Analyse documentaire #26 intégrée ; arbitrages B1–B4 et C1–C2 validés par le propriétaire le 16 novembre 2026. B (#29) et A (#30) sont intégrées dans main ; C (#28) est implémentée sur cette base.** Les tableaux ci-dessous conservent la photographie initiale ; les bilans de réalisation sont en fin de document.
 
 ## Périmètre et preuve de l'état audité
@@ -112,3 +114,12 @@ en conservant les exigences et les preuves des trois lots ; les adaptations des
 scripts navigateur et du JavaScript sont conservées ensemble. Les migrations
 historiques B/A/C restent inchangées. La validation sur base synthétique isolée
 est consignée dans [le bilan C](communautes-refonte.md).
+
+
+## Correctif P1 après fusion B/A/C
+
+La nouvelle décision dissocie publication des métadonnées au catalogue général
+et prêt d’un exemplaire dans une communauté privée. Pending est prêtabilité
+autorisée sous les mêmes contrôles que approved ; rejected bloque les nouvelles
+demandes sans effacer copie/partage/prêt accepté. La restriction de B1 n’est plus
+la règle courante. Aucun changement de données/migration, ni import/déploiement.

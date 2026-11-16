@@ -55,17 +55,8 @@ def test_manual_creation_is_atomic_and_supports_multiple_communities(client: Cli
     owned = OwnedGame.objects.get(owner=alice)
     assert owned.game.title == "Inédit" and owned.visibilities.count() == 0
     assert owned.game.moderation_status == Game.Status.PENDING
-    from muqola.catalogue.moderation import decide
     from muqola.inventory.services import write_copy
-    from tests.helpers import catalogue_operator
 
-    decide(
-        catalogue_operator(),
-        owned.game_id,
-        Game.Status.APPROVED,
-        "Validation",
-        {"kind": "standalone"},
-    )
     write_copy(alice, owned.game_id, "", [a.pk, b.pk], copy_id=owned.pk)
     assert owned.visibilities.count() == 2
     before = Game.objects.count()

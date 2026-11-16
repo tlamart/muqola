@@ -3,6 +3,7 @@
 > Les durées ne sont pas des engagements. Chaque lot doit être démontrable avant de passer au suivant.
 > Les lots 0–5 ci-dessous décrivent les livraisons historiques ; leurs cases cochées
 > ne valident pas les nouvelles exigences. Le prochain travail est le plan **B → A → C** en fin de document.
+> **P1 — décision du 16 novembre 2026 :** prêt immédiat des exemplaires en attente dans les communautés autorisées ; B1 est amendé ci-dessous. Le catalogue général reste réservé aux fiches validées.
 > Arbitrages **B1–B4 et C1–C2 validés le 16 novembre 2026** ; B (#29) et A (#30) sont intégrées dans `main` ; C (#28) est implémentée sur cette base.
 
 ## Lot 0 — Décision technique et socle
@@ -85,7 +86,7 @@ Créer une branche/PR par lot ci-dessous, sans pousser directement sur `main` ; 
 **Dépendances :** `main` ; arbitrages B1–B4 validés. Ne dépend pas de A ou C. La PR #25 Wikidata est désormais intégrée à `main` : réutiliser `GameAlias`, `GameIllustration`, recherche d'alias et métadonnées de licence/provenance. Conserver `0002_wikidata_catalogue` intacte ; les migrations B viennent après elle, sans recréer les modèles existants.
 
 **Arbitrages B validés**
-- **B1 :** conserver une seule entité `Game` avec modération `pending` / `approved` / `rejected` / `legacy_to_review`, séparée de `hidden`. Proposition titre seul et exemplaire privé autorisés en attente ; aucune publication, recherche dans le catalogue validé ou mise en prêt d'une nouvelle proposition avant validation. Les fiches héritées conservent leurs accès déjà autorisés et prêts existants jusqu'à révision, sans être réputées validées.
+- **B1 :** conserver une seule entité `Game` avec modération `pending` / `approved` / `rejected` / `legacy_to_review`, séparée de `hidden`. Proposition titre seul et exemplaire privé autorisés en attente ; **P1 remplace la restriction de prêt initiale** : partage explicite et prêt immédiat autorisés dans les communautés actuelles, sans publication ni recherche dans le catalogue général avant validation. Les fiches héritées conservent leurs accès déjà autorisés et prêts existants jusqu'à révision, sans être réputées validées.
 - **B2 :** une extension dépendante référence **un seul jeu de base** ; distinguer jeu autonome, extension dépendante et extension jouable seule. Type inconnu seulement avant validation ; aucun cycle/autolien.
 - **B3 :** **fusion logique sans suppression** de la source : redirection contrôlée vers la fiche canonique, préservation de tous les exemplaires, prêts, droits, UUID, alias, images et IDs externes ; audit et transaction.
 - **B4 :** **aucun upload utilisateur dans B**. Conserver les illustrations Commons déjà approuvées avec leurs crédits/licences et le visuel local par défaut ; reporter stockage, modération et publication de photos utilisateur à une future décision.
@@ -97,7 +98,7 @@ Bilan, commandes et limites : [docs/catalogue-refonte.md](docs/catalogue-refonte
 - [x] B.2 Préparer migrations **additives** : statut de modération distinct de `hidden`, type incluant inconnu pour proposition, relation de base ; réutiliser les alias normalisés existants et leurs contraintes. Ajouter contraintes des fiches validées et validations des extensions (base obligatoire si dépendante, pas d'auto-référence/cycle). Définir les index, unicité des alias par fiche, règles FK `PROTECT`, référence de fusion et conservation des identifiants externes.
 - [x] B.3 Distinguer les lignes héritées sans type connu des nouvelles propositions : aucune validation/type fabriqué, aucun `DELETE`/`TRUNCATE`/reset, pas de réécriture de `0001`. Garder les UUID et les références aux exemplaires/prêts ; documenter le traitement de chaque état hérité et les accès transitoires selon B1. Une base neuve reste vide sans compte/fiches d'import automatiques.
 - [x] B.4 Faire passer **tous** les chemins d'écriture (ajout rapide, ancien formulaire, correction, console et deux commandes d'import historiques) par les règles cible. Retirer le contournement « autre édition » ; conserver le réemploi et les exemplaires multiples/privés. Pour ces PR, neutraliser les parcours `import_games`/`import_wikidata_games` pour la cible BGG/Wikidata sans effacer leurs données existantes ; décider explicitement de la conservation du code historique. Garder une recherche synchrone fonctionnelle jusqu'à A.
-- [x] B.5 Implémenter proposition titre seul/type inconnu et suivi auteur ; l'exemplaire privé référence cette fiche en attente (B1 validé). Interdire le réemploi public et le prêt d'une nouvelle proposition non validée. Aucun accès tiers par UUID aux propositions, commentaires ou photos ; partager l'exemplaire après validation selon les choix explicites du propriétaire, sans communauté ajoutée automatiquement.
+- [x] B.5 Implémenter proposition titre seul/type inconnu et suivi auteur ; l'exemplaire référence cette fiche en attente. Réemploi public toujours interdit ; P1 autorise partage et prêt immédiats selon les choix explicites du propriétaire, sans communauté ajoutée automatiquement. Aucun accès tiers sans exemplaire autorisé, ni aux motifs privés de revue.
 - [x] B.6 Étendre les services/commandes `operations` existants : file de propositions, décision motivée, validation avec contrôle serveur des doublons, correction, rejet et signalements. Un administrateur de communauté ne devient pas modérateur du catalogue. Journaliser acteur, motif, états et cible sans secrets.
 - [x] B.7 Fournir suggestions exactes normalisées sur titre/alias avant proposition et avant validation ; garde serveur atomique dans `domain_write` pour toutes les créations/validations. Ne pas imposer l'unicité globale du titre ; exiger une justification de vraie homonymie. Le fuzzy sera ajouté en A. Ne pas divulguer une proposition tierce parmi les suggestions utilisateur.
 - [x] B.8 Fusion administrative transactionnelle avec simulation/bilan, confirmation source/cible et motif : conserver `OwnedGame.id`/owner, ne pas fusionner les exemplaires physiques ni modifier les FK `Loan.owned_game`. Replacer références de fiches, alias, bases, signalements et IDs externes ; gérer conflits d'alias/ID et deux signalements ouverts d'un même auteur sans les perdre. Garder une trace/source redirigeable avec mêmes contrôles d'accès, sans boucle. Conserver `ever_reused` et les masquages ; fusion refusée si elle rétablit un accès ou crée un cycle.
@@ -106,7 +107,7 @@ Bilan, commandes et limites : [docs/catalogue-refonte.md](docs/catalogue-refonte
 
 **Critères d'acceptation**
 - [x] Une nouvelle installation reste vide ; aucune donnée externe, aucun import implicite ni catalogue réel versionné/embarqué. Sur base peuplée, toutes les références et tous les états de prêts sont conservés.
-- [x] Un utilisateur vérifié sans communauté propose un titre et garde un exemplaire privé ; le type inconnu empêche la validation, pas la soumission. Un tiers ne trouve aucune proposition ni donnée privée associée. Une fiche validée exige titre/type/base applicable ; métadonnées facultatives réellement facultatives.
+- [x] Un utilisateur vérifié sans communauté propose un titre et garde un exemplaire privé ; le type inconnu empêche la validation, pas la soumission. Un tiers sans exemplaire autorisé ne trouve aucune proposition ; les données privées de revue restent réservées à l’auteur/opérateur. Une fiche validée exige titre/type/base applicable ; métadonnées facultatives réellement facultatives.
 - [x] Jeux autonomes, extensions dépendantes et extensions jouables seules sont représentables ; deux éditions commerciales ne justifient pas deux fiches. Alice et Bob possèdent des exemplaires distincts d'une même fiche.
 - [x] Seul un opérateur autorisé valide/corrige/fusionne ; le contrôle des doublons s'applique aussi sans JS et en concurrence. Une fusion préserve propriétaires, visibilités, demandes, prêts et liens ; un masquage n'est pas annulé.
 - [x] L'ajout/recherche synchrone, les prêts et leur clôture fonctionnent **avant A**. Pas d'ouverture des droits de communauté.
@@ -217,3 +218,18 @@ Bilan, commandes et limites : [docs/catalogue-refonte.md](docs/catalogue-refonte
 4. **C**, développable en parallèle de B depuis `main`, puis rebasée/testée après A. Aucun mode public ni découverte publique dans cette PR.
 
 Pour chaque PR : `./scripts/check.sh` sur PostgreSQL 17 synthétique, vérification production Django, audit runtime, build/healthcheck/capture SMTP et parcours navigateur de `.github/workflows/ci.yml`. Relire `makemigrations --check --dry-run`, `migrate --plan` et migrations forward/retour compatibles ; documenter les résultats effectifs et la validation mobile/clavier. Le détail des commandes locales est conservé dans README. Une CI verte ne vaut ni validation de la PR ni autorisation de migration de production. **Les arbitrages sont validés, pas les implémentations** : aucun merge automatique, aucune opération sur données réelles.
+
+
+## Correctif P1 — prêt immédiat des fiches en attente
+
+**Décision produit du 16 novembre 2026**, après fusion B #29 et A #30, appliquée
+sur `main` e57b9b2 (qui contient aussi C #28). Remplace la restriction initiale
+de B1 ; les autres protections du catalogue, doublons, types et modération restent
+conservées. [Règles, droits et preuves](docs/pret-fiches-en-attente.md).
+
+- [x] P1.1 Autoriser création/partage explicite d’exemplaires de l’auteur liés à un Game pending, titre seul/type inconnu inclus, sans approbation globale ni réemploi arbitraire par un tiers.
+- [x] P1.2 Aligner disponibilité, éligibilité et transitions ; garder vérification à demande/acceptation, appartenance des deux parties, exclusivité et transactions PostgreSQL.
+- [x] P1.3 Inclure pending dans la recherche d’emprunt seulement via les copies autorisées ; garder catalogue général/suggestions sans pending, comptes/rang/pages sans fuite et indicateur accessible.
+- [x] P1.4 Préserver UUID, exemplaires, partages et prêts lors de validation/correction/fusion/rejet ; au rejet annuler REQUESTED, empêcher nouveaux prêts, conserver clôture des ACCEPTED/HANDED_OVER. Une correction auteur ne lève pas le rejet.
+- [x] P1.5 Adapter formulaires, messages et documentation ; tester accès directs et fragments, privé/A/B/multicommunautés, retraits, concurrence rejet/demande/acceptation, tous états des prêts et budgets SQL.
+- [x] P1.6 Exécuter suite complète, lint/format/typage, migrations, contrôles production, audit/build et navigateur (demande/acceptation avant validation, validation pendant prêt actif), puis PR indépendante sans fusion/déploiement.

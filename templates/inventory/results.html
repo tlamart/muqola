@@ -4,6 +4,7 @@
 <ul class="game-grid">{% for game in games %}<li><article class="game-card">
 <a class="game-card__link" href="{% url 'inventory:game' game.pk %}">
 {% include 'components/game_cover.html' with defer_credits=True %}<h3>{{ game.title }}</h3></a>
+{% include 'components/game_moderation.html' %}
 {% include 'components/game_credits.html' %}
 <p class="game-card__metadata">{% include 'components/game_metadata.html' %}</p>
 <p>{{ game.copy_count }} exemplaire{{ game.copy_count|pluralize }} accessible{{ game.copy_count|pluralize }}</p>

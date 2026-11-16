@@ -17,7 +17,7 @@ catalogue ne participe au score.
   résultats du catalogue validé. Les suggestions du formulaire emploient ce moteur.
 - **Emprunter** (`/copies/`) : `borrowable` part des copies non archivées/retirées,
   d'un propriétaire actif et vérifié autre que le lecteur, rattachées à une fiche
-  canonique approuvée ou héritée non masquée. Une visibilité doit relier une
+  canonique en attente, approuvée ou héritée non masquée (décision P1). Une visibilité doit relier une
   communauté où **lecteur et propriétaire** ont une appartenance active actuelle.
   Les filtres communauté, joueurs et disponibilité précèdent `grouped` et le rang.
   Les `Exists` évitent de multiplier les copies partagées dans plusieurs groupes.
@@ -202,3 +202,8 @@ humain avec un lecteur d'écran dédié. Les tests vérifient labels, clavier, f
 statuts et attributs ARIA. Pas de charge concurrente de production, de VPS, de
 catalogue réel ni de restauration d'une instance réelle. Ces limites ne sont
 pas présentées comme des mesures de production.
+
+
+La décision [P1](pret-fiches-en-attente.md) étend l’emprunt aux fiches pending
+ayant une copie autorisée ; les mesures A restent historiques. Catalogue général,
+classement, fragments, confidentialité des comptes et bornes ne changent pas.

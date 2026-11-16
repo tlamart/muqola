@@ -4,6 +4,7 @@
     <h3>{{ copy.game.title }}</h3>
   </a>
   {% include 'components/game_credits.html' with game=copy.game %}
+  {% include 'components/game_moderation.html' with game=copy.game %}
   <p class="game-card__metadata">{% include 'components/game_metadata.html' with game=copy.game %}</p>
   <p class="game-card__owner">{% if copy.owner_id == user.pk %}Votre exemplaire{% else %}Exemplaire de {{ copy.owner.display_name }}{% endif %}</p>
   {% if copy.withdrawn %}<span class="badge badge--withdrawn">Retiré du prêt</span>{% elif available %}<span class="badge badge--available">Disponible</span>{% else %}<span class="badge badge--unavailable">Indisponible</span>{% endif %}

@@ -69,7 +69,7 @@ def borrowable(user: User, community_id: str = "") -> QuerySet[OwnedGame]:
             owner__email_verified_at__isnull=False,
             game__hidden=False,
             game__merged_into__isnull=True,
-            game__moderation_status__in=[Game.Status.APPROVED, Game.Status.LEGACY],
+            game__moderation_status__in=Game.LENDABLE_STATUSES,
         )
         .exclude(owner=user)
         .filter(Exists(common))
@@ -105,7 +105,7 @@ def available(query: QuerySet[OwnedGame]) -> QuerySet[OwnedGame]:
         archived=False,
         game__hidden=False,
         game__merged_into__isnull=True,
-        game__moderation_status__in=[Game.Status.APPROVED, Game.Status.LEGACY],
+        game__moderation_status__in=Game.LENDABLE_STATUSES,
         has_active_loan=False,
     )
 
@@ -140,11 +140,10 @@ def write_copy(
         )
         if not set(community_ids) <= allowed:
             raise ValidationError("Choisissez uniquement vos communautés actuelles.")
-        if game.moderation_status in (Game.Status.PENDING, Game.Status.REJECTED) and community_ids:
-            raise ValidationError(
-                "Une proposition reste privée jusqu'à validation. Partagez votre "
-                "exemplaire ensuite."
-            )
+        if game.moderation_status == Game.Status.REJECTED:
+            existing_shares = set(item.visibilities.values_list("community_id", flat=True))
+            if set(community_ids) - existing_shares:
+                raise ValidationError("Une fiche rejetée ne permet pas de nouveau partage.")
         # L'édition privée ne peut pas annuler le retrait imposé par la modération.
         item.notes, item.withdrawn = notes.strip(), withdrawn or game.hidden
         item.full_clean()

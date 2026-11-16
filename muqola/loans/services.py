@@ -99,7 +99,12 @@ def finish(
 
 
 def close_ineligible_requests(
-    user: User, copy_id: UUID | None = None, participant_id: int | None = None
+    user: User,
+    copy_id: UUID | None = None,
+    participant_id: int | None = None,
+    *,
+    game_id: UUID | None = None,
+    reason: str = "",
 ) -> None:
     # Appelé sous domain_write par tous les changements d'accès/disponibilité.
     query = Loan.objects.filter(state=Loan.State.REQUESTED).select_related(
@@ -107,6 +112,8 @@ def close_ineligible_requests(
     )
     if copy_id is not None:
         query = query.filter(owned_game_id=copy_id)
+    if game_id is not None:
+        query = query.filter(owned_game__game_id=game_id)
     if participant_id is not None:
         query = query.filter(Q(owner_id=participant_id) | Q(borrower_id=participant_id))
     for loan in query:
@@ -115,8 +122,11 @@ def close_ineligible_requests(
                 loan,
                 user,
                 Loan.State.CANCELLED,
-                "Cette demande n'est plus éligible après un changement "
-                "de partage ou d'appartenance.",
+                reason
+                or (
+                    "Cette demande n'est plus éligible après un changement "
+                    "de partage ou d'appartenance."
+                ),
             )
 
 

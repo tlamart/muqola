@@ -30,7 +30,7 @@ from muqola.catalogue.wikidata_importer import illustration
 from muqola.communities import services as communities
 from muqola.communities.models import Membership
 from muqola.inventory.models import GameVisibility, OwnedGame
-from muqola.inventory.services import add_to_collection, available, visible, write_copy
+from muqola.inventory.services import add_to_collection, visible, write_copy
 from muqola.loans import services as loans
 from muqola.loans.models import Loan
 from muqola.operations.models import OperatorAction
@@ -63,18 +63,11 @@ def test_title_only_proposal_is_private_and_cannot_be_published_by_form_or_direc
     assert game.moderation_status == Game.Status.PENDING and game.kind == Game.Kind.UNKNOWN
     assert not search(alice).exists() and not search(bob).exists()
     copy = write_copy(alice, game.pk, "Note privée", [])
-    assert not copy.available and not available(OwnedGame.objects.all()).exists()
+    assert copy.available  # private availability does not grant a third-party right
     community = communities.create(alice, "Privée")
     Membership.objects.create(user=bob, community=community)
-    with pytest.raises(ValidationError):
-        write_copy(alice, game.pk, "", [community.pk], copy_id=copy.pk)
     with pytest.raises(Http404):
         write_copy(bob, game.pk, "", [])
-    # Even malformed legacy sharing rows cannot expose a proposal.
-    GameVisibility.objects.create(owned_game=copy, community=community)
-    assert not visible(bob).exists()
-    with pytest.raises(Http404):
-        loans.request_loan(bob, copy.pk, loans.today() + timedelta(days=7))
     client.force_login(bob)
     for name, args in [
         ("catalogue:detail", [game.pk]),
@@ -84,6 +77,11 @@ def test_title_only_proposal_is_private_and_cannot_be_published_by_form_or_direc
     ]:
         assert client.get(reverse(name, args=args)).status_code == 404
     assert game.title not in client.get(reverse("catalogue:proposals")).content.decode()
+    write_copy(alice, game.pk, "", [community.pk], copy_id=copy.pk)
+    assert visible(bob).get() == copy
+    assert client.get(reverse("catalogue:detail", args=[game.pk])).status_code == 200
+    assert not search(bob).exists()  # shared pending is still outside the global catalogue
+    loans.request_loan(bob, copy.pk, loans.today() + timedelta(days=7))
     assert not GameIllustration.objects.exists()
 
 
@@ -99,11 +97,11 @@ def test_author_tracks_changes_rejection_resubmission_and_validation(client: Cli
     )
     moderation.decide(operator, game.pk, Game.Status.REJECTED, "Titre à corriger")
     write_game(owner, {"title": "Titre corrigé"}, game.pk)
-    assert Game.objects.get(pk=game.pk).moderation_status == Game.Status.PENDING
+    assert Game.objects.get(pk=game.pk).moderation_status == Game.Status.REJECTED
     with pytest.raises(ValidationError):
         moderation.decide(operator, game.pk, Game.Status.APPROVED, "Type manquant")
     game.refresh_from_db()
-    assert game.moderation_status == Game.Status.PENDING
+    assert game.moderation_status == Game.Status.REJECTED
     approve(game)
     with pytest.raises(ValidationError):
         write_game(owner, {"title": "Modification non autorisée"}, game.pk)

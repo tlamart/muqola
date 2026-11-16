@@ -17,15 +17,16 @@ from tests.helpers import member
 pytestmark = pytest.mark.django_db
 
 
+@pytest.mark.parametrize("status", [Game.Status.APPROVED, Game.Status.PENDING])
 @pytest.mark.parametrize("volume", [1, 10, 30, 65])
 @pytest.mark.parametrize("view", ["inventory:index", "inventory:mine", "catalogue:detail"])
-def test_page_query_count(client: Client, volume: int, view: str) -> None:
+def test_page_query_count(client: Client, volume: int, view: str, status: str) -> None:
     owner, reader = member(), member("Reader")
     community = Community.objects.create(name="Partagée", created_by=owner)
     Membership.objects.create(community=community, user=owner)
     Membership.objects.create(community=community, user=reader)
     game = Game.objects.create(
-        moderation_status=Game.Status.APPROVED,
+        moderation_status=status,
         kind=Game.Kind.STANDALONE,
         title="Jeu SQL",
         created_by=owner,

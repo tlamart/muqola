@@ -41,6 +41,7 @@ def readable(user: User) -> QuerySet[Game]:
 
     accessible_game_ids = visible(user).values("game_id")
     permission = Q(moderation_status=Game.Status.APPROVED) | Q(created_by=user)
+    permission |= Q(moderation_status=Game.Status.PENDING, pk__in=accessible_game_ids)
     permission |= Q(moderation_status=Game.Status.LEGACY) & (
         Q(pk__in=accessible_game_ids) | Q(merged_into_id__in=accessible_game_ids)
     )
@@ -61,7 +62,7 @@ def canonical(user: User, game_id: UUID) -> Game:
 
 
 def write_game(user: User, data: dict[str, Any], game_id: UUID | None = None) -> Game:
-    """Every public creation/edit creates or updates a private proposal only."""
+    """Create/update a proposal without granting catalogue-wide visibility."""
     with domain_write(user):
         game = (
             Game(created_by=user)
@@ -111,7 +112,10 @@ def write_game(user: User, data: dict[str, Any], game_id: UUID | None = None) ->
             .exists()
         ):
             raise ValidationError("Vous avez déjà proposé ce titre. Consultez vos propositions.")
-        game.moderation_status = Game.Status.PENDING
+        # An author correction must not lift an operator rejection now that
+        # pending copies can be lent. Only an explicit operator decision can.
+        if game.moderation_status != Game.Status.REJECTED:
+            game.moderation_status = Game.Status.PENDING
         if game.base_game_id and not search(user).filter(pk=game.base_game_id).exists():
             raise ValidationError("Choisissez un jeu de base validé.")
         game.full_clean()

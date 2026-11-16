@@ -137,6 +137,14 @@ def decide(
                 "Doublon titre/alias à examiner : fusionnez ou justifiez une "
                 "homonymie réelle, pas une édition."
             )
+        if status == Game.Status.REJECTED:
+            from muqola.loans.services import close_ineligible_requests
+
+            close_ineligible_requests(
+                user,
+                game_id=game.pk,
+                reason="La fiche du jeu a été rejetée. Cette demande ne peut plus être acceptée.",
+            )
         GameDecision.objects.create(
             game=game,
             actor=user,

@@ -67,6 +67,7 @@ def detail(request: HttpRequest, loan_id: UUID) -> HttpResponse:
         {
             "loan_id": loan.pk,
             "title": loan.owned_game.game.title,
+            "game": loan.owned_game.game,
             "state": loan.state,
             "state_label": loan.get_state_display(),
             "due_date": loan.due_date,

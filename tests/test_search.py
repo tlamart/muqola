@@ -69,7 +69,6 @@ def test_ranking_accents_aliases_short_titles_typos_and_stable_ties() -> None:
         "withdrawn",
         "archived",
         "hidden",
-        "pending",
         "rejected",
         "merged",
         "owner_left",
