@@ -370,3 +370,13 @@ details { min-width: 0; }
   .detail-content > section { margin-top: 8px; }
   .detail-content .copy-panel .button--accent { width: 100%; }
 }
+
+/* Illustrations Commons approuvées ; le visuel local reste sous l'image. */
+.game-art { margin: 0; min-width: 0; }
+.game-art__frame { position: relative; }
+.game-art__image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: var(--white); border-radius: 7px; }
+.game-art__image[hidden] { display: none; }
+.image-credit { font-size: .6875rem; color: var(--muted); line-height: 1.4; overflow-wrap: anywhere; margin: 5px 0 10px; }
+.game-art--compact { max-width: 12rem; margin-bottom: 8px; }
+.game-art--compact .game-cover { min-height: 90px; max-height: 110px; }
+.game-art--compact .game-cover__title { font-size: .875rem; }

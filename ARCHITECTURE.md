@@ -3,7 +3,7 @@
 ## Stack et portée
 La stack est **déjà validée** dans [ADR 0001](docs/adr/0001-stack.md) : Python 3.12, Django 5.2 LTS, PostgreSQL 17, templates HTML/CSS/JS locaux, Gunicorn/WhiteNoise et Docker Compose. La conserver ; ne pas réinitialiser le projet ni relancer un choix de framework pour les PR B/A/C.
 
-L'[audit du code et des écarts](docs/plan-b-a-c.md) décrit `main` à `c2c4c88`, la PR #25 non intégrée et les décisions proposées. [SPEC](SPEC.md) fixe la cible ; [TASKS](TASKS.md) détaille les trois PR et leurs validations. Les extensions ci-dessous sont un **plan**, pas des fonctionnalités livrées. Le socle de préproduction séparé/Caddy existe depuis #24 ; il n'autorise aucun déploiement.
+L'[audit du code et des écarts](docs/plan-b-a-c.md) décrit `main` à `e0fa4ca`, après fusion de la PR #25, et détaille les décisions proposées. [SPEC](SPEC.md) fixe la cible ; [TASKS](TASKS.md) détaille les trois PR et leurs validations. Les extensions ci-dessous sont un **plan**, pas des fonctionnalités livrées. Le socle de préproduction séparé/Caddy existe depuis #24 ; il n'autorise aucun déploiement.
 
 ## Contraintes non négociables
 - Monolithe modulaire, pas de microservices, Kubernetes ou architecture événementielle distribuée.
@@ -20,7 +20,7 @@ L'[audit du code et des écarts](docs/plan-b-a-c.md) décrit `main` à `c2c4c88`
 - `User` : id, email normalisé unique, hash mot de passe, date vérification, nom d'affichage, dates.
 - `AccountToken` : jetons de vérification et de réinitialisation distingués par type, digest unique, expiration et consommation ; `RateBucket` pour les limites de débit.
 - `Community`, `Membership` (rôle, actif/inactif), `CommunityInvite` (digest unique, copie chiffrée récupérable, expiration, révocation, créateur) et `PendingJoin`. **Cible C :** expiration nullable pour lien permanent par défaut, lien courant lisible par membres, mutations admin transactionnelles ; préserver les échéances/révocations existantes. Visibilité privée par défaut, découverte publique à préciser avant implémentation.
-- `Game` : fiche générique UUID distincte des exemplaires, métadonnées et paire externe optionnelle, créateur protégé, `hidden` et `ever_reused`. **Cible B :** une fiche par jeu, type/base/alias, propositions et validation distincte de masquage, correction/fusion opérateur auditée ; identifiants multiples à conserver sans perte. Migration additive sans inventer un type aux lignes héritées ; voir les arbitrages de l'audit. Aucune copie ni prêt supprimé lors d'une fusion.
+- `Game` : fiche générique UUID distincte des exemplaires, métadonnées et paire externe optionnelle, créateur protégé, `hidden` et `ever_reused`. `GameAlias` et `GameIllustration` (crédits/licence Commons) existent depuis #25 et sa migration `0002_wikidata_catalogue`. **Cible B :** une fiche par jeu, type/base et gestion modérée des alias existants, propositions et validation distincte de masquage, correction/fusion opérateur auditée ; identifiants multiples à conserver sans perte. Migration additive sans inventer un type aux lignes héritées ; voir les arbitrages de l'audit. Aucune copie ni prêt supprimé lors d'une fusion.
 - `OwnedGame` : gameId, ownerId, détails d'exemplaire, indicateur « retiré du prêt » ; zéro ou plusieurs communautés de visibilité.
 - `GameVisibility` : ownedGameId, communityId ; unicité de la paire ; vérifier l'appartenance du propriétaire et l'absence de partage implicite.
 - `Loan` : ownedGameId, borrowerId, ownerId, état, `dueDate` (DATE), dates de transition horodatées, message facultatif ; protéger l'exclusivité des prêts actifs par index partiel. Interdire les `REQUESTED` en double pour un même couple (exemplaire, emprunteur).
@@ -45,7 +45,7 @@ Variables d'environnement pour URL publique, base PostgreSQL, secrets de session
 - Éviter d'exposer des e-mails de membres, sauf aux deux parties d'un prêt accepté.
 - Ne pas révéler l'existence d'une communauté privée par les réponses publiques.
 - Les invitations sont des secrets : token fort, digest haché et copie chiffrée récupérable, éventuelle expiration, révocation, aucune journalisation du token brut. En C, contrôler l'appartenance active/vérifiée avant déchiffrement ; la permanence n'affaiblit pas la révocation. Protéger le token dans les URL contre les fuites par `Referer`, analytics ou logs ; éviter le contenu tiers sur l'écran d'invitation.
-- Protéger les entrées libres contre XSS et les sorties contre injection ; ne pas rendre de HTML utilisateur, de fichiers ou d'images distantes arbitraires au MVP. Mettre en place une politique CSP proportionnée, et limiter la taille des requêtes.
+- Protéger les entrées libres contre XSS et les sorties contre injection ; ne pas rendre de HTML utilisateur, de fichiers ou d'images distantes arbitraires au MVP ; conserver la liste fermée d'origines Commons et les validations d'illustration introduites par #25. Mettre en place une politique CSP proportionnée, et limiter la taille des requêtes.
 - Prévoir une suppression de compte sûre, y compris en présence de prêts en cours, avec procédure documentée. Prévoir une méthode opérateur minimale pour désactiver un compte ou retirer une fiche abusive, sans interface d'administration complète.
 
 

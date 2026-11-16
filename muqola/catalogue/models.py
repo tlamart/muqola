@@ -3,8 +3,11 @@ import uuid
 from typing import Any
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+
+from muqola.catalogue.commons import validate_illustration
 
 
 def normalized_title(value: str) -> str:
@@ -40,6 +43,9 @@ class Game(models.Model):
     hidden = models.BooleanField(default=False)
     external_source = models.CharField(max_length=80, null=True, blank=True)
     external_id = models.CharField(max_length=120, null=True, blank=True)
+    data_source = models.CharField(max_length=80, blank=True)
+    data_license = models.CharField(max_length=80, blank=True)
+    bgg_ids = models.CharField(max_length=1000, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -67,6 +73,61 @@ class Game(models.Model):
     def save(self, *args: Any, **kwargs: Any) -> None:
         self.title_key = normalized_title(self.title)
         super().save(*args, **kwargs)
+
+
+class GameAlias(models.Model):
+    game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name="aliases")
+    title = models.CharField(max_length=120)
+    title_key = models.CharField(max_length=300, db_index=True, editable=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["game", "title_key"], name="game_alias_unique")
+        ]
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        self.title_key = normalized_title(self.title)
+        super().save(*args, **kwargs)
+
+
+class GameIllustration(models.Model):
+    game = models.OneToOneField(Game, on_delete=models.CASCADE, related_name="illustration")
+    image_url = models.URLField(max_length=1000)
+    commons_file = models.CharField(max_length=255)
+    source_url = models.URLField(max_length=1000)
+    license = models.CharField(max_length=80)
+    license_url = models.URLField(max_length=255)
+    artist = models.CharField(max_length=500, blank=True)
+    attribution = models.CharField(max_length=1000, blank=True)
+    review_status = models.CharField(max_length=32, default="approved_by_owner")
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(review_status="approved_by_owner"),
+                name="game_illustration_approved",
+            )
+        ]
+
+    def clean(self) -> None:
+        validate_illustration(
+            self.image_url,
+            self.commons_file,
+            self.source_url,
+            self.license,
+            self.license_url,
+            self.artist,
+            self.attribution,
+            self.review_status,
+        )
+
+    @property
+    def displayable(self) -> bool:
+        try:
+            self.clean()
+        except ValidationError:
+            return False
+        return True
 
 
 class GameReport(models.Model):

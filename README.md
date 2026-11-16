@@ -290,7 +290,7 @@ permet de promouvoir un membre existant ; aucune promotion automatique.
 
 ## Catalogue et collection — état actuel et cible
 
-**Actuellement dans `main`** : ajout rapide par titre (accents/casse normalisés),
+**Actuellement dans `main`** : ajout rapide par titre principal ou alias (accents/casse normalisés),
 10 résultats/page, priorité au titre exact, sélection et création d'exemplaire
 atomiques, parcours sans JS ; zéro communauté = exemplaire privé. Plusieurs
 exemplaires d'un jeu sont possibles sans exposer les quantités privées.
@@ -299,29 +299,39 @@ permet un doublon explicite : ce fonctionnement historique doit évoluer en B.
 Après masquage, le propriétaire peut encore modifier son exemplaire non archivé,
 sans rétablir son prêt ni autoriser une nouvelle copie de la fiche masquée.
 [Schéma et invariants historiques](docs/lot-3-catalogue.md).
+Depuis la fusion de la [PR #25](https://github.com/tlamart/muqola/pull/25),
+`GameAlias`, `GameIllustration`, les crédits/licences et la recherche d'alias
+existent déjà ; la migration `0002_wikidata_catalogue` est intégrée. Les
+illustrations Commons approuvées sont affichées avec crédits et licence propres
+à chaque image, distincts des données Wikidata CC0. Sans illustration valide,
+le visuel local reste utilisé ; aucune URL/image n'est saisie par les utilisateurs.
+Le [document technique Wikidata/Commons](docs/wikidata-catalogue.md) décrit ce
+fonctionnement existant. Le plan B doit le réutiliser et préserver ses références,
+sans considérer `approved_by_owner` comme une modération des futures photos utilisateur.
 
 **Cible B, non implémentée** : une fiche par jeu (pas par édition), propositions
 titre seul puis validation administrative avec type/base si applicable,
-alias, corrections et fusions sans perte de références ; photo de boîte privée
+gestion modérée des alias existants, corrections et fusions sans perte de références ; photo de boîte privée
 par défaut et visuel local de remplacement. Une base neuve démarre vide ; aucune
 purge d'une instance existante n'est autorisée par cette décision.
 **Cible A, non implémentée** : recherche instantanée sur titre/alias avec fautes,
 regroupement par jeu et contrôles de droits avant compteurs et classement.
 
-### Ancien import local CSV (historique #22)
+### Imports locaux existants (historiques #22 et #25)
 
-Le code `import_games` et ses tests synthétiques existent encore dans `main` :
+Les commandes `import_games` et `import_wikidata_games` et leurs tests synthétiques
+existent dans `main` :
 import manuel idempotent par paire source/ID, sans mise à jour de fiches existantes,
-sans exemplaire créé et sans téléchargement. Il n'est pas exécuté au démarrage,
-par les migrations ou par le déploiement. Sa présence ne démontre ni l'existence
+sans exemplaire créé et sans téléchargement. Aucun de ces imports n'est exécuté
+au démarrage, par les migrations ou par le déploiement. Leur présence ne démontre ni l'existence
 de données importées dans une instance ni des droits d'utilisation d'un catalogue.
 
 **Décision actuelle : ne pas importer les anciens CSV BGG ou Wikidata.**
 Les anciennes instructions d'import ne constituent plus le parcours recommandé ;
 aucun import n'est réalisé par ces trois PR. B doit traiter explicitement l'avenir
-de cette commande et vérifier tous les chemins d'écriture selon les nouvelles règles.
-La [PR #25 Wikidata/Commons](https://github.com/tlamart/muqola/pull/25) est ouverte
-à la date de l'audit, non intégrée et sans dépendance requise pour ce plan.
+de ces deux commandes et vérifier tous les chemins d'écriture selon les nouvelles
+règles. La PR #25 est désormais intégrée à la base du plan ; sa fusion n'exécute
+aucun import et n'autorise ni purge ni nouvel import dans ces trois PR.
 
 Ne jamais versionner un catalogue réel, dump, fixture de catalogue ou photo privée,
 ni les embarquer dans l'image Docker. Les fichiers réels éventuels restent hors

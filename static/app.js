@@ -72,3 +72,14 @@ if (navigation && menuButton) {
   });
   synchronizeNavigation();
 }
+
+// Sans image disponible, conserver le visuel local ; aucun gestionnaire inline.
+function restoreGameCover(image) {
+  if (image instanceof HTMLImageElement && image.hasAttribute('data-commons-image')) {
+    image.hidden = true;
+  }
+}
+document.addEventListener('error', event => restoreGameCover(event.target), true);
+document.querySelectorAll('img[data-commons-image]').forEach(image => {
+  if (image.complete && image.naturalWidth === 0) restoreGameCover(image);
+});
