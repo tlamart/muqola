@@ -12,7 +12,7 @@
 <p id="search-status" role="status" aria-live="polite"></p>
 {% if manual %}<section class="panel"><h2>Un jeu absent du catalogue</h2>
 <p>Vérifiez les correspondances ci-dessous avant d'ajouter un nouveau jeu.
-La proposition et votre exemplaire restent privés jusqu’à validation. Après validation, partagez explicitement votre exemplaire. Une autre édition ne justifie pas une nouvelle fiche.</p>
+La fiche reste hors du catalogue général jusqu’à validation. Vous pouvez déjà partager et prêter votre exemplaire dans les communautés choisies. Une autre édition ne justifie pas une nouvelle fiche.</p>
 <a href="{% url 'catalogue:index' %}?title={{ title_query|urlencode }}">Choisir un jeu existant</a></section>{% endif %}
 <form method="post" class="catalogue-add">{% csrf_token %}
 {% if form.errors %}<div class="form-errors" role="alert">{{ form.non_field_errors }}{% for field in form %}{{ field.errors }}{% endfor %}</div>{% endif %}
@@ -24,10 +24,10 @@ La proposition et votre exemplaire restent privés jusqu’à validation. Après
 <section class="panel collection-actions" aria-labelledby="copy-information">
 <h2 id="copy-information">Votre exemplaire</h2>
 <p>{{ form.notes.label_tag }}{{ form.notes }}</p>
-<fieldset{% if manual %} hidden disabled{% endif %}><legend>Avec qui partager ?</legend>
+<fieldset><legend>Avec qui partager ?</legend>
 <p class="help">Aucune communauté sélectionnée : votre exemplaire reste privé.</p>
 {{ form.communities }}</fieldset>
-<button type="submit">{% if manual %}Proposer ce jeu et l’ajouter en privé{% else %}Ajouter à ma collection{% endif %}</button>
+<button type="submit">{% if manual %}Proposer ce jeu et ajouter mon exemplaire{% else %}Ajouter à ma collection{% endif %}</button>
 </section></form>
 <div class="actions">{% if not manual %}<a data-manual-link class="button secondary" href="{% url 'catalogue:index' %}?manual=1&amp;title={{ title_query|urlencode }}">Mon jeu n’est pas dans la liste</a>{% endif %}
 <a href="{% url 'catalogue:proposals' %}">Mes propositions</a> <a href="{% url 'inventory:mine' %}">Revenir à mes jeux</a></div>

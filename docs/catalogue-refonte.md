@@ -2,14 +2,16 @@
 
 Implémentation sur `feat/catalogue-refonte`, depuis `origin/main` à `46362f1` (arbitrages B1–B4 validés). Django/PostgreSQL, recherche synchrone et communautés privées conservés. Aucune fonction des PR A/C, aucun upload, aucun seed ou import externe.
 
+> Le correctif [P1](pret-fiches-en-attente.md) amende B1 : le prêt pending ne nécessite plus de validation administrative. Les preuves de livraison B ci-dessous restent historiques.
+
 ## Modèle et droits
 
 `Game` conserve son UUID, ses métadonnées et les modèles Commons de #25. Le statut est distinct de `hidden` :
 
 | Statut | Catalogue global / réemploi | Collection / prêt |
 | --- | --- | --- |
-| `pending` | Invisible aux tiers ; auteur et opérateur seulement | Auteur : exemplaires privés, aucun prêt/partage |
-| `rejected` | Invisible aux tiers ; motif de décision consultable par l'auteur | Exemplaire conservé, privé ; correction et resoumission possibles |
+| `pending` | Hors catalogue général ; auteur/opérateur ou accès actuel à une copie partagée | Auteur : copies privées ou explicitement partagées/prêtables (P1) |
+| `rejected` | Hors catalogue général ; motif réservé à l’auteur/opérateur | Copies/partages conservés ; pas de nouvelle demande/acceptation. Prêts acceptés clôturables ; correction auteur sans lever le rejet |
 | `approved` | Réemploi par tous les comptes actifs/vérifiés si non masqué | Partages explicitement choisis par chaque propriétaire |
 | `legacy_to_review` | Hors du catalogue validé, pas de nouvel exemplaire par URL directe | Accès des exemplaires déjà autorisés et prêts maintenus jusqu'à révision |
 
@@ -17,7 +19,7 @@ Un titre seul suffit à proposer (ancien formulaire ou ajout rapide). Le type `u
 
 Les titres alternatifs utilisent les clés normalisées de #25. Suggestions utilisateur : fiches **validées** uniquement, sans propriétaires ni propositions tierces. Les écritures de création/édition/validation passent par les services et le verrou transactionnel commun. La case « autre édition » est supprimée : une édition commerciale ne suffit pas à créer une fiche distincte. Un homonyme peut être proposé avec une explication privée ; l'opérateur doit ensuite fournir sa propre justification pour approuver malgré une correspondance titre/alias.
 
-Les exemplaires d'une nouvelle proposition restent privés. Aucune communauté n'est ajoutée lors de l'approbation ; le propriétaire choisit ensuite ses partages. Notes, UUID et propriétaires des exemplaires ne changent pas. Un créateur ne modifie plus directement une fiche approuvée : signalement, puis correction par la console opérateur. « Mes propositions » permet de suivre les décisions.
+Les exemplaires d’une proposition peuvent rester privés ou être partagés/prêtés immédiatement (P1). Aucune communauté n’est ajoutée lors de l’approbation ; les partages explicites existants sont conservés. Notes, UUID et propriétaires des exemplaires ne changent pas. Un créateur ne modifie plus directement une fiche approuvée : signalement, puis correction par la console opérateur. « Mes propositions » permet de suivre les décisions.
 
 Les deux anciennes commandes CSV et leurs fonctions Python refusent l'import, y compris en simulation, avant lecture de fichier ou écriture. Les validations de format/Commons utiles et les commandes demeurent identifiables ; leurs anciens corps d'ingestion ont été retirés. Aucun catalogue réel n'est versionné. Les données déjà présentes, licences et illustrations #25 restent intactes.
 

@@ -4,6 +4,7 @@
 <header class="page-heading">
 <p class="eyebrow">Un échange privé</p>
 <h1>{{ title }}</h1>
+{% include 'components/game_moderation.html' %}
 <span class="badge badge--{{ state|lower }}">{{ state_label }}</span>
 </header>
 <section class="panel">

@@ -94,7 +94,9 @@ def edit(request: HttpRequest, game_id: UUID | None = None) -> HttpResponse:
         {
             "form": form,
             "title": "Corriger une fiche" if game else "Créer une fiche de jeu",
-            "notice": "Votre proposition reste privée jusqu'à validation par la plateforme. "
+            "notice": "La fiche reste hors du catalogue général jusqu'à validation. "
+            "Vous pouvez déjà partager et prêter votre exemplaire dans vos communautés. "
+            "Après rejet, une correction ne rétablit pas le prêt sans décision de la plateforme. "
             "Seul le titre est obligatoire ; une édition commerciale ne "
             "justifie pas une nouvelle fiche.",
             "suggestions": services.search(

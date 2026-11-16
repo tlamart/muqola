@@ -6,7 +6,7 @@ Une application conviviale, sobre et rassurante, centrée sur les communautés e
 ## Principes
 - Mobile-first, navigation claire en 3 à 5 entrées maximum ; actions prioritaires : « Trouver un jeu », « Ajouter un jeu », « Mes prêts », « Mes communautés ».
 - Présenter d'abord les jeux réellement accessibles à l'utilisateur, pas un catalogue mondial vide.
-- Lors de l'ajout : **Rechercher une fiche validée → sélectionner ou proposer → ajouter mon exemplaire → choisir les communautés (facultatif, partage après validation pour une nouvelle proposition)**. Indiquer clairement qu'une fiche de jeu est partagée entre utilisateurs, tandis qu'un exemplaire appartient à une seule personne. Prévenir que la fiche générique validée est trouvable par tous les comptes vérifiés ; une proposition et sa photo éventuelle restent privées pendant la revue. Une fiche représente un jeu, pas une édition commerciale.
+- Lors de l'ajout : **Rechercher une fiche validée → sélectionner ou proposer → ajouter mon exemplaire → choisir les communautés (facultatif, partage immédiat possible pour une proposition en attente)**. Indiquer clairement qu'une fiche de jeu est partagée entre utilisateurs, tandis qu'un exemplaire appartient à une seule personne. Prévenir que la fiche générique validée est trouvable par tous les comptes vérifiés ; une proposition reste hors du catalogue général pendant la revue, mais est visible via les exemplaires partagés aux membres autorisés. Les motifs de revue restent privés. Une fiche représente un jeu, pas une édition commerciale.
 - Afficher les états de prêt en français clair : « Demandé », « Accepté », « Remis », « Rendu », « Refusé », « Annulé ».
 - Éviter les formulaires longs ; champs facultatifs réellement facultatifs ; messages d'erreur contextualisés.
 - La disponibilité et la date de retour doivent être lisibles sur mobile. Une demande en attente ne constitue pas une réservation ; l'expliquer lors de la demande.
@@ -50,3 +50,12 @@ un statut poli annonce chargement, nombre et panne. Le focus de saisie reste
 stable. Aucun bouton Rechercher visible ; Entrée assure le GET natif sans JS et
 la reprise après panne. Un bouton de soumission masqué permet la soumission
 implicite HTML même en présence du champ numérique « joueurs ».
+
+
+### Indicateur et parcours P1
+
+« Fiche en attente de validation » apparaît sur carte, détail d’exemplaire, fiche
+et prêt. Le partage peut être choisi dès l’ajout manuel, sans case désactivée
+ni attente de validation administrative. Sans communauté choisie, copie privée.
+Un rejet affiche l’interdiction des nouvelles demandes ; les participants d’un
+prêt accepté conservent ses actions de remise/retour et son historique privé.
