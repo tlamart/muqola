@@ -15,11 +15,13 @@ Construire un MVP exploitable de Muqola, application web de prêt gratuit de jeu
 9. Avant toute migration destructive ou opération de production : demander confirmation et fournir une stratégie de sauvegarde/retour arrière.
 
 ## Qualité attendue
+- MVP signifie périmètre réduit, avec qualité de bêta publique : code robuste, maintenable, sécurisé et testé ; interface soignée, accessible et mobile.
 - Architecture monolithique modulaire avec frontières de modules claires.
 - Validations et autorisations **sur le serveur** ; tests d'accès croisé et de concurrence.
 - Dépendances minimales et maintenues ; pas de complexité prématurée.
 - Interface française, responsive, accessible et utilisable avec données vides.
 - Erreurs compréhensibles et journalisation utile sans divulgation de données sensibles.
+- Ne jamais versionner de catalogue réel ni l'embarquer dans les images ; utiliser des données synthétiques minimales pour les tests.
 - Aucune dépendance à un catalogue externe pour le parcours d'ajout de jeux. Favoriser le réemploi des fiches internes et autoriser les exemplaires privés sans communauté.
 - Respecter les règles exactes de transition des prêts et les cas où une appartenance ou une visibilité est retirée. En cas de contradiction apparente, la confidentialité et l'intégrité des prêts priment ; signaler le conflit dans la PR.
 - Ne pas implémenter de fausses intégrations (API e-mail, sauvegardes) présentées comme opérationnelles : distinguer clairement les simulateurs de développement et la production.

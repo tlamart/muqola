@@ -4,11 +4,12 @@
 
 ## Parcours réellement opérationnels
 - [ ] **BLOQUANT** : inscription sans invitation, vérification e-mail réelle, connexion et réinitialisation du mot de passe.
-- [ ] **BLOQUANT** : lien de communauté partageable, expirant/révocable, y compris pour une personne sans compte.
-- [ ] **BLOQUANT** : création manuelle et recherche d'une fiche `Game` existante, ajout d'exemplaire sans communauté, contrôle des visibilités.
+- [ ] **BLOQUANT** : lien de communauté partageable, permanent par défaut et révocable/régénérable par admin, copiable par tout membre ; vérification e-mail et confirmation explicite, ancien lien invalidé, y compris pendant une inscription.
+- [ ] **BLOQUANT** : proposition titre seul, validation administrative avec type/base requis et revue des doublons ; recherche de fiche validée par titre/alias/fautes, ajout d'exemplaire sans communauté, contrôle des visibilités et photos privées.
 - [ ] **BLOQUANT** : demande, acceptation, remise et retour d'un jeu avec date future ; test avec deux comptes distincts.
 - [ ] **BLOQUANT** : impossible d'accepter deux prêts simultanés pour un même exemplaire (test PostgreSQL).
 - [ ] **BLOQUANT** : aucun accès croisé entre communautés par API/URL ; prêts déjà acceptés clôturables après retrait d'un membre.
+- [ ] **BLOQUANT** : migration sur base peuplée et fusion de fiches sans perte de propriétaires/exemplaires/prêts ; catalogue neuf vide, aucun ancien import BGG/Wikidata ni catalogue réel versionné.
 - [ ] Mobile : parcourir tous les écrans à 360 px et sur un vrai téléphone ; navigation clavier et contrastes.
 
 ## Infrastructure et sécurité
@@ -19,11 +20,11 @@
 - [ ] **BLOQUANT** : protections anti-bruteforce/anti-spam et vérifications d'autorisation activées.
 - [ ] **BLOQUANT** : procédure de déploiement, retour arrière et gestion des incidents documentée.
 - [ ] Suivi du taux d'erreur, de l'espace disque, du worker/outbox et des sauvegardes ; alertes minimales, en réutilisant les logs JSON existants.
-- [ ] Tester la déconnexion, les liens expirés/révoqués, l'absence de fuites de jetons et la suppression de session.
+- [ ] Tester la déconnexion, les liens historiques expirés, liens révoqués/régénérés, l'absence de fuites de jetons et la suppression de session.
 
 ## Catalogue et droits de réutilisation
-- [ ] **BLOQUANT POUR L'IMPORT BGG PUBLIC** : droits de stockage et d'affichage permanents des données BGG vérifiés et documentés avant tout import sur l'instance publique. Ce point **ne bloque pas** une bêta avec catalogue manuel ou données autorisées.
-- [ ] Import CSV uniquement sur décision explicite, jamais au démarrage, pendant les migrations ou le déploiement ; CSV réels absents de Git et des images Docker. Vérifier simulation, provenance et bilan de l'import.
+- [ ] Catalogue neuf vide, sans ancien import BGG/Wikidata ; si données héritées, inventaire et revue des droits avant publication, sans suppression automatique. Aucune commande d'import historique recommandée au lancement.
+- [ ] Vérifier absence de seed/import dans démarrage, migrations et déploiement, et exclusion des catalogues réels de Git/images ; les identifiants externes facultatifs ne déclenchent aucune intégration.
 
 ## Légal, vie privée et contact
 - [ ] **BLOQUANT** : mentions légales complétées avec exploitant, responsable du traitement, hébergeur et contact réels.
