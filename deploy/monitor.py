@@ -10,6 +10,7 @@ from urllib.parse import urlsplit
 from urllib.request import urlopen
 
 from deploy.common import OperationError, compose, config_file, log, run, utcnow
+from deploy.probe import protected_probe
 
 
 def inspect(config: dict[str, Any]) -> list[str]:
@@ -18,9 +19,13 @@ def inspect(config: dict[str, Any]) -> list[str]:
     if urlsplit(root).scheme != "https":
         raise OperationError("https_probe_required")
     try:
-        with urlopen(root + "/health/ready/", timeout=5) as response:  # noqa: S310 — operator-owned config
-            if response.status != 200:
+        if config.get("environment") == "staging":
+            if not protected_probe(root + "/health/ready/", Path(config["probe_credentials_file"])):
                 issues.append("https_unavailable")
+        else:
+            with urlopen(root + "/health/ready/", timeout=5) as response:  # noqa: S310 -- private operator config
+                if response.status != 200:
+                    issues.append("https_unavailable")
     except OSError:
         issues.append("https_unavailable")
     raw = run([*compose(config), "ps", "--all", "--format", "json"]).decode()
@@ -31,7 +36,10 @@ def inspect(config: dict[str, Any]) -> list[str]:
     if isinstance(containers, dict):
         containers = [containers]
     by_service = {item["Service"]: item for item in containers}
-    for service in ("web", "worker", "db"):
+    services = ("web", "worker", "db") + (
+        ("mailpit",) if config.get("environment") == "staging" else ()
+    )
+    for service in services:
         item = by_service.get(service, {})
         if item.get("State") != "running" or item.get("Health") != "healthy":
             issues.append(service + "_unhealthy")

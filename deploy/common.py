@@ -60,7 +60,7 @@ def compose(config: dict[str, Any]) -> list[str]:
     project = str(config.get("project", ""))
     if not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,62}", project):
         raise OperationError("explicit_compose_project_required")
-    return [
+    command = [
         tool("docker"),
         "compose",
         "--project-name",
@@ -70,6 +70,9 @@ def compose(config: dict[str, Any]) -> list[str]:
         "-f",
         str(config["compose_file"]),
     ]
+    if config.get("environment") == "staging":
+        command.extend(["--profile", "staging"])
+    return command
 
 
 def atomic_json(path: Path, value: dict[str, Any]) -> None:

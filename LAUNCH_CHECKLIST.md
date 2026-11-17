@@ -56,3 +56,12 @@
 - [ ] Backup : fournisseur externe/préfixe exclusif, compte restreint, clé privée age hors VPS, rétention, RPO/RTO et exercice de récupération autorisé.
 - [ ] Alertes : canal indépendant et sonde extérieure testés avec panne/rétablissement.
 - [ ] Autorisation de déploiement distincte après validation et preuves datées de chaque blocage levé.
+
+## Staging avant activation réelle
+
+- [ ] Domaine staging et Caddy commun : toutes les routes protégées, noindex, TLS réel et logs sans credentials/jetons.
+- [ ] Projets, bases, volumes, clés, documents et états distincts ; aucune copie de production et seuls comptes fictifs.
+- [ ] Capture SMTP interne sans relais ni credentials Brevo, UI non publiée, contrôle staging réussi ; portes 18+/légales conservées.
+- [ ] Capacité mesurée sur le VPS sous charge/migration autorisées, marge validée et admission réussie ; staging arrêté hors usage.
+- [ ] Plan de migration revu/appliqué explicitement, start/stop/restart et production témoin vérifiés ; aucune suppression de volume.
+- [ ] Sonde HTTPS privée et monitoring utilisés lorsque staging actif, sauvegardes/états séparés si conservation nécessaire.

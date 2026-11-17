@@ -1,0 +1,84 @@
+# Independent ephemeral profile: never overlay the production Compose.
+name: muqola-staging
+x-capture: &capture
+  DEPLOYMENT_ENV: staging
+  NO_PROXY: db,mailpit,localhost,127.0.0.1
+  no_proxy: db,mailpit,localhost,127.0.0.1
+  POSTGRES_DB: muqola_staging
+  APP_BASE_URL: https://staging.muqola.tlam.art
+  ALLOWED_HOSTS: staging.muqola.tlam.art
+  EMAIL_HOST: mailpit
+  EMAIL_PORT: "1025"
+  EMAIL_HOST_USER: ""
+  EMAIL_HOST_PASSWORD: ""
+  EMAIL_HOST_PASSWORD_FILE: ""
+  EMAIL_USE_TLS: "false"
+  EMAIL_USE_SSL: "false"
+  EMAIL_FROM: notifications@example.test
+x-logging: &logging
+  driver: json-file
+  options: {max-size: "5m", max-file: "3"}
+services:
+  db:
+    extends: {file: compose.runtime.yaml, service: db}
+    profiles: [staging]
+    environment:
+      POSTGRES_DB: muqola_staging
+    command: [postgres, -c, max_connections=20, -c, shared_buffers=64MB,
+              -c, log_statement=none, -c, log_min_error_statement=panic,
+              -c, log_parameter_max_length_on_error=0, -c, log_error_verbosity=terse]
+    mem_limit: 384m
+    cpus: 0.5
+    restart: "no"
+  web:
+    extends: {file: compose.runtime.yaml, service: web}
+    profiles: [staging]
+    environment: *capture
+    command: [gunicorn, --config=python:config.gunicorn, --workers=1, --threads=2, config.wsgi:application]
+    networks:
+      private: {}
+      proxy: {aliases: [muqola-staging-web]}
+    mem_limit: 256m
+    cpus: 0.5
+    restart: "no"
+  worker:
+    extends: {file: compose.runtime.yaml, service: worker}
+    profiles: [staging]
+    environment: *capture
+    mem_limit: 128m
+    cpus: 0.25
+    restart: "no"
+  migrate:
+    extends: {file: compose.runtime.yaml, service: migrate}
+    profiles: !override [staging-maintenance]
+    environment: *capture
+    mem_limit: 384m
+    cpus: 0.5
+  mailpit:
+    image: axllent/mailpit:v1.27@sha256:e22dce5b36f93c77082e204a3942fb6b283b7896e057458400a4c88344c3df68
+    profiles: [staging]
+    networks: [private]
+    environment:
+      MP_MAX_MESSAGES: "100"
+      MP_SMTP_AUTH_ACCEPT_ANY: "false"
+      MP_DISABLE_VERSION_CHECK: "true"
+    restart: "no"
+    read_only: true
+    tmpfs: ["/tmp:size=32m,mode=1777"]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 64m
+    cpus: 0.25
+    logging: *logging
+secrets:
+  django_key: {file: '${SECRETS_DIR:?Staging secrets directory required}/django_key'}
+  db_admin_password: {file: '${SECRETS_DIR:?Staging secrets directory required}/db_admin_password'}
+  db_migrate_password: {file: '${SECRETS_DIR:?Staging secrets directory required}/db_migrate_password'}
+  db_app_password: {file: '${SECRETS_DIR:?Staging secrets directory required}/db_app_password'}
+volumes:
+  postgres_data: {}
+networks:
+  private: {internal: true}
+  proxy:
+    external: true
+    name: ${PROXY_NETWORK:-proxy}

@@ -3,6 +3,7 @@
 .env.*
 !.env.example
 !.env.production.example
+!.env.staging.example
 *.pem
 *.key
 *.p12
@@ -52,3 +53,9 @@ secrets/
 *.pgpass
 rclone.conf
 /legal/
+
+# Private staging edge/probe credentials stay outside Git and images.
+**/muqola-staging-users
+**/probe.json
+**/.netrc
+**/*.netrc

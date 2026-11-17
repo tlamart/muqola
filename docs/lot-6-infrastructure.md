@@ -1,5 +1,202 @@
 # Lot 6 — Préparation à la validation sur infrastructure réelle
 
+## PR 2 — Staging privé éphémère
+
+Base : main `67df970`, après fusion de #33 ; branche `feat/staging-ephemere`.
+Ce lot prépare V5–V7. Aucun accès SSH, déploiement, publication GHCR, création
+de compte fournisseur ou changement de données réelles. GHCR/CD restent les PR 3–4.
+
+### Isolation et garanties
+
+Les services communs sont définis dans `compose.runtime.yaml`, puis étendus
+par les deux profils complets : `compose.prod.yaml` et `compose.staging.yaml`.
+Le fichier commun seul ne constitue pas un déploiement (ressources/secrets non
+résolus). Les rôles, grants, scripts PostgreSQL, images applicatives et garanties
+production de #32/#33 sont réutilisés ; le Compose local reste inchangé.
+
+Le staging utilise **muqola-staging**, DB **muqola_staging**, volume
+**muqola-staging_postgres_data**, alias **muqola-staging-web** ; seuls ses web
+rejoignent également `proxy`. Son réseau privé est `internal: true` : worker,
+DB et Mailpit n'ont aucune sortie vers un SMTP ou une base extérieure. Aucun
+port n'est publié ; aucun nouveau média utilisateur ni copie de production.
+Les profils sont explicites (`staging`, `staging-maintenance`) et les services
+ne redémarrent pas automatiquement après reboot. Aucun script ne détruit de volume.
+
+Les secrets stage sont quatre fichiers indépendants sous `/etc/muqola/staging/secrets`,
+avec les permissions décrites au lot précédent. **Aucun secret SMTP/Brevo** n'est
+monté. Les vérifications refusent collisions de projets, volumes, réseaux privés,
+chemins de clés et documents légaux ; elles comparent aussi les empreintes des
+valeurs des clés avec la configuration production privée de référence, sans les
+journaliser. Préparer cette référence et ses fichiers hors dépôt avant l'admission.
+Le staging n'interroge pas la base production pour ces contrôles.
+
+Le contexte `DEPLOYMENT_ENV=staging` conserve `APP_ENV=production` et ses drapeaux
+HTTPS/CSRF/cookies. Au chargement Django, toute DB autre que `muqola_staging` sur
+`db`, tout SMTP autre que Mailpit:1025, credential SMTP ou backend différent est
+refusé. Les formulaires et l'inscription serveur n'acceptent que `@example.test` ;
+`staging_readiness` rejette également des comptes étrangers à ce domaine.
+Une bannière identifie l'environnement et rappelle les données fictives/capture.
+Cela ne prouve pas que du texte libre est fictif : l'exploitant ne doit jamais
+copier/anonymiser un dump production pour le staging ni y saisir de données réelles.
+
+La restriction 18+ et la porte légale restent actives. `LEGAL_REVIEWED=false`
+laisse les inscriptions fermées, même derrière l'authentification du proxy.
+Ne pas activer cet indicateur pour contourner une revue manquante. Les fichiers
+fictifs marqués comme tels utilisés par les tests isolés ne constituent pas des
+mentions validées pour l'exploitation. Le contrôle production conserve les
+exigences SMTP réel/TLS et refuse le contexte staging ; aucune option de bypass.
+
+### Accès privé et non-indexation
+
+Importer `deploy/Caddyfile.staging` dans le Caddy commun, sans toucher aux autres
+sites et en conservant le filtre global des erreurs de #33. Le domaine est littéral
+`staging.muqola.tlam.art` ; l'authentification s'applique aussi à santé, inscription,
+pages légales, erreurs et ressources. `X-Robots-Tag: noindex, nofollow, noarchive`
+et `Cache-Control: no-store` sont présents ; l'application ajoute aussi noindex.
+Noindex complète le contrôle d'accès, ce n'est pas une protection de confidentialité.
+Le header Authorization de l'accès Caddy est supprimé avant transmission à Django.
+
+Le fragment importe `/etc/caddy/private/muqola-staging-users` : une ou plusieurs
+lignes **identifiant + hash bcrypt** générées par l'exploitant. Exemple de commande
+interactive future (pas de mot de passe dans argv, Git, logs ou chat) :
+
+```sh
+cd /opt/caddy
+docker compose exec -it caddy caddy hash-password
+```
+
+Placer le résultat dans le fichier privé appartenant au compte qui exécute Caddy,
+permissions adaptées (par exemple root:root 0600 si Caddy tourne root), répertoire
+0700 ; vérifier les UID/montages effectifs. Ne pas réutiliser un mot de passe de
+production. Suivre la procédure validate/reload du lot 1, avec surveillance d'un
+autre site. Ajouter `muqola-staging-web` aux exclusions NO_PROXY/no_proxy du Caddy
+si un proxy HTTP sortant y est configuré, en conservant les exclusions existantes.
+
+La sonde privée lit un JSON 0600 hors dépôt, par exemple
+`/etc/muqola/staging/probe.json`, contenant `username` et `password` : mêmes accès
+staging que ceux autorisés par Caddy, jamais credentials SMTP ; mot de passe
+distinct d'au moins 16 caractères. Le helper TLS
+vérifie le certificat, ignore les proxys d'environnement et refuse **toutes** les
+redirections pour ne pas transférer Authorization à une autre destination.
+Il exige d'abord **401 + noindex sans identifiants**, puis 200 avec les accès
+privés. Un accès devenu public est donc détecté même si la requête authentifiée
+réussit ; aucun credential n'est envoyé dans ce cas.
+Aucun credential dans l'URL ou la ligne de commande. Adapter
+`deploy/monitor.staging.example.json`, conserver ses états et sauvegardes dans
+`/var/lib/muqola/staging` et surveiller le staging uniquement lorsqu'il est actif ;
+ne pas activer son timer permanent sans gérer explicitement les périodes d'arrêt.
+
+### Installation préparatoire et migrations, par l'exploitant uniquement
+
+Prévoir Docker Compose **2.24.4 ou supérieur** (extends et !override), le réseau
+Caddy existant, les DNS staging, les répertoires/permissions et les quatre secrets
+indépendants. Copier `.env.staging.example` hors Git sous
+`/etc/muqola/staging/staging.env` (0600), renseigner IP Caddy stable, **même digest
+GHCR que le candidat à tester**, et documents légaux stage indépendants.
+Les sources runtime/profils doivent correspondre à la version de l'image.
+Aucune construction sur le VPS ; la publication automatisée sera préparée en PR 3.
+
+Copier `deploy/staging.example.json` vers `/etc/muqola/staging/operator.json` (0600).
+Renseigner `production_config`, référence privée de production avec project/env/
+fichier Compose et secrets, ainsi que le fichier de sonde et le chemin réel des
+données Docker (`docker info --format '{{.DockerRootDir}}'`). Le fichier d'état doit
+être `state.json` dans un répertoire staging ; les chemins de production sont refusés.
+`synthetic_data_only` et `capacity_reviewed` sont volontairement **false** dans
+l'exemple : les passer à true seulement après revue effective et mesures autorisées.
+
+Depuis `/opt/muqola`, commandes futures après autorisation distincte :
+
+```sh
+python3 -m deploy.check_config --config /etc/muqola/staging/operator.json
+python3 -m deploy.staging check --config /etc/muqola/staging/operator.json
+python3 -m deploy.staging status --config /etc/muqola/staging/operator.json
+```
+
+L'admission valide le rendu des deux profils, leur isolation, les valeurs des
+secrets, la confirmation données fictives, la revue et les mesures de capacité.
+Le start vérifie aussi le refus HTTPS anonyme avant de démarrer un service.
+Il peut initialiser uniquement l'infrastructure staging (DB et Mailpit) après
+ces contrôles, puis **refuse les migrations en attente** et n'ouvre pas web/worker.
+Il ne les applique jamais automatiquement. Pour une base staging neuve, après
+admission réussie et dans un créneau explicitement autorisé, examiner le plan :
+
+```sh
+docker compose --project-name muqola-staging --env-file /etc/muqola/staging/staging.env -f compose.staging.yaml --profile staging up -d --no-build --wait db mailpit
+docker compose --project-name muqola-staging --env-file /etc/muqola/staging/staging.env -f compose.staging.yaml --profile staging run --rm migrate python manage.py migrate --plan
+# Uniquement après revue et autorisation des migrations additives du staging :
+docker compose --project-name muqola-staging --env-file /etc/muqola/staging/staging.env -f compose.staging.yaml --profile staging run --rm migrate
+```
+
+Ne pas exécuter de migration destructive, restaurer un dump réel ou intervenir
+en parallèle d'un start/stop. Pour une base stage existante à conserver, prévoir
+une sauvegarde propre et un exercice de restauration isolé avant évolution.
+`deploy/backup.staging.example.json` réutilise les outils age/rclone existants avec
+répertoire, préfixe, destinataire et état séparés ; aucune configuration distante
+n'est créée par ce lot. La preuve d'un test synthétique n'est pas un exercice de
+récupération du VPS après sinistre.
+
+### Démarrage, arrêt et capacité
+
+```sh
+python3 -m deploy.staging start --config /etc/muqola/staging/operator.json
+python3 -m deploy.monitor --config /etc/muqola/staging/monitor.json
+# Arrêt explicite du staging seulement ; pas de down --volumes :
+python3 -m deploy.staging stop --config /etc/muqola/staging/operator.json
+```
+
+Start vérifie les migrations déjà appliquées puis `staging_readiness` (notamment
+les droits runtime, adultes, comptes fictifs et documents légaux), démarre web/
+worker sans build et exige un smoke HTTPS authentifié. Un échec est enregistré ;
+il n'y a ni rollback de schéma ni restauration automatique. DB/Mailpit ou des
+services déjà démarrés peuvent rester actifs après un échec : diagnostiquer puis
+stopper explicitement le staging. Un verrou interdit deux opérations concurrentes
+via l'outil. Stop reste utilisable sans nouvelle revue de capacité et ne touche
+que web/worker/Mailpit/DB du projet staging. Les volumes et données fictives
+persistent après stop ; Mailpit est une capture éphémère, pas un stockage durable.
+Le prochain start est volontaire et repasse ses contrôles.
+
+Budgets préparés : web **256 Mio** (1 worker/2 threads), worker **128 Mio**, DB
+**384 Mio** (64 Mio shared_buffers/20 connexions), Mailpit **64 Mio** : **832 Mio**
+en exécution. Migration **384 Mio**, marge d'admission **512 Mio** par défaut :
+start exige au moins **1 728 Mio de MemAvailable**, espace libre ≥2 Gio et charge
+moyenne par cœur ≤0,75. La marge ne peut pas être réduite sous 256 Mio. Le rapport
+check affiche les mesures présentes et les raisons de refus, sans secrets.
+Il exige Docker local et le support effectif des limites mémoire/CPU : un daemon
+sans cgroups est refusé, même si les plafonds apparaissent dans le Compose.
+Ce sont des plafonds/contrôles prudents, **pas une garantie de capacité** : la
+revue humaine reste obligatoire pour les pics production, autres applications,
+cache système et migrations, et la situation peut évoluer après le contrôle.
+Sur le VPS réel, dans un créneau autorisé, mesurer avant/pendant/après une charge
+fictive et une migration, avec `docker stats --no-stream`, `free -m`, `df -h`,
+journaux OOM et disponibilité du site production. Faire la première mesure
+contrôlée sans présumer que les deux piles tiennent ensemble. Tant que cette
+preuve n'existe pas, conserver capacity_reviewed=false et staging arrêté.
+
+### Preuves et limites de ce lot
+
+La suite automatisée et `scripts/staging_smoke.py` utilisent deux piles
+**synthétiques** et un seul Caddy local, CA interne et résolution HTTPS loopback
+explicite, sans ACME ni SMTP externe. Elles vérifient accès privé/noindex,
+conservation des portes légale/18+, outbox et capture, absence de connexion aux
+réseaux privés étrangers, stop/restart sans perte et production témoin inchangée.
+Le test échantillonne mémoire/CPU et écrit `work/staging-smoke.json` : maximum
+**observé par échantillonnage**, pas mesure de pic absolu ni validation OVH.
+Les métriques Docker sont marquées invalides si les cgroups ne sont pas actifs :
+elles ne doivent jamais être assimilées à l'empreinte du staging. C'est le cas
+du daemon rootless de cet environnement local ; la preuve de capacité OVH reste
+non satisfaite et le démarrage contrôlé y est refusé. Les mesures du runner CI,
+si son support cgroups est actif, restent elles aussi distinctes d'une mesure VPS.
+Tous les volumes sont conservés avec inventaire dans work/. Validation locale
+du 17 novembre : `scripts/check.sh` réussi (**415 tests**, lint/format/typage,
+Django/migrations/statiques), contrôle Django production et audit runtime sans
+vulnérabilité connue ; build Docker puis smokes production et staging réussis.
+La CI ajoutée exécute aussi le smoke staging et conserve le rapport JSON.
+Les résultats navigateur/CI et toute limite non satisfaite sont consignés dans
+TASKS et la PR. Aucune validation OVH/DNS/ACME ni capacité VPS revendiquée.
+
+---
+
+
 ## PR 1 — Caddy partagé et exploitation compatible
 
 Accord d'implémentation reçu après l'audit ci-dessous. Branche

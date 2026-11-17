@@ -1,0 +1,16 @@
+{
+  "environment": "staging",
+  "project": "muqola-staging",
+  "compose_file": "/opt/muqola/compose.staging.yaml",
+  "compose_env": "/etc/muqola/staging/staging.env",
+  "production_config": "/etc/muqola/monitor.json",
+  "probe_credentials_file": "/etc/muqola/staging/probe.json",
+  "app_url": "https://staging.muqola.tlam.art",
+  "data_path": "/var/lib/docker",
+  "state_file": "/var/lib/muqola/staging/state.json",
+  "synthetic_data_only": false,
+  "capacity_reviewed": false,
+  "memory_margin_bytes": 536870912,
+  "min_free_disk_bytes": 2147483648,
+  "max_load_per_core": 0.75
+}
