@@ -37,8 +37,8 @@ aucun service Caddy ni port publié dans `compose.prod.yaml`. Seul web rejoint
 `proxy` sous `muqola-web` ; DB/worker/migration restent privés. Le fragment
 `deploy/Caddyfile` doit être intégré et validé par l'exploitant, avec le filtre
 global fourni et une IP Caddy stable explicitement approuvée. Le projet/volume
-PostgreSQL et les protections #32 sont conservés. Le staging et la publication/CD
-GHCR restent les PR suivantes ; aucune image n'est publiée par ce lot.
+PostgreSQL et les protections #32 sont conservés. Le staging est préparé ci-dessous ; publication GHCR et CD manuel restent les
+lots suivants. Aucune image n'est publiée par cette préparation.
 [Configuration, reload sans interruption et précontrôles](docs/lot-6-infrastructure.md#pr-1--caddy-partagé-et-exploitation-compatible).
 
 Contrôle structurel sans démarrage :
@@ -55,6 +55,32 @@ uv run --frozen python scripts/production_smoke.py --image muqola:local
 
 Il crée sa propre pile/volumes jetables, utilise une CA locale et ne contacte ni
 ACME ni SMTP externe. Voir le guide pour les limites et les preuves de validation.
+
+## Staging privé éphémère
+
+`compose.staging.yaml` réutilise `compose.runtime.yaml` avec la production ;
+le développement local conserve son Compose. Le staging reste **arrêté par défaut**,
+avec projet/base/volumes/secrets propres, alias `muqola-staging-web` et réseau privé
+sans sortie pour DB/worker/Mailpit. Aucun port SMTP, interface de capture, Django
+ou PostgreSQL n'est publié. Le Caddy commun exige une authentification dédiée
+sur toutes les routes et ajoute `noindex` ; son fragment est `deploy/Caddyfile.staging`.
+
+Même image par digest, `APP_ENV=production`, HTTPS/cookies/CSRF, 18+ et porte légale
+conservés. Le contexte `DEPLOYMENT_ENV=staging` exige Mailpit interne sans credentials
+et restreint les comptes à `@example.test`. Il ne satisfait jamais le contrôle
+`production_readiness` ; `staging_readiness` constitue sa porte dédiée.
+
+Le cycle de vie préparé dans `deploy/staging.py` vérifie l'isolation, les valeurs
+des secrets, la revue de capacité et la marge réelle mémoire/CPU/disque avant
+start ; il ne construit aucune image et n'applique aucune migration. Les opérations
+VPS restent à autoriser séparément. [Préparation, plan de migration, start/stop,
+mesures et limites](docs/lot-6-infrastructure.md#pr-2--staging-privé-éphémère).
+
+Test uniquement synthétique, sans accès au VPS et avec conservation des volumes :
+
+```sh
+uv run --frozen python scripts/staging_smoke.py --image muqola:local
+```
 
 ## Démarrer localement
 

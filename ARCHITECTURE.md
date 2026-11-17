@@ -103,3 +103,18 @@ implicite au réseau partagé, aux en-têtes publics ou à un nom DNS. Le dével
 local/Codespaces garde sa configuration. Les outils d'exploitation ciblent un
 projet explicite, et le monitoring vérifie HTTPS via le Caddy commun sans attendre
 un service edge dans le projet applicatif. [Procédure et limites](docs/lot-6-infrastructure.md#pr-1--caddy-partagé-et-exploitation-compatible).
+
+## Staging éphémère
+
+Production et staging étendent un socle de services `compose.runtime.yaml` ;
+aucun changement du Compose de développement. Staging a projet, DB, volumes,
+clés, documents et états distincts. Worker/DB/Mailpit restent sur un réseau privé
+interne sans sortie ; seul web rejoint aussi le proxy partagé. Le Caddy commun
+protège toutes les routes par authentification, supprime Authorization avant
+l'upstream et ajoute noindex. Les flags Django production/18+/légal restent actifs.
+
+Un contexte staging explicite exige la capture SMTP et les comptes fictifs,
+sans assouplir la porte de production. Admission locale : isolation et valeurs
+des secrets, revue de capacité et mesures de marge ; aucune migration appliquée
+par le start, arrêt limité au staging et volumes conservés. Mesures réelles VPS
+requises avant activation ; le smoke à deux piles n'en tient pas lieu.

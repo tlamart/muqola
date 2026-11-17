@@ -89,3 +89,47 @@ def test_monitor_accepts_healthy_stack_and_fresh_backup(
     assert monitor.inspect(config) == []
     status.unlink()
     assert monitor.inspect(config) == ["backup_missing"]
+
+
+def test_staging_monitor_uses_private_probe_and_checks_capture(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    status = tmp_path / "backup.json"
+    atomic_json(status, {"ok": True, "last_success": utcnow().isoformat()})
+    monkeypatch.setattr(monitor, "compose", lambda _: ["synthetic-compose"])
+    called: list[Path] = []
+
+    def protected(url: str, credentials: Path) -> bool:
+        assert url == "https://staging.muqola.tlam.art/health/ready/"
+        called.append(credentials)
+        return True
+
+    monkeypatch.setattr(monitor, "protected_probe", protected)
+    monkeypatch.setattr(
+        shutil, "disk_usage", lambda _: SimpleNamespace(free=10**10, used=10**9, total=11 * 10**9)
+    )
+
+    def command(arguments: list[str]) -> bytes:
+        if "ps" in arguments:
+            return json.dumps(
+                [
+                    {"Service": service, "State": "running", "Health": "healthy"}
+                    for service in ("web", "worker", "db")
+                ]
+            ).encode()
+        if "check_operations" in arguments:
+            return b'{"database": true, "outbox_failed": 0, "outbox_late": 0}'
+        return b""
+
+    monkeypatch.setattr(monitor, "run", command)
+    credentials = tmp_path / "private-probe.json"
+    issues = monitor.inspect(
+        {
+            "environment": "staging",
+            "app_url": "https://staging.muqola.tlam.art",
+            "probe_credentials_file": str(credentials),
+            "backup_status_file": str(status),
+            "data_path": str(tmp_path),
+        }
+    )
+    assert issues == ["mailpit_unhealthy"] and called == [credentials]

@@ -1,0 +1,13 @@
+{
+  "environment": "staging",
+  "project": "muqola-staging",
+  "compose_file": "/opt/muqola/compose.staging.yaml",
+  "compose_env": "/etc/muqola/staging/staging.env",
+  "probe_credentials_file": "/etc/muqola/staging/probe.json",
+  "app_url": "https://staging.muqola.tlam.art",
+  "data_path": "/var/lib/docker",
+  "backup_status_file": "/var/lib/muqola/staging/backup-status.json",
+  "max_backup_hours": 36,
+  "max_disk_ratio": 0.9,
+  "min_free_bytes": 1073741824
+}

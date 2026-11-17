@@ -13,6 +13,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 APP_ENV = os.environ.get("APP_ENV", "development")
 if APP_ENV not in {"development", "test", "production"}:
     raise ImproperlyConfigured("APP_ENV doit valoir development, test ou production.")
+DEPLOYMENT_ENV = os.environ.get("DEPLOYMENT_ENV", APP_ENV)
+if DEPLOYMENT_ENV not in {"development", "test", "production", "staging"}:
+    raise ImproperlyConfigured("Contexte de déploiement invalide.")
 TRUSTED_PROXY_IPS = []
 for configured_proxy in os.environ.get("TRUSTED_PROXY_IPS", "").split(","):
     if not configured_proxy.strip():
@@ -66,6 +69,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "muqola.core.context.deployment",
             ]
         },
     }
@@ -180,3 +184,19 @@ CSRF_FAILURE_VIEW = "muqola.core.views.csrf_failure"
 # documents keep the legal pages explicitly unavailable, never "approved".
 LEGAL_DOCUMENTS_DIR = Path(os.environ.get("LEGAL_DOCUMENTS_DIR", str(BASE_DIR / "legal")))
 LEGAL_REVIEWED = os.environ.get("LEGAL_REVIEWED", "false").lower() == "true"
+
+# Staging keeps all production transport/session protections, with capture only.
+if DEPLOYMENT_ENV == "staging":
+    if (
+        APP_ENV != "production"
+        or DATABASES["default"]["NAME"] != "muqola_staging"
+        or DATABASES["default"]["HOST"] != "db"
+        or EMAIL_HOST != "mailpit"
+        or EMAIL_PORT != 1025
+        or EMAIL_HOST_USER
+        or EMAIL_HOST_PASSWORD
+        or EMAIL_USE_TLS
+        or EMAIL_USE_SSL
+        or EMAIL_BACKEND != "django.core.mail.backends.smtp.EmailBackend"
+    ):
+        raise ImproperlyConfigured("Staging : base isolée et capture SMTP interne obligatoires.")

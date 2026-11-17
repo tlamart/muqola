@@ -33,3 +33,9 @@ legal
 **/*.pem
 **/*.p12
 **/*.pfx
+
+# Private staging edge/probe credentials stay outside Git and images.
+**/muqola-staging-users
+**/probe.json
+**/.netrc
+**/*.netrc

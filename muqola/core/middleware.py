@@ -1,5 +1,6 @@
 from collections.abc import Callable
 
+from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 
 
@@ -17,4 +18,6 @@ class SecurityHeadersMiddleware:
         )
         response["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
         response["Cache-Control"] = "no-store"
+        if settings.DEPLOYMENT_ENV == "staging":
+            response["X-Robots-Tag"] = "noindex, nofollow, noarchive"
         return response

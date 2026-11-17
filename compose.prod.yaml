@@ -1,19 +1,7 @@
-# Production configuration only; never overlay compose.yaml or publish db/web.
+# Production profile; no build and no published app/DB ports.
 name: ${MUQOLA_PROJECT:-muqola-prod}
-x-logging: &logging
-  driver: json-file
-  options: {max-size: "5m", max-file: "3"}
-x-environment: &environment
-  APP_ENV: production
-  TRUSTED_PROXY_IPS: ${TRUSTED_PROXY_IPS:?Exact Caddy IP addresses required}
-  APP_BASE_URL: https://${APP_DOMAIN:?APP_DOMAIN required}
-  ALLOWED_HOSTS: ${APP_DOMAIN:?APP_DOMAIN required}
-  DJANGO_SECRET_KEY_FILE: /run/secrets/django_key
-  POSTGRES_HOST: db
-  POSTGRES_PORT: "5432"
-  POSTGRES_DB: ${POSTGRES_DB:-muqola}
-  POSTGRES_USER: muqola_app
-  POSTGRES_PASSWORD_FILE: /run/secrets/db_app_password
+x-delivery: &delivery
+  DEPLOYMENT_ENV: production
   EMAIL_HOST: ${EMAIL_HOST:?EMAIL_HOST required}
   EMAIL_PORT: ${EMAIL_PORT:-587}
   EMAIL_HOST_USER: ${EMAIL_HOST_USER:?EMAIL_HOST_USER required}
@@ -21,94 +9,24 @@ x-environment: &environment
   EMAIL_USE_TLS: ${EMAIL_USE_TLS:-true}
   EMAIL_USE_SSL: ${EMAIL_USE_SSL:-false}
   EMAIL_FROM: ${EMAIL_FROM:?EMAIL_FROM required}
-  LEGAL_DOCUMENTS_DIR: /app/legal
-  LEGAL_REVIEWED: ${LEGAL_REVIEWED:-false}
-x-app: &app
-  image: ${MUQOLA_IMAGE:?Immutable GHCR image required}
-  networks: [private]
-  environment: *environment
-  secrets: [django_key, db_app_password, smtp_password]
-  volumes:
-    - ${LEGAL_DOCUMENTS_DIR:?LEGAL_DOCUMENTS_DIR required}:/app/legal:ro
-  init: true
-  stop_grace_period: 30s
-  cap_drop: [ALL]
-  security_opt: [no-new-privileges:true]
-  read_only: true
-  tmpfs: ["/tmp:size=32m,mode=1777"]
-  mem_limit: 512m
-  cpus: 1.0
-  logging: *logging
 services:
   db:
-    image: ${POSTGRES_IMAGE:?POSTGRES_IMAGE required}
-    networks: [private]
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-muqola}
-      POSTGRES_USER: muqola_admin
-      POSTGRES_PASSWORD_FILE: /run/secrets/db_admin_password
-      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
-    command: [postgres, -c, max_connections=40, -c, shared_buffers=128MB,
-              -c, log_statement=none, -c, log_min_error_statement=panic,
-              -c, log_parameter_max_length_on_error=0, -c, log_error_verbosity=terse]
-    secrets: [db_admin_password, db_migrate_password, db_app_password]
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./deploy/postgres/10-roles.sh:/docker-entrypoint-initdb.d/10-roles.sh:ro
-      - ./deploy/postgres/dump.sh:/opt/muqola/dump.sh:ro
-      - ./deploy/postgres/restore.sh:/opt/muqola/restore.sh:ro
-      - ./deploy/postgres/runtime-grants.sql:/opt/muqola/runtime-grants.sql:ro
-    healthcheck:
-      test: [CMD-SHELL, 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    restart: unless-stopped
-    mem_limit: 768m
-    cpus: 1.0
-    shm_size: 128m
-    logging: *logging
-  migrate:
-    <<: *app
-    profiles: [maintenance]
-    environment:
-      <<: *environment
-      POSTGRES_USER: muqola_migrate
-      POSTGRES_PASSWORD_FILE: /run/secrets/db_migrate_password
-    secrets: [django_key, db_migrate_password, smtp_password]
-    command: [sh, deploy/migrate.sh]
-    depends_on:
-      db: {condition: service_healthy}
-    restart: "no"
+    extends: {file: compose.runtime.yaml, service: db}
   web:
-    <<: *app
+    extends: {file: compose.runtime.yaml, service: web}
+    environment: *delivery
+    secrets: [smtp_password]
     networks:
       private: {}
-      proxy:
-        aliases: [muqola-web]
-    depends_on:
-      db: {condition: service_healthy}
-    restart: unless-stopped
-    healthcheck:
-      test: [CMD, python, -m, muqola.operations.container_health, web]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
+      proxy: {aliases: [muqola-web]}
   worker:
-    <<: *app
-    command: [python, manage.py, process_outbox, --heartbeat-file, /tmp/outbox-heartbeat]
-    depends_on:
-      db: {condition: service_healthy}
-    restart: unless-stopped
-    mem_limit: 192m
-    cpus: 0.5
-    healthcheck:
-      test: [CMD, python, -m, muqola.operations.container_health, worker]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
+    extends: {file: compose.runtime.yaml, service: worker}
+    environment: *delivery
+    secrets: [smtp_password]
+  migrate:
+    extends: {file: compose.runtime.yaml, service: migrate}
+    environment: *delivery
+    secrets: [smtp_password]
 secrets:
   django_key: {file: '${SECRETS_DIR:?SECRETS_DIR required}/django_key'}
   db_admin_password: {file: '${SECRETS_DIR:?SECRETS_DIR required}/db_admin_password'}

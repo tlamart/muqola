@@ -306,38 +306,64 @@ P3 = améliorations ultérieures. Aucun P3 nécessaire à ce périmètre.
 
 ### PR proposée 2 — Staging éphémère isolé
 
-- [ ] **V5 / P0 — À faire : isolation du staging.** Dépendances : PR 1 intégrée.
-  Acceptation : projet `muqola-staging`, base/volumes/secrets/chemins indépendants,
-  alias `muqola-staging-web`, domaine `staging.muqola.tlam.art`, cookies propres à
-  l'hôte, aucun lien avec la DB/les secrets de production, aucune copie de données réelles.
-  Validation prévue : rendu des deux Compose avec valeurs synthétiques et tests
-  négatifs de collision noms/volumes/secrets/alias ; arrêt staging sans effet sur prod,
-  sans suppression de volumes ; paramètres Django de sécurité inchangés.
-  Fichiers : `compose.staging.yaml`, `.env.staging.example` (prévus), `.gitignore`, `.dockerignore`, tests configuration et smoke.
-  Manuel : DNS staging et répertoires/secrets distincts ; ne pas réutiliser la clé Django production.
+Branche `feat/staging-ephemere`, issue de `origin/main` `67df970` après fusion de #33.
+Les validations ci-dessous sont synthétiques ; aucune intervention sur le VPS.
 
-- [ ] **V6 / P0 — À faire : accès privé, indexation et SMTP capturé.** Dépendance : V5.
-  Acceptation : authentification au Caddy commun sur toutes les routes staging,
-  `X-Robots-Tag: noindex, nofollow, noarchive` ; capture SMTP interne sans relais,
-  sans credentials Brevo ni publication de son interface ; worker sans accès SMTP extérieur.
-  Garder `APP_ENV=production`, 18+ et contrôle légal ; ne pas assouplir
-  `production_readiness` pour la production. Préparer un contrôle staging distinct
-  qui exige la capture et conserve les autres protections applicables.
-  Validation prévue : HTTP 401 sans accès/200 avec accès, absence de secret dans
-  logs, hôtes/cookies/CSRF, outbox capturée et refus du SMTP réel en staging.
-  Fichiers : Compose staging, extrait Caddy, contrôles operations, tests et smoke existants.
-  Manuel : déposer les accès staging hachés par canal privé et définir les seuls testeurs ; revue des documents légaux avant toute activation de leur indicateur.
+- [x] **V5 / P0 — Vérifié en synthétique : isolation du staging.** Dépendance : PR 1 intégrée.
+  Acceptation : projet `muqola-staging`, DB `muqola_staging`, volumes/secrets/
+  chemins indépendants, alias `muqola-staging-web`, domaine staging, cookies
+  sécurisés propres à l'hôte ; aucun lien avec la DB production ni copie réelle.
+  Validation exécutée : rendu Compose, tests positifs/négatifs de collision
+  projets/volumes/réseaux/chemins/valeurs des secrets, aucune publication de ports,
+  production témoin inchangée pendant deux stop/restart et volumes conservés.
+  La composition partagée conserve le rendu production de #33 (hors label de contexte).
+  Fichiers : `compose.runtime.yaml`, `compose.prod.yaml`, `compose.staging.yaml`,
+  `.env.staging.example`, `deploy/staging_config.py`, tests et smoke staging.
+  Manuel **à faire sur VPS** : DNS staging, chemins et secrets indépendants,
+  référence privée de configuration production ; ne jamais copier un dump réel.
 
-- [ ] **V7 / P2 — À faire : capacité et cycle de vie.** Dépendances : V5–V6.
-  Acceptation : staging arrêté par défaut ; start/stop sans rebuild ni suppression
-  de volume, contrôle capacité avant démarrage/migration et mesure de pointe sous charge synthétique.
-  Plafonds actuels : 1 472 Mio/pile, donc 2 944 Mio pour deux piles, hors Caddy,
-  capture/OS/autres apps ; chaque migration ajoute 512 Mio. Ces plafonds ne
-  prouvent pas que les piles tiennent ensemble sur 4 Go.
-  Validation prévue : `docker stats --no-stream`, `free -m`, `df -h`, mesure des
-  pointes lors des migrations ; tests de refus si capacité insuffisante.
-  Fichiers : budgets Compose staging, précontrôles CD futurs, runbook.
-  Manuel : mesurer sur le VPS après autorisation, choisir seuils et créneaux ; ne pas activer les deux piles tant que la marge n'est pas démontrée.
+- [x] **V6 / P0 — Vérifié en synthétique : accès privé, noindex et SMTP capturé.** Dépendance : V5.
+  Acceptation : authentification Caddy sur toutes les routes, noindex/no-store,
+  capture interne sans relais/credentials Brevo/interface publiée ni sortie SMTP worker.
+  `APP_ENV=production`, HTTPS/CSRF, 18+ et contrôle légal conservés ; contrôle
+  staging distinct sans assouplir `production_readiness`.
+  Validation exécutée : 401 anonyme/mauvais accès, 200 authentifié, logs expurgés,
+  refus d'activation avant démarrage si la barrière anonyme manque, sonde TLS sans
+  redirection ni proxy d'environnement, outbox réellement capturée dans Mailpit,
+  refus serveur du SMTP extérieur et des comptes hors `@example.test`, inscription
+  fermée avant revue légale et attestation adulte toujours explicite.
+  Fichiers : `deploy/Caddyfile.staging`, `deploy/probe.py`, `deploy/monitor.py`,
+  contrôles operations, settings/formulaire/service, bannière, tests et smoke.
+  Manuel **à faire sur VPS** : hash d'accès privé et testeurs, certificats/DNS,
+  validation/rechargement Caddy avec témoin, documents légaux revus et alertes stage.
+
+- [ ] **V7 / P2 — En cours : cycle de vie vérifié, capacité VPS non satisfaite.** Dépendances : V5–V6.
+  Acceptation : staging arrêté par défaut ; start/stop sans build ni destruction,
+  admission capacité et mesure de pointe sous charge synthétique sur cible 4 Go.
+  Implémenté/vérifié : profils opt-in, restart=no, verrou/état indépendants,
+  arrêt ciblé ; start exige données fictives/revue humaine, isolation et secrets,
+  Docker local avec limites cgroups, mémoire/disque/CPU suffisants et migrations
+  déjà appliquées. Aucune migration appliquée automatiquement ni rollback DB.
+  Budgets staging : web 256 + worker 128 + DB 384 + Mailpit 64 = **832 Mio** ;
+  migration 384 Mio + marge 512 Mio, soit **1 728 Mio disponibles** exigés.
+  Tests : refus ressources/cgroups/revue insuffisants, Docker distant et migrations
+  en attente ; smoke Docker avec échantillonnage et résultat JSON conservé en CI.
+  **Non satisfait :** mesure mémoire/CPU de pointe et disponibilité sur VPS réel.
+  Docker local rootless sans cgroups : métriques invalides, valeurs nulles dans
+  `work/staging-smoke.json`, refus d'admission ; aucun chiffre assimilé au VPS.
+  Fichiers : `deploy/staging.py`, exemples JSON de cycle/monitoring/backup,
+  `scripts/staging_smoke.py`, runbook Debian 13 existant.
+  Manuel **à faire après autorisation distincte** : mesurer avant/pendant/après
+  charge/migration avec `docker stats --no-stream`, `free -m`, `df -h`, journaux
+  OOM et sonde production, puis choisir seuils/créneaux. Garder `capacity_reviewed=false`
+  et staging arrêté tant que la marge réelle n'est pas démontrée.
+
+Preuves locales du 17 novembre : `scripts/check.sh` (**415 tests réussis**, lint,
+format, typage, check Django, migrations sans dérive et statiques), contrôle Django `check --deploy`, audit
+runtime et build Docker ; `production_smoke.py` (rôles, TLS/CSRF, backup chiffré,
+restauration, six états de prêt) et `staging_smoke.py` réussis sur données fictives.
+Les résultats navigateur et la CI sont consignés dans la PR ; les preuves
+historiques des lots précédents restent inchangées. Aucun déploiement ni volume supprimé.
 
 ### PR proposée 3 — Image validée et publication GHCR
 

@@ -1,0 +1,21 @@
+# Import into the shared Caddy only after configuring the private auth file.
+staging.muqola.tlam.art {
+    header X-Robots-Tag "noindex, nofollow, noarchive"
+    header Cache-Control "no-store"
+    encode zstd gzip
+    request_body {
+        max_size 64KB
+    }
+    route {
+        basic_auth {
+            import /etc/caddy/private/muqola-staging-users
+        }
+        reverse_proxy muqola-staging-web:8000 {
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+            header_up -Authorization
+        }
+    }
+}

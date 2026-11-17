@@ -13,6 +13,7 @@
 </head>
 <body>
   <a class="skip" href="#contenu">Aller au contenu</a>
+  {% if is_staging %}<aside class="status" aria-label="Environnement de test">Staging privé — données fictives uniquement. Les e-mails restent dans la capture de test.</aside>{% endif %}
   <header class="site-header">
     <div class="header-inner">
       <a class="brand" href="{% if user.is_authenticated and user.email_verified_at %}{% url 'identity:dashboard' %}{% else %}/{% endif %}" aria-label="Muqola, accueil">Muqola<span aria-hidden="true">●</span>

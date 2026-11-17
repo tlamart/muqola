@@ -1,0 +1,12 @@
+{
+  "environment": "staging",
+  "project": "muqola-staging",
+  "compose_file": "/opt/muqola/compose.staging.yaml",
+  "compose_env": "/etc/muqola/staging/staging.env",
+  "rclone_config": "/etc/muqola/staging/rclone.conf",
+  "remote": "offsite:bucket-muqola/staging-only-prefix",
+  "recipient": "REPLACE_WITH_STAGING_AGE_PUBLIC_RECIPIENT",
+  "retention_days": 7,
+  "keep_min": 2,
+  "status_file": "/var/lib/muqola/staging/backup-status.json"
+}

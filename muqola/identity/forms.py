@@ -3,6 +3,7 @@ from typing import Any
 from django import forms
 from django.contrib.auth.password_validation import validate_password
 
+from muqola.core.staging import validate_staging_email
 from muqola.identity.models import User
 
 
@@ -14,7 +15,9 @@ class EmailForm(forms.Form):
     )
 
     def clean_email(self) -> str:
-        return str(self.cleaned_data["email"]).strip().lower()
+        email = str(self.cleaned_data["email"]).strip().lower()
+        validate_staging_email(email)
+        return email
 
 
 class LoginForm(EmailForm):

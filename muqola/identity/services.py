@@ -7,6 +7,7 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
+from muqola.core.staging import validate_staging_email
 from muqola.identity.models import AccountToken, RateBucket, User
 from muqola.notifications.services import enqueue_account_email
 
@@ -39,6 +40,7 @@ def register(
     *,
     adult_confirmed: bool = False,
 ) -> None:
+    validate_staging_email(email)
     if adult_confirmed is not True:
         raise ValidationError("La bêta est réservée aux adultes de 18 ans et plus.")
     # Même travail cryptographique et même réponse pour une adresse déjà inscrite.
