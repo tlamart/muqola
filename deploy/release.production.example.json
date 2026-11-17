@@ -1,0 +1,11 @@
+{
+  "environment": "production",
+  "project": "muqola-prod",
+  "compose_env": "/etc/muqola/production.env",
+  "backup_status_file": "/var/lib/muqola/production/backup-status.json",
+  "restore_evidence_file": "/etc/muqola/production/restore-exercise.json",
+  "data_path": "/var/lib/docker",
+  "capacity_reviewed": false,
+  "memory_margin_bytes": 536870912,
+  "staging_config": "/etc/muqola/staging/monitor.json"
+}

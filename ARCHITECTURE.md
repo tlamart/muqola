@@ -134,3 +134,21 @@ jobs, télécharge la preuve bornée liée au commit/tentative, puis relit le ma
 GHCR par digest et compare sa configuration à l'image testée. Ni tag/label ni
 record local ne vaut provenance. Échec fermé si preuve expirée ou registre/API
 indisponible ; aucune reconstruction, installation VPS ou livraison dans ce lot.
+
+## Livraison manuelle avec état durable
+
+Workflow dispatch de confiance sur main, lectures seules GitHub/GHCR, provenance
+revérifiée et transfert par liste de fichiers au commit publié. SSH identités
+explicites/known_hosts vérifié, sans forwarding ; contrôleur hôte revu installé
+séparément. Environnements isolés et opérations lourdes sérialisées par verrou
+commun, en plus de la concurrence par environnement.
+
+Plan avec nonce/hash, schéma, fichiers, configuration, état et preuves privées ;
+application séparée après revue, diagnostic revérifié sous verrou. Empreintes
+finies des migrations historiques revues ; bootstrap et migrations inconnues
+refusés. Snapshot lit colonnes/précisions, index, contraintes, fonctions, triggers,
+relations et droits sans données utilisateurs. Arrêt web/worker, marqueur durable
+avant migration unique, readiness et HTTPS, historique puis pointeur actif.
+Pas de recréation DB/capture, build, restore ou downgrade implicite. Une tentative
+interrompue impose inspection/nouveau plan, les migrations encore actives bloquent
+la reprise. Rollback limité aux versions CD avec schéma identique, sans migration.

@@ -75,3 +75,13 @@
 
 La préparation/test synthétique GHCR ne valide ni capacité VPS, ni déploiement,
 ni SMTP réel, ni ouverture publique. Les conditions précédentes restent requises.
+
+## CD manuel — activation réelle distincte
+
+- [ ] Contrôleur revu installé, compte dédié et accès au démon Docker approuvés, configs/états/secrets privés lisibles par l'opérateur.
+- [ ] Références Compose/volumes existants inventoriées, adoption ou bootstrap revu sans reset ; image publiée après ajout du protocole CD.
+- [ ] Restrictions main, host keys hors bande et reviewers/fallback de revue testés ; jeton registre éphémère et SSH réel validés dans un créneau autorisé.
+- [ ] Sauvegarde externe récente et compte rendu de restauration réelle, capacité 4 Go et alertes validés.
+- [ ] Plan lu, hash approuvé, application staging puis promotion du même digest, reprise/rollback autorisés éprouvés sur cible.
+
+Les tests synthétiques du contrôleur et la CI ne cochent pas ces validations.

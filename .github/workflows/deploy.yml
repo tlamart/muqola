@@ -1,0 +1,101 @@
+name: Manual Muqola delivery
+run-name: "${{ inputs.action }} ${{ inputs.environment }} / ${{ inputs.kind }} — plan ${{ inputs.plan_run }} / ${{ inputs.plan_hash }}"
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        options: [staging, production]
+        required: true
+      action:
+        description: Plan first; apply only after reading its artifact
+        type: choice
+        options: [plan, apply]
+        required: true
+      kind:
+        description: Image deployment or schema-compatible image rollback
+        type: choice
+        options: [deploy, rollback]
+        required: true
+      image:
+        description: Published ghcr.io/tlamart/muqola@sha256 digest
+        required: true
+      publication_run:
+        description: Successful main CI publication run ID
+        required: true
+      publication_attempt:
+        description: Publication attempt
+        default: '1'
+        required: true
+      plan_run:
+        description: Successful plan workflow run ID (apply only)
+        default: '0'
+      plan_hash:
+        description: Exact reviewed plan SHA256 (apply only)
+permissions:
+  contents: read
+concurrency:
+  group: delivery-${{ inputs.environment }}
+  cancel-in-progress: false
+jobs:
+  delivery:
+    if: >-
+      github.ref == 'refs/heads/main' && github.repository == 'tlamart/muqola' &&
+      (inputs.environment == 'staging' || inputs.environment == 'production') &&
+      (inputs.action == 'plan' || inputs.action == 'apply') &&
+      (inputs.kind == 'deploy' || inputs.kind == 'rollback')
+    environment: ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      actions: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Authenticate read-only registry access
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REGISTRY_USER: ${{ github.actor }}
+        run: |
+          printf 'DOCKER_CONFIG=%s/muqola-delivery-auth\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          export DOCKER_CONFIG="$RUNNER_TEMP/muqola-delivery-auth"
+          mkdir -m 700 -p "$DOCKER_CONFIG"
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$REGISTRY_USER" --password-stdin
+      - name: Verify provenance, transfer assets and request the explicit operation
+        env:
+          TARGET: ${{ inputs.environment }}
+          ACTION: ${{ inputs.action }}
+          KIND: ${{ inputs.kind }}
+          IMAGE: ${{ inputs.image }}
+          PUBLICATION_RUN: ${{ inputs.publication_run }}
+          PUBLICATION_ATTEMPT: ${{ inputs.publication_attempt }}
+          PLAN_RUN: ${{ inputs.plan_run }}
+          PLAN_HASH: ${{ inputs.plan_hash }}
+          VPS_HOST: ${{ vars.VPS_HOST }}
+          VPS_USER: ${{ vars.VPS_USER }}
+          SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >-
+          python -m deploy.delivery "$TARGET" "$ACTION" --kind "$KIND" --image "$IMAGE"
+          --publication-run "$PUBLICATION_RUN" --publication-attempt "$PUBLICATION_ATTEMPT"
+          --plan-run "$PLAN_RUN" --plan-hash "$PLAN_HASH"
+      - name: Preserve the reviewable plan
+        if: inputs.action == 'plan'
+        uses: actions/upload-artifact@v4
+        with:
+          name: muqola-plan-${{ inputs.environment }}-${{ github.run_attempt }}
+          path: work/plan.json
+          if-no-files-found: error
+          retention-days: 3
+      - name: Logout
+        if: always()
+        run: docker logout ghcr.io

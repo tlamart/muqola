@@ -404,8 +404,8 @@ Périmètre : préparation/test V8–V9 ; aucune publication réelle avant fusio
   GHCR ; conserver preuves/runs/digests de rollback et définir l'accès en lecture.
 
 - [ ] **V8–V9 / P0 — Validation GHCR réelle à faire après fusion humaine.**
-  Aucun run main publiant cette nouvelle chaîne n'existe encore. Vérifier le
-  succès complet, exécuter `deploy.image_provenance` sur le digest publié et
+  Premier run main réussi : 44125680324 sur `98a5a61`, image publiée et manifeste
+  relu par le publisher. Vérifier visibilité/droits du package, puis exécuter `deploy.image_provenance` sur le digest publié et
   conserver la preuve distante ; aucune image n'est admissible avant ce contrôle.
   Pas de changement automatique de visibilité ni d'achat en cas de quota.
 
@@ -422,24 +422,25 @@ SSH, de déploiement, de migration réelle ou de fusion.
 
 ### PR proposée 4 — CD manuel avec plan contrôlé et reprise
 
-- [ ] **V10 / P0 — À faire : workflow et SSH vérifié.** Dépendances : PR 3 et PR 1–2 intégrées.
+- [x] **V10 / P0 — Vérifié en synthétique : workflow et transport SSH strict.** Dépendances : PR 3 et PR 1–2 intégrées.
   Acceptation : `workflow_dispatch`, choix staging/production, provenance V9,
   checkout exclusivement de code de confiance ; host key SSH vérifiée par canal
   indépendant, `StrictHostKeyChecking=yes`, pas de confiance au seul ssh-keyscan.
   Configs/secrets propres à l'environnement ; transfert par liste explicite de
   fichiers versionnés correspondant à la version déployée, sans .env/secret/données.
   Concurrence par environnement et verrou hôte ; aucun build ni action sur Caddy commun.
-  Validation prévue : refus empreinte inconnue, image/injection/chemin invalide,
+  Validation exécutée en simulation : refus empreinte inconnue, image/injection/chemin invalide,
   environnement inattendu, accès concurrents ; simulation SSH et pile locale jetable.
-  Fichiers : `.github/workflows/deploy.yml`, scripts de livraison ciblés dans `deploy/`, tests prévus.
+  Fichiers : `.github/workflows/deploy.yml`, `deploy/delivery.py`, `deploy/release.py`, exemples privés et tests.
   Manuel : environnements `staging`/`production` déjà créés selon l'exploitant
   (17 novembre), chacun avec vars SSH_KNOWN_HOSTS/VPS_HOST/VPS_USER et secret
   VPS_SSH_KEY ; valeurs non inspectées. Vérifier restrictions main, reviewers
   production disponibles et host keys hors bande au lot CD. VPS_USER sans sudo
-  ni Docker : conserver ces droits pour GHCR, mécanisme de commandes à définir
-  avant CD ; aucune clé à transmettre à l'agent.
+  ni Docker : aucun changement pendant les tests. Avant exécution CD autorisée,
+  préparer l’accès au même démon Docker (privilèges équivalents administrateur),
+  sans sudo général ; aucune clé à transmettre à l’agent.
 
-- [ ] **V11 / P0 — À faire : plan puis application autorisée.** Dépendances : V4, V9–V10.
+- [x] **V11 / P0 — Vérifié en synthétique : plan puis application autorisée.** Dépendances : V4, V9–V10.
   Acceptation : mode `plan` puis mode `apply` séparé avec référence/hash du plan
   approuvé, image et état du schéma revérifiés sous verrou ; sauvegarde récente
   réussie, preuve d'exercice de restauration, échec fermé si prérequis absents.
@@ -447,35 +448,76 @@ SSH, de déploiement, de migration réelle ou de fusion.
   aucune option de confirmation générique ne permet une migration destructive.
   Un seul lancement de migration par tentative autorisée ; reprise après échec
   sans relance aveugle. Bootstrap base neuve traité explicitement.
-  Validation prévue : absence/âge de backup, preuve invalide, plan périmé,
+  Validation exécutée : absence/âge de backup, preuve invalide, plan périmé,
   migration inconnue/destructive, changement de schéma, double apply et échec partiel.
-  Fichiers : script CD, `deploy/migrate.sh` réutilisé, contrôles/proofs et tests prévus.
+  Fichiers : `deploy/release.py`, `deploy/migrate.sh` réutilisé, `release_snapshot`, politique de migrations et tests.
   Manuel : reviewer examine le plan ; approbation GitHub production si disponible,
   sinon validation manuelle explicite liée au plan/run/digest ; aucune restauration automatique.
 
-- [ ] **V12 / P1 — À faire : livraison, smoke et rollback.** Dépendance : V11.
+- [x] **V12 / P1 — Vérifié en synthétique : livraison, smoke et rollback.** Dépendance : V11.
   Acceptation : pull sans build, mise à jour contrôlée web/worker, healthchecks et
   HTTPS (auth staging), arrêt explicite du flux si échec ; historique atomique
   des digests précédent/candidat/réussi et du résultat de migration.
   Rollback d'image seulement si compatible avec le schéma et les protections ;
   aucune rétro-migration ni restauration de DB automatisée. Les autres sites
   Caddy et l'autre environnement doivent rester disponibles.
-  Validation prévue : échecs pull/migration/health/HTTPS, interruption et relance,
+  Validation : refus/échecs migration/readiness/health/HTTPS, interruption et relance,
   état précédent conservé, rollback sans migration compatible et refus sinon.
   Fichiers : scripts CD et tests, `scripts/production_smoke.py` adapté, workflow CD.
   Manuel : décider rollback après revue, vérifier anciennes images conservées,
   sauvegarde et interruption d'écriture si intervention DB distincte nécessaire.
 
-- [ ] **V13 / P1 — À faire : runbook Debian 13 et validations d'exploitant.** Dépendances : V1–V12.
+- [x] **V13 / P1 — Vérifié documentairement : runbook et gates opérateur.** Dépendances : V1–V12.
   Acceptation : mettre à jour la documentation existante : Caddy partagé,
   installation sans build VPS, GHCR/GitHub, plan/apply, staging start/stop,
   rollback, backup/restore, supervision et incidents, Brevo et SPF/DKIM/DMARC.
   Distinguer preuves synthétiques, contrôles réels et ouverture publique.
-  Validation prévue : `./scripts/check.sh`, CI complète, Compose/Caddy, tests
+  Validation : `./scripts/check.sh`, CI complète, Compose/Caddy, tests
   synthétiques adaptés sans destruction de volumes, relecture des commandes Debian.
   Fichiers : `README.md`, `ARCHITECTURE.md`, `docs/lot-6-infrastructure.md`, `TASKS.md`, `LAUNCH_CHECKLIST.md`.
   Manuel : OVH/Caddy/DNS/capacité, GitHub/GHCR/SSH, Brevo, backup/alertes,
   informations légales ; toutes les conditions d'ouverture restent dans LAUNCH_CHECKLIST.
+
+**Bilan PR 4 — préparation, pas activation :** branche `feat/cd-manuel`, main `98a5a61`.
+Workflow manual/main seulement, plan et apply en deux runs avec run/hash, source
+GitHub du plan revérifiée (dernière tentative), provenance V9 et huit fichiers
+versionnés, aucun SSH réel pendant les tests. Compte/clé/cibles validés, clé
+éphémère/known_hosts strict, permissions GITHUB_TOKEN en lecture seulement.
+Un contrôleur hôte séparément revu, configs fixes et modèles privés ; nonce unique,
+empreintes du schéma/configuration/secrets, preuves backup/restore et capacité,
+verrou commun VPS + verrou environnement, détection de migration encore active.
+Plan consommé avant mutation, un seul migrate.sh, journal unknown avant migration,
+aucun restore ou retour de schéma, reprise par nouveau plan propre. Up web/worker
+sans build ET sans dépendances : ni DB/capture ni Caddy ne sont recréés.
+Rollback vers previous après succès, ou current après échec/interruption, avec
+schéma identique et instrumentation CD ; images actives comparées au journal.
+
+Preuves locales du 17 novembre : **552 tests réussis** sur la suite complète,
+contrôles qualité/Django/migrations/statiques, audit runtime sans vulnérabilité
+connue, actionlint, build et exercice staging/CD avec images distinctes ; modules hôte
+chargés sous Python 3.13 ; renderer Compose réel/isolation, transport SSH simulé,
+refus de preuves/plan/schéma/cible invalides, échecs et rejouage, concurrence.
+L'exercice Docker utilise le harness staging existant, readiness/inventaires/HTTPS
+réels et journal, identifiants d'images distincts, rollback et reprise ; admission
+et provenance y sont simulées. Les migrations en attente sont couvertes en tests
+unitaires ; le harness CD n'en applique aucune. Tous les volumes sont conservés.
+Le nombre exact de tests, résultats des smokes et CI du commit final figurent dans
+la PR ; les preuves historiques ci-dessous sont conservées.
+
+- [ ] **V10–V13 — Activation réelle non satisfaite :** contrôleur et configurations
+  privés à installer/revoir sur VPS, compte dédié et accès au démon Docker à
+  autoriser (pas de sudo général utilisé), fingerprints SSH/restrictions/reviewers
+  GitHub à éprouver. Inventaire/adoption ou bootstrap séparé, image post-lot-4,
+  backup externe et exercice de restauration réels, capacité V7, premier plan/
+  application/rollback autorisés sur cible. Aucun déploiement pendant cette PR.
+- [ ] Retour automatisé vers une image historique dépourvue de release_snapshot :
+  non pris en charge ; prévoir procédure opérateur distincte. Les versions
+  compatibles CD restent soumises à égalité du schéma et provenance valide.
+
+La publication main GHCR réelle de #35 est réussie (run 44125680324, `98a5a61`) ;
+son manifeste a été relu par le publisher. La visibilité/droits et la première
+vérification V9 du candidat CD seront contrôlés avant une livraison réelle ;
+la case globale de validation opérationnelle GHCR ci-dessus reste ouverte.
 
 **Preuves locales de PR 1 :** `./scripts/check.sh` : 386 tests, Ruff lint/format,
 mypy, Django, migrations/statiques réussis ; contrôle `check --deploy`, audit

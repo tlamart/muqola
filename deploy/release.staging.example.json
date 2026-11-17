@@ -1,0 +1,14 @@
+{
+  "environment": "staging",
+  "project": "muqola-staging",
+  "compose_env": "/etc/muqola/staging/staging.env",
+  "backup_status_file": "/var/lib/muqola/staging/backup-status.json",
+  "restore_evidence_file": "/etc/muqola/staging/restore-exercise.json",
+  "data_path": "/var/lib/docker",
+  "capacity_reviewed": false,
+  "memory_margin_bytes": 536870912,
+  "production_config": "/etc/muqola/monitor.json",
+  "probe_credentials_file": "/etc/muqola/staging/probe.json",
+  "app_url": "https://staging.muqola.tlam.art",
+  "synthetic_data_only": false
+}

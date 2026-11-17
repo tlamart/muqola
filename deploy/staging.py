@@ -16,7 +16,7 @@ from deploy.staging_config import isolation_issues
 MIB = 1024**2
 
 
-def require_local_docker() -> None:
+def require_local_docker() -> str:
     if not os.environ.get("DOCKER_HOST", "unix://").startswith("unix://"):
         raise OperationError("local_docker_required")
     endpoint = json.loads(
@@ -24,6 +24,9 @@ def require_local_docker() -> None:
     )
     if not isinstance(endpoint, str) or not endpoint.startswith("unix://"):
         raise OperationError("local_docker_required")
+    if os.environ.get("DOCKER_CONTEXT"):
+        return endpoint
+    return os.environ.get("DOCKER_HOST") or endpoint
 
 
 def host_resources(data_path: str) -> dict[str, int | float]:

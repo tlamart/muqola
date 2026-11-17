@@ -15,7 +15,7 @@ du lot 6 restent à faire ([état exact](docs/lot-6-infrastructure.md)).
 
 Les PR #24 (socle production), #25 (Wikidata/Commons), #28 (communautés),
 #29 (catalogue), #30 (recherche), #31 (prêt des fiches en attente) et #32
-(préparation production), #33 (Caddy partagé) et #34 (staging privé) sont fusionnées.
+(préparation production), #33 (Caddy partagé) et #34 (staging privé) et #35 (GHCR) sont fusionnées.
 Les communautés restent privées ; les fiches pending sont empruntables seulement
 via un exemplaire autorisé, sans publication au catalogue général.
 
@@ -37,9 +37,9 @@ aucun service Caddy ni port publié dans `compose.prod.yaml`. Seul web rejoint
 `proxy` sous `muqola-web` ; DB/worker/migration restent privés. Le fragment
 `deploy/Caddyfile` doit être intégré et validé par l'exploitant, avec le filtre
 global fourni et une IP Caddy stable explicitement approuvée. Le projet/volume
-PostgreSQL et les protections #32 sont conservés. Le staging et le flux GHCR
-sont préparés ci-dessous ; le CD manuel reste le lot suivant. La première
-publication GHCR aura lieu après fusion et validation de main, sans déploiement.
+PostgreSQL et les protections #32 sont conservés. Le staging, le flux GHCR et
+le CD manuel sont documentés ci-dessous. La première
+publication GHCR a réussi après fusion de #35, sans déploiement.
 [Configuration, reload sans interruption et précontrôles](docs/lot-6-infrastructure.md#pr-1--caddy-partagé-et-exploitation-compatible).
 
 Contrôle structurel sans démarrage :
@@ -76,6 +76,25 @@ Les environnements GitHub staging/production et leurs variables SSH sont déclar
 configurés par l'exploitant. Ils serviront au lot CD manuel ; **aucun droit sudo
 ou Docker supplémentaire n'est nécessaire à VPS_USER pour ce lot GHCR**.
 Aucun déploiement ni accès SSH depuis cette PR.
+
+## CD manuel : plan puis application
+
+Le workflow `Manual Muqola delivery` est déclenché volontairement sur main.
+Choisir staging/production, digest publié, run/tentative de publication et `plan`.
+Lire l'artefact `muqola-plan-<environnement>-<tentative>`, puis lancer un **second
+run** `apply` avec son run ID et son hash exact après revue. Le nom du run affiche
+l'opération et la référence d'approbation. Aucune livraison sur push/PR.
+
+Provenance revérifiée, SSH strict avec les variables/secrets déjà configurés,
+verrou hôte, sauvegarde/restauration/capacité obligatoires et migrations connues
+seulement. Aucun build VPS, recréation de DB, restore ou suppression de volume.
+Un rollback d'image nécessite son propre plan et un schéma compatible.
+[Installation opérateur, permissions nécessaires, adoption, reprise et limites](docs/lot-6-infrastructure.md#pr-4--cd-manuel-plan-contrôlé-et-reprise).
+
+Ce flux exige une image publiée après intégration de ce lot et un contrôleur
+revu/installé sur le VPS. Les accès Docker du compte SSH seront à préparer par
+l'exploitant avant une exécution autorisée ; aucun sudo général n'est utilisé.
+Aucun accès au VPS ni déploiement réel effectué pendant cette préparation.
 
 ## Staging privé éphémère
 
