@@ -74,6 +74,7 @@ status, _, _ = request(
         "email": email,
         "password": password,
         "password_confirm": password,
+        "adult_confirmed": "on",
     },
 )
 expect(status == 302, "Inscription refusée derrière l'origine HTTPS")

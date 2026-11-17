@@ -1,0 +1,11 @@
+{
+  "compose_file": "/opt/muqola/compose.prod.yaml",
+  "compose_env": "/etc/muqola/production.env",
+  "rclone_config": "/etc/muqola/rclone.conf",
+  "remote": "offsite:bucket-muqola/exclusive-prefix",
+  "recipient": "REPLACE_WITH_OFFLINE_GENERATED_AGE_PUBLIC_RECIPIENT",
+  "retention_days": 30,
+  "keep_min": 7,
+  "max_restore_bytes": 2147483648,
+  "status_file": "/var/lib/muqola/backup-status.json"
+}

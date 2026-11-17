@@ -67,6 +67,7 @@ def borrowable(user: User, community_id: str = "") -> QuerySet[OwnedGame]:
             withdrawn=False,
             owner__is_active=True,
             owner__email_verified_at__isnull=False,
+            owner__adult_confirmed_at__isnull=False,
             game__hidden=False,
             game__merged_into__isnull=True,
             game__moderation_status__in=Game.LENDABLE_STATUSES,

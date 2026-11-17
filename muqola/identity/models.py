@@ -34,6 +34,7 @@ class User(AbstractUser):
     last_name = None  # type: ignore[assignment]
     display_name = models.CharField(max_length=80)
     email_verified_at = models.DateTimeField(null=True, blank=True)
+    adult_confirmed_at = models.DateTimeField(null=True, blank=True, editable=False)
     updated_at = models.DateTimeField(auto_now=True)
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["display_name"]

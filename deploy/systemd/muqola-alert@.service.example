@@ -1,0 +1,7 @@
+# Complete with a real, tested alert channel before enabling the timers.
+# No notifier or external account is created by this repository.
+[Unit]
+Description=Muqola operator alert for %i
+[Service]
+Type=oneshot
+ExecStart=/etc/muqola/notify-operator %i

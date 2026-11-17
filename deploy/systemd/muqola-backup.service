@@ -1,0 +1,10 @@
+[Unit]
+Description=Muqola encrypted off-host database backup
+OnFailure=muqola-alert@%n.service
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/muqola
+UMask=0077
+ExecStart=/opt/muqola/.venv/bin/python -m deploy.backup --config /etc/muqola/backup.json
+TimeoutStartSec=2h
+Nice=10

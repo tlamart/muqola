@@ -46,3 +46,23 @@ def csrf_failure(request: HttpRequest, reason: str = "") -> HttpResponse:
         },
         status=403,
     )
+
+
+@require_safe
+def legal(request: HttpRequest, document: str) -> HttpResponse:
+    from django.http import Http404
+
+    from muqola.core.legal import DOCUMENTS, documents
+
+    if document not in DOCUMENTS:
+        raise Http404
+    contents = documents()
+    return render(
+        request,
+        "legal.html",
+        {
+            "title": DOCUMENTS[document][0],
+            "legal_content": contents.get(document, ""),
+        },
+        status=200 if contents else 503,
+    )

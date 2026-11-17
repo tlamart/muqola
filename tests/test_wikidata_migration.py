@@ -48,6 +48,7 @@ def test_additive_migrations_preserve_all_references_and_loan_states(previous: s
             password="!",
             is_superuser=True,
             email_verified_at=timezone.now(),
+            adult_confirmed_at=timezone.now(),
         )
         borrower = User.objects.create(
             email="migration-borrower@example.test",

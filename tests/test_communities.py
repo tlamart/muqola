@@ -221,6 +221,7 @@ def test_invitation_survives_signup_verification_and_new_browser_login(client: C
             "display_name": "Bob",
             "password": password,
             "password_confirm": password,
+            "adult_confirmed": True,
         },
     )
     bob = User.objects.get(email="bob@example.test")

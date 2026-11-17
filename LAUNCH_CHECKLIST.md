@@ -1,11 +1,13 @@
 # Muqola — Checklist d'ouverture de la bêta publique
 
+> Préparation technique du lot 6 disponible : [audit, runbooks et interventions humaines](docs/lot-6-infrastructure.md). Les cases ci-dessous concernent la validation réelle, pas uniquement les tests locaux.
+>
 > **No-go** si une ligne marquée **BLOQUANT** n'est pas satisfaite. Les coordonnées et informations légales doivent être fournies par l'exploitant, et non inventées par Codex. La bêta signifie inscriptions publiques, communautés privées.
 
 ## Parcours réellement opérationnels
 - [ ] **BLOQUANT** : inscription sans invitation, vérification e-mail réelle, connexion et réinitialisation du mot de passe.
 - [ ] **BLOQUANT** : lien de communauté partageable, permanent par défaut et révocable/régénérable par admin, copiable par tout membre ; vérification e-mail et confirmation explicite, ancien lien invalidé, y compris pendant une inscription.
-- [ ] **BLOQUANT** : proposition titre seul, validation administrative avec type/base requis et revue des doublons ; recherche de fiche validée par titre/alias/fautes, ajout d'exemplaire sans communauté, contrôle des visibilités et photos privées.
+- [ ] **BLOQUANT** : proposition titre seul, validation administrative avec type/base requis et revue des doublons ; recherche de fiche validée par titre/alias/fautes, ajout d'exemplaire sans communauté, contrôle des visibilités, indicateur pending et absence de fuite vers une communauté non autorisée (aucun upload photo).
 - [ ] **BLOQUANT** : demande, acceptation, remise et retour d'un jeu avec date future ; test avec deux comptes distincts.
 - [ ] **BLOQUANT** : impossible d'accepter deux prêts simultanés pour un même exemplaire (test PostgreSQL).
 - [ ] **BLOQUANT** : aucun accès croisé entre communautés par API/URL ; prêts déjà acceptés clôturables après retrait d'un membre.
@@ -31,7 +33,7 @@
 - [ ] **BLOQUANT** : politique de confidentialité et durées de conservation réellement applicables, informations sur les e-mails et leur partage lors des prêts ; traitement des droits RGPD.
 - [ ] **BLOQUANT** : CGU cohérentes avec un service gratuit de mise en relation, précisant responsabilités et règles de prêt.
 - [ ] **BLOQUANT** : procédure effective de **traitement** des demandes de suppression de compte déjà enregistrables, gestion des prêts actifs, délais et conservation ; contact de support fonctionnel.
-- [ ] Vérifier les conditions de participation de mineurs ; décider explicitement si la bêta est réservée aux adultes avant ouverture et adapter CGU/UX.
+- [ ] **BLOQUANT** : bêta **18+ exclusivement** (décision définitive), vérifier sur le vrai site la case non précochée, le contrôle serveur, les anciens comptes et la clôture des prêts ; CGU revues cohérentes.
 - [ ] Ne pas intégrer de traceurs facultatifs sans traiter les exigences de consentement applicables.
 - [ ] Vérifier disponibilité du nom/domaine et risques de conflit de marque.
 
@@ -41,3 +43,14 @@
 - [ ] Le propriétaire du projet teste lui-même le parcours complet en production avec deux comptes et un jeu factice.
 - [ ] Le projet a une version identifiée/taguée et une méthode de revenir à la précédente.
 - [ ] Les fonctionnalités hors MVP n'ont pas retardé les contrôles critiques ci-dessus.
+
+## Informations et actions à fournir par le propriétaire
+
+- [ ] Domaine : nom/droits/budget, achat et contact ACME surveillé.
+- [ ] VPS : fournisseur/région/budget, location, SSH/pare-feu/mises à jour, stockage persistant et accès Docker restreints.
+- [ ] SMTP : compte transactionnel, domaine/expéditeur vérifiés, identifiants privés, quotas et suivi bounces.
+- [ ] DNS : A/AAAA fonctionnels, SPF unique, DKIM et DMARC selon fournisseur ; vérification réelle.
+- [ ] Légal : identité/statut/contact de l'exploitant, publication, hébergeur/sous-traitants, bases et durées, droits RGPD/suppression effective, revue compétente des quatre textes.
+- [ ] Backup : fournisseur externe/préfixe exclusif, compte restreint, clé privée age hors VPS, rétention, RPO/RTO et exercice de récupération autorisé.
+- [ ] Alertes : canal indépendant et sonde extérieure testés avec panne/rétablissement.
+- [ ] Autorisation de déploiement distincte après validation et preuves datées de chaque blocage levé.

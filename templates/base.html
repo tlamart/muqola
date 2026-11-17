@@ -57,6 +57,14 @@
 </div>
   {% if messages %}<div class="status" role="status" aria-live="polite">{% for message in messages %}<p>{{ message }}</p>{% endfor %}</div>{% endif %}
   <main id="contenu" class="page {% block page_class %}{% endblock %}" tabindex="-1">{% block content %}{% endblock %}</main>
-  <footer class="site-footer">Muqola · Des jeux, des liens, de bons moments.<br>Identité provisoire · Version de développement</footer>
+  <footer class="site-footer">
+    Muqola · Des jeux, des liens, de bons moments.
+    <nav aria-label="Informations légales">
+      <a href="{% url 'legal' 'mentions' %}">Mentions légales</a>
+      <a href="{% url 'legal' 'terms' %}">CGU · 18+</a>
+      <a href="{% url 'legal' 'privacy' %}">Confidentialité</a>
+      <a href="{% url 'legal' 'support' %}">Contact et droits</a>
+    </nav>
+  </footer>
 </body>
 </html>

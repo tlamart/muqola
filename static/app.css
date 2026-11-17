@@ -83,6 +83,8 @@ p { margin: 0 0 var(--space-4); }
 .menu-toggle[aria-expanded=true]::before { content: '×'; font-size: 30px; }
 .page, .site-footer, .status { width: min(var(--content-width), calc(100% - var(--gutter) * 2)); margin-inline: auto; }
 .page { padding-block: var(--space-5) var(--space-9); min-height: calc(100vh - 160px); }
+.site-footer nav { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.site-footer nav a { display: inline-flex; align-items: center; min-height: 44px; }
 .site-footer { padding-block: var(--space-6); border-top: 1px solid var(--line); color: var(--muted); font-size: .8rem; }
 .eyebrow { color: var(--purple-ink); text-transform: uppercase; letter-spacing: .09em; font-size: .75rem; font-weight: 750; }
 .intro, .muted, .help { color: var(--muted); }

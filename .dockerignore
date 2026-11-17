@@ -16,3 +16,20 @@ data
 **/*bgg*.csv
 **/muqola_wikidata_import_1539.csv
 **/*wikidata*.csv
+secrets
+.secrets
+backups
+*.age
+*.pgpass
+rclone.conf
+legal
+# Exports and private material must not enter a build context, even if untracked.
+**/*.dump
+**/*.sql.gz
+**/*.sqlite
+**/*.sqlite3
+**/*.db
+**/*.key
+**/*.pem
+**/*.p12
+**/*.pfx

@@ -62,6 +62,7 @@ with sync_playwright() as playwright:
         if page.evaluate("document.documentElement.scrollWidth > innerWidth"):
             raise RuntimeError("Formulaire débordant")
         page.screenshot(path=f"work/signup-{width}.png", full_page=True)
+        page.get_by_label("Je certifie avoir 18 ans ou plus.", exact=True).check()
         page.get_by_role("button", name="S'inscrire", exact=True).click()
         page.wait_for_url("**/accounts/signup/done/")
         login_form(page, email, password)

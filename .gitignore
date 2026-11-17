@@ -45,3 +45,10 @@ staticfiles/
 .mypy_cache/
 .ruff_cache/
 .coverage
+# Production material must stay outside the repository; synthetic test state is in work/.
+secrets/
+.secrets/
+*.age
+*.pgpass
+rclone.conf
+/legal/

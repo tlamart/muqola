@@ -31,10 +31,11 @@ from muqola.catalogue.models import Game, GameAlias
 from muqola.communities.models import Community, Membership
 from muqola.inventory.models import OwnedGame, GameVisibility
 assert settings.APP_ENV == "development"
-reader = User(email={email}, display_name="Recherche fictive", email_verified_at=timezone.now())
+reader = User(email={email}, display_name="Recherche fictive",
+    email_verified_at=timezone.now(), adult_confirmed_at=timezone.now())
 reader.set_password({password}); reader.save()
 owner = User.objects.create(email={owner_email}, display_name="Prêteur fictif",
-    password="!", email_verified_at=timezone.now())
+    password="!", email_verified_at=timezone.now(), adult_confirmed_at=timezone.now())
 community = Community.objects.create(name={community}, created_by=owner)
 for user in (owner, reader): Membership.objects.create(user=user, community=community)
 for i in range(45):

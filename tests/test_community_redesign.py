@@ -236,6 +236,7 @@ def test_signup_pending_invitation_is_invalidated_by_rotation(client: Client) ->
             "display_name": "Invité",
             "password": "Fictif-Parcours-9847!",
             "password_confirm": "Fictif-Parcours-9847!",
+            "adult_confirmed": True,
         },
     )
     user = User.objects.get(email="signup-rotation@example.test")

@@ -1,6 +1,28 @@
-# Caddy provisions HTTPS once the DNS and public ports are ready.
-# APP_DOMAIN is the exact hostname, not a URL.
+{
+	# No access logging: invite/account URLs contain secrets. Caddy's own
+	# operational errors remain available through the bounded container logs.
+	admin off
+	# Upstream failures otherwise include the request URI, cookies and tokens.
+	log {
+		format filter {
+			wrap json
+			fields {
+				request delete
+				uri delete
+				headers delete
+			}
+		}
+	}
+	email {$ACME_EMAIL}
+}
 {$APP_DOMAIN} {
-    encode zstd gzip
-    reverse_proxy web:8000
+	encode zstd gzip
+	request_body {
+		max_size 64KB
+	}
+	reverse_proxy web:8000 {
+		# Never trust a client-supplied forwarding value at this public edge.
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-Host {host}
+	}
 }

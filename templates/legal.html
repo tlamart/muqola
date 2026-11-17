@@ -1,0 +1,5 @@
+{% extends 'base.html' %}{% block title %}{{ title }} — Muqola{% endblock %}
+{% block content %}<h1>{{ title }}</h1>
+{% if legal_content %}<article class="panel">{{ legal_content|linebreaks }}</article>
+{% else %}<p role="status">Ce document est en préparation. La bêta publique n’est pas encore ouverte.</p>{% endif %}
+{% endblock %}

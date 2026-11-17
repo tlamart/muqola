@@ -1,8 +1,9 @@
 from django.urls import include, path
 
-from muqola.core.views import health_live, health_ready, home
+from muqola.core.views import health_live, health_ready, home, legal
 
 urlpatterns = [
+    path("legal/<slug:document>/", legal, name="legal"),
     path("loans/", include("muqola.loans.urls")),
     path("games/", include("muqola.catalogue.urls")),
     path("copies/", include("muqola.inventory.urls")),

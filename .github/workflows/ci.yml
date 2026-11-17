@@ -12,7 +12,7 @@ concurrency:
 jobs:
   checks:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       APP_ENV: test
       DJANGO_SECRET_KEY: ci-only-synthetic-key-00000000000000000000000000000000000000000000
@@ -69,6 +69,15 @@ jobs:
           curl --fail http://127.0.0.1:8000/health/ready/
           docker compose exec -T web python manage.py send_dev_email
           curl --fail http://127.0.0.1:8025/api/v1/messages | python -c 'import json,sys; assert json.load(sys.stdin)["total"] >= 1'
+      - name: Production roles, TLS and encrypted restore (isolated synthetic stack)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y rclone
+          mkdir -p work/age-tools
+          curl --fail --location --silent --show-error https://github.com/FiloSottile/age/releases/download/v1.3.2/age-v1.3.2-linux-amd64.tar.gz --output work/age-tools/age.tar.gz
+          echo 'cbe24006683f8eb669266162894b9a522a1af52f2665fbc63a4bb032ed26ac10  work/age-tools/age.tar.gz' | sha256sum --check
+          tar -xzf work/age-tools/age.tar.gz -C work/age-tools
+          PATH="$PWD/work/age-tools/age:$PATH" uv run --frozen python scripts/production_smoke.py --image muqola:local
       - name: Gunicorn stays available with silent TCP preconnections
         run: |
           python - <<'PY'

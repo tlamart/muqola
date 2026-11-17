@@ -5,9 +5,10 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 
 # Toutes les futures routes métier sont fermées par défaut, y compris aux opérateurs non vérifiés.
-PUBLIC_VIEWS = {"home", "health-live", "health-ready", "communities:receive-invite"} | {
+PUBLIC_VIEWS = {"home", "legal", "health-live", "health-ready", "communities:receive-invite"} | {
     "identity:" + name
     for name in (
+        "adult",
         "signup",
         "signup-done",
         "login",
@@ -47,4 +48,15 @@ class VerifiedAccountMiddleware:
             return redirect("identity:login")
         if not request.user.is_active or not request.user.email_verified_at:
             return render(request, "identity/unverified.html", status=403)
+        if request.user.adult_confirmed_at is None:
+            # Existing loans can still be read/closed without a false attestation.
+            legacy_loan = match is not None and (
+                match.view_name in {"loans:index", "loans:detail", "identity:profile"}
+                or (
+                    match.view_name == "loans:action"
+                    and view_kwargs.get("action") in {"cancel", "decline", "handover", "return"}
+                )
+            )
+            if not legacy_loan:
+                return redirect("identity:adult")
         return None

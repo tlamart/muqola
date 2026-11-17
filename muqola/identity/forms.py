@@ -58,10 +58,14 @@ class PasswordForm(forms.Form):
         return data
 
 
-class SignupForm(EmailForm, PasswordForm):
+class AdultForm(forms.Form):
+    adult_confirmed = forms.BooleanField(label="Je certifie avoir 18 ans ou plus.")
+
+
+class SignupForm(EmailForm, PasswordForm, AdultForm):
     display_name = forms.CharField(
         label="Nom d'affichage",
         max_length=80,
         widget=forms.TextInput(attrs={"autocomplete": "nickname"}),
     )
-    field_order = ["display_name", "email", "password", "password_confirm"]
+    field_order = ["display_name", "email", "password", "password_confirm", "adult_confirmed"]
