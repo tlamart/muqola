@@ -14,7 +14,8 @@ du lot 6 restent à faire ([état exact](docs/lot-6-infrastructure.md)).
 ## État actuel et préparation de production
 
 Les PR #24 (socle production), #25 (Wikidata/Commons), #28 (communautés),
-#29 (catalogue), #30 (recherche) et #31 (prêt des fiches en attente) sont fusionnées.
+#29 (catalogue), #30 (recherche), #31 (prêt des fiches en attente) et #32
+(préparation production) sont fusionnées.
 Les communautés restent privées ; les fiches pending sont empruntables seulement
 via un exemplaire autorisé, sans publication au catalogue général.
 
@@ -30,6 +31,15 @@ checklist des interventions du propriétaire. [Modèles légaux](docs/legal) à
 compléter et faire revoir hors dépôt. [Conditions d'ouverture](LAUNCH_CHECKLIST.md)
 restent non validées tant que VPS, domaine, e-mails, stockage externe et conformité
 réels ne sont pas vérifiés. **Aucun déploiement réalisé ni autorisé par cette PR.**
+
+Le Compose applicatif utilise maintenant le **Caddy commun de `/opt/caddy`** :
+aucun service Caddy ni port publié dans `compose.prod.yaml`. Seul web rejoint
+`proxy` sous `muqola-web` ; DB/worker/migration restent privés. Le fragment
+`deploy/Caddyfile` doit être intégré et validé par l'exploitant, avec le filtre
+global fourni et une IP Caddy stable explicitement approuvée. Le projet/volume
+PostgreSQL et les protections #32 sont conservés. Le staging et la publication/CD
+GHCR restent les PR suivantes ; aucune image n'est publiée par ce lot.
+[Configuration, reload sans interruption et précontrôles](docs/lot-6-infrastructure.md#pr-1--caddy-partagé-et-exploitation-compatible).
 
 Contrôle structurel sans démarrage :
 
@@ -177,6 +187,9 @@ mémoire ne constituent pas une mesure de charge sur le VPS cible.
 | APP_BASE_URL | Origine de confiance des liens, http://localhost:8000 en dev ; HTTPS en production |
 | DJANGO_SECRET_KEY / DJANGO_SECRET_KEY_FILE | Secret direct local ou fichier production (exclusifs), ≥50 caractères aléatoires |
 | ALLOWED_HOSTS | Hôtes HTTP acceptés, séparés par virgules |
+| TRUSTED_PROXY_IPS | IP exactes du Caddy approuvé en production ; jamais tout le subnet partagé |
+| MUQOLA_PROJECT / PROXY_NETWORK | Projet production stable et réseau externe Caddy ; ne pas changer le nom d'un volume existant |
+| MUQOLA_IMAGE | Référence GHCR par digest immuable en production |
 | POSTGRES_DB / USER / PASSWORD | Base et identifiants locaux, aucun défaut pour le mot de passe |
 | POSTGRES_HOST / PORT | Connexion directe ; Compose impose db:5432 |
 | EMAIL_HOST / PORT | Mailpit:1025 en local ; fournisseur TLS en production |

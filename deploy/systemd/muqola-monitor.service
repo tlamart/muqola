@@ -5,5 +5,5 @@ OnFailure=muqola-alert@%n.service
 Type=oneshot
 WorkingDirectory=/opt/muqola
 UMask=0077
-ExecStart=/opt/muqola/.venv/bin/python -m deploy.monitor --config /etc/muqola/monitor.json
+ExecStart=/usr/bin/python3 -m deploy.monitor --config /etc/muqola/monitor.json
 TimeoutStartSec=2m

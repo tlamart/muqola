@@ -1,4 +1,5 @@
 {
+  "project": "muqola-prod",
   "compose_file": "/opt/muqola/compose.prod.yaml",
   "compose_env": "/etc/muqola/production.env",
   "rclone_config": "/etc/muqola/rclone.conf",

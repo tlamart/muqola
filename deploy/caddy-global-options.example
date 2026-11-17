@@ -1,0 +1,11 @@
+# Merge inside the existing global options; do not replace other settings.
+	log {
+		format filter {
+			wrap json
+			fields {
+				request delete
+				uri delete
+				headers delete
+			}
+		}
+	}

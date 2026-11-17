@@ -1,7 +1,8 @@
 {
+  "project": "muqola-prod",
   "compose_file": "/opt/muqola/compose.prod.yaml",
   "compose_env": "/etc/muqola/production.env",
-  "app_url": "https://muqola.example.test",
+  "app_url": "https://muqola.tlam.art",
   "data_path": "/var/lib/docker",
   "backup_status_file": "/var/lib/muqola/backup-status.json",
   "max_backup_hours": 36,

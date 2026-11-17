@@ -5,6 +5,7 @@ from django.http import HttpRequest
 from django.utils import timezone
 from django.utils.crypto import salted_hmac
 
+from muqola.core.proxy import client_ip
 from muqola.identity.models import RateBucket
 
 # Fenêtres fixes, limites IP ET adresse (partagées par tous les workers).
@@ -23,7 +24,7 @@ LIMITS = {
 def allowed(request: HttpRequest, action: str, email: str = "") -> bool:
     seconds, ip_max, email_max = LIMITS[action]
     window = int(timezone.now().timestamp()) // seconds
-    subjects = [("ip:" + request.META.get("REMOTE_ADDR", "unknown"), ip_max)]
+    subjects = [("ip:" + client_ip(request), ip_max)]
     if email:
         subjects.append(("email:" + email.strip().lower(), email_max))
     # Toujours IP puis adresse : verrouillage cohérent, et aucune création de

@@ -47,7 +47,6 @@ def test_monitor_detects_every_required_failure_without_disclosing_logs(
         "https_unavailable",
         "worker_unhealthy",
         "db_unhealthy",
-        "caddy_unhealthy",
         "database_or_outbox_attention",
         "disk_pressure",
         "backup_failed_or_stale",
@@ -75,7 +74,7 @@ def test_monitor_accepts_healthy_stack_and_fresh_backup(
         if "ps" in arguments:
             return b"\n".join(
                 json.dumps({"Service": service, "State": "running", "Health": "healthy"}).encode()
-                for service in ("web", "worker", "db", "caddy")
+                for service in ("web", "worker", "db")
             )
         if "check_operations" in arguments:
             return b'{"database": true, "outbox_failed": 0, "outbox_late": 0}'

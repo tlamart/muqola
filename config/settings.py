@@ -7,11 +7,20 @@ from urllib.parse import urlsplit
 from django.core.exceptions import ImproperlyConfigured
 
 from config.env import secret
+from muqola.core.proxy import canonical_ip
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 APP_ENV = os.environ.get("APP_ENV", "development")
 if APP_ENV not in {"development", "test", "production"}:
     raise ImproperlyConfigured("APP_ENV doit valoir development, test ou production.")
+TRUSTED_PROXY_IPS = []
+for configured_proxy in os.environ.get("TRUSTED_PROXY_IPS", "").split(","):
+    if not configured_proxy.strip():
+        continue
+    normalized_proxy = canonical_ip(configured_proxy.strip())
+    if normalized_proxy is None:
+        raise ImproperlyConfigured("TRUSTED_PROXY_IPS exige des adresses IP exactes.")
+    TRUSTED_PROXY_IPS.append(normalized_proxy)
 DEBUG = False
 SECRET_KEY = secret("DJANGO_SECRET_KEY")
 if len(SECRET_KEY) < 50 or SECRET_KEY.startswith("CHANGE_ME"):
@@ -34,6 +43,7 @@ INSTALLED_APPS = [
     "muqola.operations",
 ]
 MIDDLEWARE = [
+    "muqola.core.proxy.TrustedProxyMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "muqola.core.middleware.SecurityHeadersMiddleware",
