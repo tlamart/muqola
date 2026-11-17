@@ -160,7 +160,7 @@ def main():
     samples = 0
     info = json.loads(run(["docker", "info", "--format", "{{json .}}"]).stdout)
     metrics_valid = bool(
-        info.get("MemoryLimit") and info.get("CPUCfsQuota") and info.get("CgroupDriver") != "none"
+        info.get("MemoryLimit") and info.get("CpuCfsQuota") and info.get("CgroupDriver") != "none"
     )
     stop = threading.Event()
     with tempfile.TemporaryDirectory(prefix=prefix, dir=ROOT / "work") as temp:

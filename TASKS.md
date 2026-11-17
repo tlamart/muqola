@@ -406,11 +406,15 @@ Périmètre : préparation/test V8–V9 ; aucune publication réelle avant fusio
   conserver la preuve distante ; aucune image n'est admissible avant ce contrôle.
   Pas de changement automatique de visibilité ni d'achat en cas de quota.
 
-Preuves locales du 17 novembre : `scripts/check.sh` **479 tests réussis**,
+Preuves locales du 17 novembre : `scripts/check.sh` **480 tests réussis**,
 Ruff lint/format, mypy, Django/migrations/statiques ; `check --deploy` et audit
 runtime réussis ; actionlint et build Docker réussis ; essai registre loopback
 réussi, volumes conservés. La CI et les smokes finaux sont consignés dans la PR.
-V7 (mesure capacité VPS) reste ouverte ; ce lot ne constitue aucune autorisation
+Correctif de régression : le champ officiel Docker `CpuCfsQuota` remplace le
+nom erroné qui refusait à tort les limites CPU disponibles. Test reproduisant
+l'échec avant correction puis reconnaissance/refus selon les capacités réelles ;
+contrôleur staging et son échantillonneur corrigés. V7 (mesure capacité VPS)
+reste ouverte ; ce lot ne constitue aucune autorisation
 SSH, de déploiement, de migration réelle ou de fusion.
 
 ### PR proposée 4 — CD manuel avec plan contrôlé et reprise

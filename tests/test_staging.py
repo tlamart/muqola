@@ -427,3 +427,23 @@ def test_admission_checks_real_secret_values_before_any_start(
     result = lifecycle.operate(config, "start")
     assert result["action"] == "start_refused" and "secret_material_reused" in result["issues"]
     assert seen == []
+
+
+def test_host_resources_recognizes_docker_info_cpu_quota_field(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Docker's JSON field is CpuCfsQuota; an acronym-only spelling silently fails.
+    docker_info = {
+        "MemoryLimit": True,
+        "CpuCfsQuota": True,
+        "CgroupDriver": "systemd",
+        "NCPU": 2,
+    }
+    monkeypatch.setattr(lifecycle, "require_local_docker", lambda: None)
+    monkeypatch.setattr(lifecycle, "run", lambda _: json.dumps(docker_info).encode())
+    assert lifecycle.host_resources(str(tmp_path))["limits_enforced"] is True
+    docker_info["CpuCfsQuota"] = False
+    assert lifecycle.host_resources(str(tmp_path))["limits_enforced"] is False
+    docker_info["CpuCfsQuota"] = True
+    docker_info["CgroupDriver"] = "none"
+    assert lifecycle.host_resources(str(tmp_path))["limits_enforced"] is False

@@ -130,10 +130,15 @@ relecture du manifeste sur un **registre loopback synthétique**, avec vérifica
 de l'identité conservée. Aucun GHCR réel ; son volume reste conservé/inventorié.
 La CI conserve son JSON avec les captures. Les smokes production/staging et tous
 les parcours existants restent dans le job checks. Résultats exacts dans TASKS/PR.
-Validation locale du 17 novembre : **479 tests réussis**, lint/format/typage,
+Validation locale du 17 novembre : **480 tests réussis**, lint/format/typage,
 Django/migrations/statiques, check production, audit runtime sans vulnérabilité
 connue, actionlint 1.7.12, chargement des outils sous Python 3.13.5, build et smokes
-registre/production/staging réussis. La CI de la PR consigne le résultat du commit final.
+registre/production/staging réussis. Correctif de régression staging : lecture du
+champ officiel Docker `CpuCfsQuota`, avec échec reproduit avant correction puis
+test positif/négatif. Sans cela les quotas CPU étaient toujours réputés absents,
+y compris sur une machine compatible. Le contrôleur et l'échantillonneur sont
+corrigés ; le daemon local reste réellement sans cgroups. La CI de la PR consigne
+le résultat du commit final ; ses métriques éventuelles ne valent pas mesure VPS.
 La première publication GHCR réelle et sa vérification distante restent à faire
 après fusion ; aucune mesure de capacité VPS ni ouverture publique validée ici.
 
