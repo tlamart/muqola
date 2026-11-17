@@ -11,17 +11,40 @@ Gunicorn sont intégrés dans `main` depuis la fusion de la PR #8. La PR #24 a a
 un socle de production distinct, sans déploiement ; les validations opérationnelles
 du lot 6 restent à faire ([état exact](docs/lot-6-infrastructure.md)).
 
-## Prochain travail : plan B → A → C
+## État actuel et préparation de production
 
-La préparation documentaire du 15 novembre 2026 porte sur **B : catalogue**,
-**A : recherche intelligente**, puis **C : communautés**. Le
-[plan détaillé](TASKS.md#prochaines-pr--b--a--c-arbitrages-validés) et
-l'[audit des écarts et arbitrages](docs/plan-b-a-c.md) ont leurs arbitrages B1–B4/C1–C2 validés.
-B (#29) et A (#30) sont intégrées dans `main` ; C (#28) implémente les communautés
-sur cette base. [SPEC](SPEC.md) décrit le comportement des trois lots ;
-[le bilan de C](docs/communautes-refonte.md) détaille son intégration et sa validation.
-Les communautés restent privées conformément à C2 ; aucune découverte publique prévue.
-Aucun déploiement, purge ou merge automatique.
+Les PR #24 (socle production), #25 (Wikidata/Commons), #28 (communautés),
+#29 (catalogue), #30 (recherche) et #31 (prêt des fiches en attente) sont fusionnées.
+Les communautés restent privées ; les fiches pending sont empruntables seulement
+via un exemplaire autorisé, sans publication au catalogue général.
+
+Le lot 6 prépare des secrets montés en fichiers, trois rôles PostgreSQL, HTTPS,
+sauvegardes chiffrées/restauration isolée, supervision et SMTP sur l'outbox existante.
+**Bêta réservée aux 18+** : case obligatoire à l'inscription, confirmation pour les
+anciens comptes, clôture des prêts existants préservée. Les documents légaux
+incomplets bloquent l'inscription en production.
+
+[Audit et procédures du lot 6](docs/lot-6-infrastructure.md) : configuration,
+commandes futures, sauvegarde/restore, SMTP/DNS, alertes, incidents, droits et
+checklist des interventions du propriétaire. [Modèles légaux](docs/legal) à
+compléter et faire revoir hors dépôt. [Conditions d'ouverture](LAUNCH_CHECKLIST.md)
+restent non validées tant que VPS, domaine, e-mails, stockage externe et conformité
+réels ne sont pas vérifiés. **Aucun déploiement réalisé ni autorisé par cette PR.**
+
+Contrôle structurel sans démarrage :
+
+```sh
+docker compose --env-file .env.production.example -f compose.prod.yaml config --quiet
+```
+
+Test local exclusivement synthétique, après build et installation de age/rclone :
+
+```sh
+uv run --frozen python scripts/production_smoke.py --image muqola:local
+```
+
+Il crée sa propre pile/volumes jetables, utilise une CA locale et ne contacte ni
+ACME ni SMTP externe. Voir le guide pour les limites et les preuves de validation.
 
 ## Démarrer localement
 
@@ -152,15 +175,17 @@ mémoire ne constituent pas une mesure de charge sur le VPS cible.
 | --- | --- |
 | APP_ENV | development/test/production ; Compose local impose development |
 | APP_BASE_URL | Origine de confiance des liens, http://localhost:8000 en dev ; HTTPS en production |
-| DJANGO_SECRET_KEY | Obligatoire, au moins 50 caractères aléatoires, serveur uniquement |
+| DJANGO_SECRET_KEY / DJANGO_SECRET_KEY_FILE | Secret direct local ou fichier production (exclusifs), ≥50 caractères aléatoires |
 | ALLOWED_HOSTS | Hôtes HTTP acceptés, séparés par virgules |
 | POSTGRES_DB / USER / PASSWORD | Base et identifiants locaux, aucun défaut pour le mot de passe |
 | POSTGRES_HOST / PORT | Connexion directe ; Compose impose db:5432 |
-| EMAIL_HOST / PORT | Capture SMTP seulement ; Compose impose mailpit:1025 |
+| EMAIL_HOST / PORT | Mailpit:1025 en local ; fournisseur TLS en production |
 | EMAIL_FROM | Expéditeur fictif en développement |
 | EMAIL_BACKEND | Backend Django remplaçable ; SMTP par défaut |
-| EMAIL_HOST_USER / PASSWORD | Vides en dev/test, configuration réelle au lot 6 |
-| EMAIL_USE_TLS / SSL | Choisir un seul mode pour un futur transport réel |
+| EMAIL_HOST_USER / PASSWORD / PASSWORD_FILE | Vides en dev/test ; login et secret fichier en production |
+| EMAIL_USE_TLS / SSL | Un seul mode obligatoire pour SMTP de production |
+| POSTGRES_PASSWORD_FILE | Secret du rôle DB monté en production, exclusif avec POSTGRES_PASSWORD |
+| LEGAL_DOCUMENTS_DIR / LEGAL_REVIEWED | Quatre textes hors dépôt, revue réelle requise avant inscription production |
 
 APP_BASE_URL définit l'origine de confiance des liens de compte et doit être
 HTTPS en production ; aucune origine n'est reprise du Host client. Aucune clé de fournisseur,
@@ -171,7 +196,7 @@ identifiant VPS ou donnée réelle ne doit entrer dans ce développement.
 Ce Compose est exclusivement local. Caddy/HTTPS, fournisseur SMTP réel,
 URL publique de production, DNS SPF/DKIM/DMARC, rôle PostgreSQL à privilèges réduits,
 sauvegardes externes chiffrées/restaurées et supervision sont
-à livrer/valider avant ouverture, selon [LAUNCH_CHECKLIST.md](LAUNCH_CHECKLIST.md).
+préparés dans le lot 6 ; leur configuration réelle doit être validée avant ouverture, selon [LAUNCH_CHECKLIST.md](LAUNCH_CHECKLIST.md).
 L'outbox des comptes/prêts et son worker sont livrés. Les sauvegardes de production
 ne sont pas encore opérationnelles. Le développement refuse les identifiants SMTP
 et hôtes non locaux pour conserver la capture Mailpit.
@@ -187,8 +212,8 @@ restauration testée, SMTP réel, supervision et autorisation de lancement reste
 
 Les invariants des lots 2–5 sont testés : invitations privées, fiches réutilisables,
 exemplaires à zéro ou plusieurs visibilités, date de retour et contacts uniquement
-pendant un prêt accepté/remis. Voir [TASKS.md](TASKS.md). La préparation documentaire
-B/A/C attend la validation du plan ; aucune fusion ni opération de production automatique.
+pendant un prêt accepté/remis. B/A/C et P1 sont fusionnées ; voir [TASKS.md](TASKS.md).
+Aucune opération de production automatique.
 
 ## Test navigateur du socle
 

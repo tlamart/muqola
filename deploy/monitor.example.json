@@ -1,0 +1,10 @@
+{
+  "compose_file": "/opt/muqola/compose.prod.yaml",
+  "compose_env": "/etc/muqola/production.env",
+  "app_url": "https://muqola.example.test",
+  "data_path": "/var/lib/docker",
+  "backup_status_file": "/var/lib/muqola/backup-status.json",
+  "max_backup_hours": 36,
+  "max_disk_ratio": 0.9,
+  "min_free_bytes": 1073741824
+}

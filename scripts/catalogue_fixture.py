@@ -63,7 +63,7 @@ assert settings.APP_ENV == 'development'
 u = User.objects.create(
  email='commons-fixture-' + __import__('uuid').uuid4().hex + '@example.test',
  display_name='Fixture synthétique', password='!', is_superuser=True,
- email_verified_at=timezone.now())
+ email_verified_at=timezone.now(), adult_confirmed_at=timezone.now())
 g = write_game(u, {'title':'Les Pions du Canal fictifs',
  'aliases':['Fictional Canal Tokens'], 'proposal_reason':'Fixture synthétique'})
 g = decide(u, g.pk, 'approved', 'Revue synthétique', {'kind':'standalone'},

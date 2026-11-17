@@ -38,6 +38,7 @@ def signup(client: Client, email: str = "alice@example.test") -> tuple[int, str]
             "display_name": "Alice",
             "password": PASSWORD,
             "password_confirm": PASSWORD,
+            "adult_confirmed": True,
         },
     )
 
@@ -59,6 +60,7 @@ def account(verified: bool = False) -> User:
         PASSWORD,
         display_name="Alice",
         email_verified_at=timezone.now() if verified else None,
+        adult_confirmed_at=timezone.now(),
     )
 
 
@@ -73,6 +75,7 @@ def test_open_signup_normalizes_email_hashes_password_and_queues_encrypted_messa
             "display_name": "Alice",
             "password": PASSWORD,
             "password_confirm": PASSWORD,
+            "adult_confirmed": True,
         },
         HTTP_HOST="untrusted.example.org",
     )
@@ -115,6 +118,7 @@ def test_signup_server_validation(client: Client, overrides: dict[str, str]) -> 
         "display_name": "Alice",
         "password": PASSWORD,
         "password_confirm": PASSWORD,
+        "adult_confirmed": True,
     } | overrides
     response = client.post(reverse("identity:signup"), data)
     assert response.status_code == 200
@@ -135,6 +139,7 @@ def test_duplicate_signup_has_same_public_response_and_does_not_overwrite(client
             "display_name": "Autre",
             "password": NEW_PASSWORD,
             "password_confirm": NEW_PASSWORD,
+            "adult_confirmed": True,
         },
     )
     assert first[0] == second.status_code == 302
@@ -157,7 +162,7 @@ def test_signup_and_email_are_atomic_on_queue_failure() -> None:
         patch("muqola.identity.services.enqueue_account_email", side_effect=RuntimeError),
         pytest.raises(RuntimeError),
     ):
-        register("alice@example.test", "Alice", PASSWORD)
+        register("alice@example.test", "Alice", PASSWORD, adult_confirmed=True)
     assert not User.objects.exists()
     assert not AccountToken.objects.exists()
 
@@ -308,6 +313,7 @@ def test_password_reset_expiry_strength_and_session_invalidation(client: Client)
             {
                 "password": PASSWORD,
                 "password_confirm": PASSWORD,
+                "adult_confirmed": True,
             },
         ).status_code
         == 400
@@ -348,7 +354,7 @@ def test_token_confirmation_has_no_cache_and_no_referrer(client: Client) -> None
 
 
 def test_outbox_retry_keeps_committed_account_then_clears_sensitive_payload() -> None:
-    register("alice@example.test", "Alice", PASSWORD)
+    register("alice@example.test", "Alice", PASSWORD, adult_confirmed=True)
     raw = raw_token()
     with patch("django.core.mail.EmailMessage.send", side_effect=OSError("private smtp details")):
         assert send_due() == 1
@@ -486,7 +492,7 @@ def test_concurrent_signup_preserves_unique_account_and_single_email() -> None:
         close_old_connections()
         try:
             barrier.wait(timeout=10)
-            register("alice@example.test", "Alice", PASSWORD)
+            register("alice@example.test", "Alice", PASSWORD, adult_confirmed=True)
         finally:
             connections.close_all()
 
@@ -513,6 +519,7 @@ def test_signup_cannot_assign_privileges_or_verification(client: Client) -> None
             "display_name": "Alice",
             "password": PASSWORD,
             "password_confirm": PASSWORD,
+            "adult_confirmed": True,
             "is_staff": True,
             "is_superuser": True,
             "email_verified_at": "2026-11-01T00:00:00Z",

@@ -3,6 +3,7 @@ import secrets
 from datetime import timedelta
 
 from django.contrib.auth.hashers import make_password
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
@@ -30,13 +31,25 @@ def issue_token(user: User, purpose: str) -> None:
     enqueue_account_email(token, raw)
 
 
-def register(email: str, display_name: str, password: str, invite_digest: str = "") -> None:
+def register(
+    email: str,
+    display_name: str,
+    password: str,
+    invite_digest: str = "",
+    *,
+    adult_confirmed: bool = False,
+) -> None:
+    if adult_confirmed is not True:
+        raise ValidationError("La bêta est réservée aux adultes de 18 ans et plus.")
     # Même travail cryptographique et même réponse pour une adresse déjà inscrite.
     password_hash = make_password(password)
     try:
         with transaction.atomic():
             user = User.objects.create(
-                email=email, display_name=display_name, password=password_hash
+                email=email,
+                display_name=display_name,
+                password=password_hash,
+                adult_confirmed_at=timezone.now(),
             )
             issue_token(user, AccountToken.Purpose.VERIFY)
             if invite_digest:

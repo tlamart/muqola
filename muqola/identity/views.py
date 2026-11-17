@@ -1,5 +1,6 @@
 import re
 
+from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
@@ -7,7 +8,8 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
-from muqola.identity.forms import EmailForm, LoginForm, PasswordForm, SignupForm
+from muqola.core.http import actor
+from muqola.identity.forms import AdultForm, EmailForm, LoginForm, PasswordForm, SignupForm
 from muqola.identity.models import AccountToken
 from muqola.identity.ratelimit import LIMITS, allowed
 from muqola.identity.services import (
@@ -36,6 +38,18 @@ def throttled(request: HttpRequest, action: str = "token") -> HttpResponse:
 
 @require_http_methods(["GET", "POST"])
 def signup(request: HttpRequest) -> HttpResponse:
+    from muqola.core.legal import documents
+
+    if settings.APP_ENV == "production" and not documents():
+        return render(
+            request,
+            "identity/message.html",
+            {
+                "title": "Bêta publique en préparation",
+                "message": "Les inscriptions ouvriront après validation des informations légales.",
+            },
+            status=503,
+        )
     if request.method == "POST" and not allowed(request, "signup", request.POST.get("email", "")):
         return throttled(request, "signup")
     form = SignupForm(request.POST if request.method == "POST" else None)
@@ -45,6 +59,7 @@ def signup(request: HttpRequest) -> HttpResponse:
             form.cleaned_data["display_name"],
             form.cleaned_data["password"],
             invite_digest=str(request.session.get("community_invite", "")),
+            adult_confirmed=form.cleaned_data["adult_confirmed"],
         )
         return redirect("identity:signup-done")
     return render(
@@ -217,3 +232,31 @@ def confirm_reset(request: HttpRequest) -> HttpResponse:
 @require_GET
 def message(request: HttpRequest, title: str, text: str) -> HttpResponse:
     return render(request, "identity/message.html", {"title": title, "message": text})
+
+
+@require_http_methods(["GET", "POST"])
+@login_required(login_url="identity:login")
+def adult(request: HttpRequest) -> HttpResponse:
+    from muqola.core.transactions import verified
+    from muqola.identity.models import User
+
+    verified(actor(request), require_adult=False)
+    if actor(request).adult_confirmed_at is not None:
+        return redirect("identity:dashboard")
+    form = AdultForm(request.POST if request.method == "POST" else None)
+    if request.method == "POST" and form.is_valid():
+        User.objects.filter(pk=actor(request).pk, adult_confirmed_at__isnull=True).update(
+            adult_confirmed_at=timezone.now()
+        )
+        return redirect("identity:dashboard")
+    return render(
+        request,
+        "domain_form.html",
+        {
+            "form": form,
+            "title": "Une bêta réservée aux adultes",
+            "notice": "Confirmez avoir 18 ans ou plus pour accéder au partage de jeux. "
+            "Aucune date de naissance ni pièce d’identité n’est demandée. "
+            "Vos prêts existants restent consultables et clôturables depuis Mes prêts.",
+        },
+    )

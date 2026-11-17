@@ -4,7 +4,7 @@
 <section class="account" aria-labelledby="titre">
   <p class="eyebrow">Bienvenue sur Muqola</p>
   <h1 id="titre">{{ title }}</h1>
-  {% if kind == 'signup' %}<p>L'inscription est libre. Vous devrez confirmer votre adresse e-mail avant d'accéder à votre espace.</p>{% endif %}
+  {% if kind == 'signup' %}<p>La bêta est réservée aux adultes de 18 ans et plus. Vous devrez confirmer votre adresse e-mail avant d'accéder à votre espace.</p>{% endif %}
   <form method="post">
     {% csrf_token %}
     {% if form.errors %}<div class="errors" role="alert"><p>Vérifiez les champs ci-dessous.</p>{{ form.non_field_errors }}</div>{% endif %}

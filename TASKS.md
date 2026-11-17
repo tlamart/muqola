@@ -2,9 +2,9 @@
 
 > Les durées ne sont pas des engagements. Chaque lot doit être démontrable avant de passer au suivant.
 > Les lots 0–5 ci-dessous décrivent les livraisons historiques ; leurs cases cochées
-> ne valident pas les nouvelles exigences. Le prochain travail est le plan **B → A → C** en fin de document.
+> ne valident pas les nouvelles exigences. B, A, C et P1 sont fusionnées ; le travail courant est la préparation du lot 6.
 > **P1 — décision du 16 novembre 2026 :** prêt immédiat des exemplaires en attente dans les communautés autorisées ; B1 est amendé ci-dessous. Le catalogue général reste réservé aux fiches validées.
-> Arbitrages **B1–B4 et C1–C2 validés le 16 novembre 2026** ; B (#29) et A (#30) sont intégrées dans `main` ; C (#28) est implémentée sur cette base.
+> Arbitrages **B1–B4 et C1–C2 validés le 16 novembre 2026** ; B (#29) et A (#30) sont intégrées dans `main` ; C (#28) et le correctif P1 (#31) sont aussi fusionnés.
 
 ## Lot 0 — Décision technique et socle
 - [x] Lire le kit, rédiger `docs/adr/0001-stack.md` et documenter les compromis.
@@ -48,16 +48,26 @@
 
 ## Lot 6 — Préproduction et mise en ligne
 
-**État initial historique (après PR #22) :** Django 5.2/PostgreSQL 17, Compose **local**, Gunicorn/WhiteNoise, outbox et worker, logs JSON, CI, contrôles Django, catalogue interne, ajout rapide et commande d'import CSV local existent déjà. Ne pas les réimplémenter. Le lot 6 livre leur **configuration et validation de production**, sans modifier le développement local.
+**Préparation du 17 novembre 2026**, après les PR #24/#25/#28/#29/#30/#31 fusionnées.
+Aucun déploiement ni infrastructure réelle. [Audit, preuves et procédures](docs/lot-6-infrastructure.md).
+La décision **18+ est définitive** ; les validations réelles restent ouvertes.
 
-- [ ] Finaliser/valider la préparation Caddy et Compose distinct livrée en PR #24 (voir `docs/lot-6-infrastructure.md`), HTTPS réel, configuration DNS et **Compose de production distinct** (ne pas déployer `compose.yaml` local : `APP_ENV=development`, Mailpit et ports loopback). Configurer `APP_ENV=production`, `APP_BASE_URL` HTTPS, hôtes/CSRF, proxy de confiance, cookies, secrets distincts, PostgreSQL persistant à privilèges minimaux, services non exposés et limites adaptées au VPS.
-- [ ] Configurer un fournisseur SMTP transactionnel réel **sur l'outbox et le worker existants**, DNS SPF/DKIM/DMARC, et vérifier délivrabilité, liens de vérification et réinitialisation ; ne pas utiliser Mailpit en production.
-- [ ] Mettre en place sauvegardes PostgreSQL **externes, chiffrées, à rétention définie** (incluant les fiches importées), et tester une restauration isolée ; ajouter supervision, alertes, suivi du worker, disque et sauvegardes en réutilisant les logs JSON existants.
-- [ ] Compléter mentions légales, politique de confidentialité, CGU, contact, conservation et procédure **effective** de traitement des demandes de suppression de compte existantes, avec données réelles de l'exploitant ; décider explicitement des conditions d'accès des mineurs.
-- [ ] Vérifier limites de débit, permissions intercommunautés, transitions et prêts concurrents, erreurs, secrets, proxy/HTTPS et cookies réels, migrations, sauvegarde avant migration et rollback documenté. Exécuter CI, `check --deploy`, tests navigateur et parcours avec deux comptes.
-- [ ] Appliquer la décision catalogue de la PR B : base neuve vide, aucun ancien import BGG/Wikidata ni catalogue réel dans Git/image. Inventorier les éventuelles données héritées sans les supprimer ; la commande CSV historique ne doit pas alimenter le nouveau catalogue.
-- [ ] Déployer **uniquement après validation humaine explicite** et exécuter un test de fumée en production ; ne pas provisionner ni déployer pendant la préparation documentaire.
-**Acceptation :** site HTTPS public ; un nouveau compte peut être créé et vérifié ; un prêt complet fonctionne ; sauvegarde restaurable ; aucun problème de sécurité bloquant connu.
+- [x] Compose de production distinct : HTTPS/proxy préparés, secrets fichiers isolés, cookies/CSRF, volumes, healthchecks web/worker/DB, limites, redémarrage et logs bornés, images de base épinglées.
+- [x] Séparer `muqola_admin`, `muqola_migrate` et `muqola_app` ; runtime sans DDL ni suppression d'historique, migration ponctuelle et réattribution explicite des droits ; migrations historiques inchangées.
+- [x] Préparer sauvegarde `pg_dump → age → rclone`, rétention configurable, statut/échecs, restauration authentifiée uniquement dans une base distincte vide ; test synthétique reproductible.
+- [x] Préparer SMTP TLS sur l'outbox/worker existants, heartbeat, documentation SPF/DKIM/DMARC et protocole de délivrabilité.
+- [x] Préparer supervision HTTPS/DB/worker/outbox/disque/backup/erreurs JSON, timers et modèle de canal d'alerte indépendant.
+- [x] Réserver la bêta aux 18+ : attestation serveur explicite et migration additive sans consentement inventé ; préserver la clôture des prêts existants.
+- [x] Modèles légaux/contact/confidentialité/CGU, pages échappées, contrôle de complétude et blocage inscription production avant revue ; procédure de droits et limites documentées.
+- [ ] **BLOQUANT ouverture** : VPS/domaine/DNS, HTTPS ACME réel, pare-feu, mémoire et charge, secrets réels, rôles et persistance validés sur l'instance cible.
+- [ ] **BLOQUANT ouverture** : SMTP transactionnel, SPF/DKIM/DMARC et délivrabilité réelle (vérification/reset/prêt), bounces et quotas.
+- [ ] **BLOQUANT ouverture** : stockage externe chiffré réellement configuré, restauration autorisée sur pile isolée et RPO/RTO mesurés ; alertes et sonde indépendante réellement testées.
+- [ ] **BLOQUANT ouverture** : identité/coordonnées et politique de conservation fournies, revue juridique, traitement effectif des demandes de suppression éprouvé (désactivation ≠ effacement).
+- [ ] Vérifier sur infrastructure cible permissions, concurrence, cookies/CSRF, parcours avec deux comptes et téléphone réel ; sauvegarde préalable et rollback éprouvés.
+- [ ] Catalogue neuf vide ; éventuelles données héritées inventoriées/revue des droits sans suppression. Aucun ancien import BGG/Wikidata ni catalogue réel dans Git/image ; aucune commande d'import au lancement.
+- [ ] Déployer **uniquement après autorisation humaine explicite distincte** et accomplissement de LAUNCH_CHECKLIST.md. Cette préparation n'autorise aucun déploiement.
+
+**Acceptation finale non satisfaite à ce stade :** site HTTPS public, compte vérifié par e-mail réel, prêt complet, sauvegarde hors VPS restaurable et conformité effective. La préparation technique est vérifiable localement ; les validations externes restent des prérequis.
 
 ## Scénarios E2E incontournables
 1. Inscription libre → vérification → connexion.
@@ -75,7 +85,7 @@ Intégration/synchronisation externe, rappels automatiques, chat, événements, 
 
 ## Prochaines PR — B → A → C (arbitrages validés)
 
-**État :** le plan documentaire de la PR #26 est intégré. Arbitrages fonctionnels B1–B4 et C1–C2 **validés par le propriétaire le 16 novembre 2026** et détaillés ci-dessous ; B (#29) et A (#30) sont intégrées dans `main`. C est implémentée dans sa PR séparée (#28), mise à jour sur `main` 47b47ff par un commit de fusion conservant son historique (bilan ci-dessous). [Audit sourcé et décisions](docs/plan-b-a-c.md). Base auditée le 15 novembre, réconciliée le 16 novembre après fusion de #25.
+**État :** le plan documentaire de la PR #26 est intégré. Arbitrages fonctionnels B1–B4 et C1–C2 **validés par le propriétaire le 16 novembre 2026** et détaillés ci-dessous ; B (#29) et A (#30) sont intégrées dans `main`. C (#28) est fusionnée ; P1 (#31) amende le prêt des fiches en attente. Les bilans ci-dessous constituent la trace historique des validations. [Audit sourcé et décisions](docs/plan-b-a-c.md). Base auditée le 15 novembre, réconciliée le 16 novembre après fusion de #25.
 
 Créer une branche/PR par lot ci-dessous, sans pousser directement sur `main` ; chaque PR doit fonctionner et passer la CI sans attendre la suivante. **B et C peuvent démarrer indépendamment depuis `main`**, A dépend de B fusionnée ; intégration recommandée B → A → C avec rebase/tests de C. Ne pas confondre ces lettres avec les anciens lots 0–6 ou des numéros GitHub.
 

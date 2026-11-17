@@ -1,12 +1,12 @@
 # Muqola — Spécifications produit (MVP)
 
 > Décision P1 du 16 novembre 2026 : le partage et le prêt des exemplaires `pending` sont autorisés dans leurs communautés, sans publication au catalogue général ; elle remplace la restriction initiale de B1.
-> B et A sont intégrées dans `main` ; la PR C implémente les communautés de la section 4 sur cette base.
+> B (#29), A (#30), C (#28) et P1 (#31) sont fusionnées dans `main`.
 > État du code, écarts et arbitrages : [audit](docs/plan-b-a-c.md).
 > Arbitrages B1–B4 validés ; [catalogue B](docs/catalogue-refonte.md) et [recherche A : classement, confidentialité et mesures](docs/recherche-intelligente.md).
 
 ## 1. Vision
-Muqola est une application web responsive, mobile-first, gratuite au lancement, permettant à des membres de communautés privées (amis, voisins, collègues) de partager leurs **exemplaires physiques de jeux de société** et de gérer leurs prêts. L'inscription à la plateforme est **ouverte à tous**, y compris pendant la bêta ; les communautés restent privées. Le nom Muqola est provisoire jusqu'à vérification des droits et du domaine.
+Muqola est une application web responsive, mobile-first, gratuite au lancement, permettant à des membres de communautés privées (amis, voisins, collègues) de partager leurs **exemplaires physiques de jeux de société** et de gérer leurs prêts. L'inscription à la plateforme est **ouverte aux adultes de 18 ans et plus**, y compris pendant la bêta ; les communautés restent privées. Le nom Muqola est provisoire jusqu'à vérification des droits et du domaine.
 
 ### Objectif de validation
 Deux personnes appartenant à une même communauté peuvent : créer leur compte, vérifier leur adresse e-mail, rejoindre la communauté, publier un jeu, le trouver, demander un prêt avec une date de retour souhaitée, accepter la demande, organiser l'échange par e-mail, confirmer la remise et le retour. Le parcours doit fonctionner sur téléphone.
@@ -19,6 +19,8 @@ Deux personnes appartenant à une même communauté peuvent : créer leur compte
 - **Administrateur de plateforme** : accès limité à des fonctions de modération/sécurité et de gestion des comptes (désactivation, validation des propositions, correction/fusion du catalogue et retrait d'une fiche abusive). Via un outil opérateur sécurisé documenté si besoin ; pas de tableau de bord d'administration requis. Les actions doivent être tracées, sans consultation générale des données privées. Ne valide pas les inscriptions.
 
 ## 3. Comptes et authentification
+- Bêta **18+ exclusivement** : attestation obligatoire non précochée, contrôlée côté serveur et horodatée, sans collecte de date de naissance ni de pièce d’identité. Les comptes existants sans attestation doivent confirmer avant une nouvelle activité métier ; la consultation et la clôture de leurs prêts existants restent possibles (annulation, refus, remise, retour), sans nouvelle acceptation.
+- En production, inscription fermée tant que les quatre documents légaux complets et réellement revus ne sont pas configurés ; les modèles incomplets ne sont pas publiés.
 - Inscription **libre** par e-mail + mot de passe et nom d'affichage ; aucune validation humaine. E-mail unique normalisé, mot de passe robuste haché par une fonction reconnue, sessions sécurisées.
 - Vérification obligatoire avant l'accès aux communautés, aux jeux et aux prêts. Lien opaque, aléatoire, stocké sous forme hachée, **à usage unique**, expiration par défaut **24 h** ; nouveau lien possible avec limitation de débit.
 - Connexion/déconnexion et réinitialisation du mot de passe par lien opaque, à usage unique, expirant par défaut au bout de **1 h**. Invalider les sessions si nécessaire après réinitialisation.

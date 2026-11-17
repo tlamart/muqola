@@ -6,12 +6,14 @@ from urllib.parse import urlsplit
 
 from django.core.exceptions import ImproperlyConfigured
 
+from config.env import secret
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 APP_ENV = os.environ.get("APP_ENV", "development")
 if APP_ENV not in {"development", "test", "production"}:
     raise ImproperlyConfigured("APP_ENV doit valoir development, test ou production.")
 DEBUG = False
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "")
+SECRET_KEY = secret("DJANGO_SECRET_KEY")
 if len(SECRET_KEY) < 50 or SECRET_KEY.startswith("CHANGE_ME"):
     raise ImproperlyConfigured("DJANGO_SECRET_KEY doit contenir au moins 50 caractères aléatoires.")
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1,[::1]").split(",")
@@ -64,7 +66,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": os.environ.get("POSTGRES_DB", "muqola"),
         "USER": os.environ.get("POSTGRES_USER", "muqola"),
-        "PASSWORD": os.environ.get("POSTGRES_PASSWORD", ""),
+        "PASSWORD": secret("POSTGRES_PASSWORD"),
         "HOST": os.environ.get("POSTGRES_HOST", "127.0.0.1"),
         "PORT": os.environ.get("POSTGRES_PORT", "5432"),
         "CONN_MAX_AGE": 60,
@@ -118,7 +120,7 @@ EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "1025"))
 EMAIL_TIMEOUT = 5
 DEFAULT_FROM_EMAIL = os.environ.get("EMAIL_FROM", "Muqola <notifications@example.test>")
 EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
-EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+EMAIL_HOST_PASSWORD = secret("EMAIL_HOST_PASSWORD")
 EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "false").lower() in {"1", "true"}
 EMAIL_USE_SSL = os.environ.get("EMAIL_USE_SSL", "false").lower() in {"1", "true"}
 if EMAIL_USE_TLS and EMAIL_USE_SSL:
@@ -163,3 +165,8 @@ if (
 CSRF_TRUSTED_ORIGINS = [APP_BASE_URL] if APP_ENV == "production" else []
 SESSION_COOKIE_AGE = 7 * 24 * 60 * 60
 CSRF_FAILURE_VIEW = "muqola.core.views.csrf_failure"
+
+# Operator-authored legal documents live outside the image/repository. Missing
+# documents keep the legal pages explicitly unavailable, never "approved".
+LEGAL_DOCUMENTS_DIR = Path(os.environ.get("LEGAL_DOCUMENTS_DIR", str(BASE_DIR / "legal")))
+LEGAL_REVIEWED = os.environ.get("LEGAL_REVIEWED", "false").lower() == "true"

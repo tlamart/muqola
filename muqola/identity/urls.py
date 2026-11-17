@@ -6,6 +6,7 @@ from muqola.identity.profile import profile
 
 app_name = "identity"
 urlpatterns = [
+    path("adult/", views.adult, name="adult"),
     path("profile/", profile, name="profile"),
     path("signup/", views.signup, name="signup"),
     path(

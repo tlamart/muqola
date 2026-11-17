@@ -25,6 +25,7 @@ class Command(BaseCommand):
             is_staff=True,
             is_superuser=True,
             email_verified_at=timezone.now(),
+            adult_confirmed_at=timezone.now(),
         )
         self.stdout.write(
             "Opérateur fictif créé, mot de passe inutilisable ; console privée seulement."

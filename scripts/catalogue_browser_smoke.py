@@ -58,6 +58,7 @@ with sync_playwright() as playwright:
     page.get_by_label("Adresse e-mail").fill(email)
     page.locator("input[name=password]").fill(password)
     page.locator("input[name=password_confirm]").fill(password)
+    page.get_by_label("Je certifie avoir 18 ans ou plus.", exact=True).check()
     page.get_by_role("button", name="S'inscrire", exact=True).click()
     page.wait_for_url("**/accounts/signup/done/")
     link = ""

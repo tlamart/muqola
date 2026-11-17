@@ -3,7 +3,7 @@
 ## Stack et portée
 La stack est **déjà validée** dans [ADR 0001](docs/adr/0001-stack.md) : Python 3.12, Django 5.2 LTS, PostgreSQL 17, templates HTML/CSS/JS locaux, Gunicorn/WhiteNoise et Docker Compose. La conserver ; ne pas réinitialiser le projet ni relancer un choix de framework pour les PR B/A/C.
 
-L'[audit du code et des écarts](docs/plan-b-a-c.md) conserve la photographie de `main` à `e0fa4ca`, après fusion de la PR #25, et détaille les décisions validées. [SPEC](SPEC.md) fixe le comportement ; [TASKS](TASKS.md) détaille les trois PR et leurs validations. B (#29) et A (#30) sont intégrées dans `main` ; C (#28) est mise à jour sur cette base. Voir le [schéma et les migrations B](docs/catalogue-refonte.md), la [recherche intelligente A](docs/recherche-intelligente.md) et les [communautés/invitations C](docs/communautes-refonte.md). Le socle de préproduction séparé/Caddy existe depuis #24 ; il n'autorise aucun déploiement.
+L'[audit du code et des écarts](docs/plan-b-a-c.md) conserve la photographie de `main` à `e0fa4ca`, après fusion de la PR #25, et détaille les décisions validées. [SPEC](SPEC.md) fixe le comportement ; [TASKS](TASKS.md) détaille les trois PR et leurs validations. B (#29), A (#30), C (#28) et P1 (#31) sont fusionnées dans `main`. Voir le [schéma et les migrations B](docs/catalogue-refonte.md), la [recherche intelligente A](docs/recherche-intelligente.md) et les [communautés/invitations C](docs/communautes-refonte.md). Le socle de préproduction séparé/Caddy existe depuis #24 ; il n'autorise aucun déploiement.
 
 ## Contraintes non négociables
 - Monolithe modulaire, pas de microservices, Kubernetes ou architecture événementielle distribuée.
@@ -17,9 +17,9 @@ L'[audit du code et des écarts](docs/plan-b-a-c.md) conserve la photographie de
 - Fichiers de configuration d'exemple sans secrets ; aucun secret ni données réelles dans Git.
 
 ## Modèle logique et cible des évolutions
-- `User` : id, email normalisé unique, hash mot de passe, date vérification, nom d'affichage, dates.
+- `User` : id, email normalisé unique, hash mot de passe, date vérification, nom d'affichage, attestation 18+ horodatée nullable pour les comptes hérités, dates.
 - `AccountToken` : jetons de vérification et de réinitialisation distingués par type, digest unique, expiration et consommation ; `RateBucket` pour les limites de débit.
-- `Community`, `Membership` (rôle, actif/inactif), `CommunityInvite` (digest unique, copie chiffrée récupérable, expiration, révocation, créateur) et `PendingJoin`. **Cible C :** expiration nullable pour lien permanent par défaut, lien courant lisible par membres, mutations admin transactionnelles ; préserver les échéances/révocations existantes. Visibilité privée par défaut, découverte publique à préciser avant implémentation.
+- `Community`, `Membership` (rôle, actif/inactif), `CommunityInvite` (digest unique, copie chiffrée récupérable, expiration, révocation, créateur) et `PendingJoin`. **Cible C :** expiration nullable pour lien permanent par défaut, lien courant lisible par membres, mutations admin transactionnelles ; préserver les échéances/révocations existantes. Communautés strictement privées, sans découverte publique (décision C2 validée).
 - `Game` : fiche générique UUID distincte des exemplaires, métadonnées et paire externe optionnelle, créateur protégé, `hidden` et `ever_reused`. `GameAlias` et `GameIllustration` (crédits/licence Commons) existent depuis #25 et sa migration `0002_wikidata_catalogue`. **B :** une fiche par jeu, type/base et gestion modérée des alias existants, propositions et validation distincte de masquage, correction/fusion opérateur auditée ; identifiants multiples à conserver sans perte. Migration additive sans inventer un type aux lignes héritées ; voir les arbitrages de l'audit. Aucune copie ni prêt supprimé lors d'une fusion.
 - `OwnedGame` : gameId, ownerId, détails d'exemplaire, indicateur « retiré du prêt » ; zéro ou plusieurs communautés de visibilité.
 - `GameVisibility` : ownedGameId, communityId ; unicité de la paire ; vérifier l'appartenance du propriétaire et l'absence de partage implicite.
@@ -71,3 +71,18 @@ DELETE, aucune modification des prêts ACCEPTED/HANDED_OVER. Correction auteur
 sans changement du statut rejeté. Fusions et validations gardent les références
 physiques et permissions existantes. Aucun changement de schéma ni migration de
 données requis. [Détail et vérification](docs/pret-fiches-en-attente.md).
+
+## Lot 6 — frontières de production préparées
+
+Compose distinct, Caddy seul exposé, secrets montés par service, images de base
+épinglées et trois rôles PostgreSQL : bootstrap/admin, propriétaire migration,
+runtime DML sans DDL ni effacement d'historique. Migration explicite suivie de
+réattribution contrôlée des droits. Le runtime ne modifie pas le registre des
+migrations ni les définitions de permissions Django. Sauvegarde en flux
+pg_dump/age/rclone, restauration authentifiée uniquement dans une base séparée
+vide ; sonde hôte légère et heartbeat worker. Aucune infrastructure réelle créée.
+
+Attestation 18+ obligatoire côté serveur pour les nouvelles activités ; les
+prêts existants et l'exercice des droits restent accessibles sans attestation.
+Documents légaux complets/revus hors image requis pour ouvrir les inscriptions
+en production. [Audit, tests, procédures et validations humaines restantes](docs/lot-6-infrastructure.md).

@@ -1,0 +1,35 @@
+MODÈLE À COMPLÉTER ET FAIRE VALIDER — NE PAS PUBLIER EN L’ÉTAT
+
+Responsable de traitement et exercice des droits
+[À RENSEIGNER : identité, contact, juridiction et autorité de contrôle compétente]
+
+Données et usages
+Compte : e-mail, mot de passe haché, nom d’affichage, vérification d’e-mail,
+horodatage de l’attestation 18+ et dates. Pas de date de naissance ni document d’identité.
+Communautés privées : appartenances, rôles, invitations et choix de partage.
+Exemplaires et prêts : fiche générique, notes, participants, états, échéances,
+messages et historique. Les quantités et noms hors du périmètre autorisé ne sont
+pas publics. Les contacts e-mail des prêts ne sont pas publiés avant acceptation.
+Cookies techniques de session et CSRF, aucun traceur facultatif fourni par l’application.
+Images Commons : le navigateur peut contacter Wikimedia, sans référent privé.
+Les invitations récupérables et les charges d’outbox sont chiffrées côté serveur.
+[À RENSEIGNER : bases légales, finalités détaillées et destinataires/sous-traitants réels]
+[À RENSEIGNER : pays de traitement, éventuels transferts et garanties applicables]
+
+Conservation et sauvegardes
+Règles techniques actuelles : sessions 7 jours ; purge périodique des jetons expirés
+avec une marge d’un jour ; notifications en attente au plus 7 jours, payloads d’échec
+effacés après 7 jours et états terminés purgés après 30 jours. Les invitations sans
+échéance persistent jusqu’à révocation ; leurs secrets nécessitent une politique adaptée.
+[À RENSEIGNER : durées et bases de conservation des comptes, prêts, journaux de modération,
+notes, invitations et demandes de suppression ; vérifier qu’elles sont effectivement appliquées]
+[À RENSEIGNER : lieu, chiffrement et rétention effectivement configurée des sauvegardes externes]
+Les copies de sauvegarde doivent expirer selon cette rétention ; une restauration
+ne doit pas réactiver des comptes précédemment clôturés sans réconciliation.
+
+Accès, rectification, effacement et réclamation
+Une demande de suppression peut être enregistrée depuis Mon compte. Sa clôture
+doit résoudre les prêts actifs, transférer les rôles administrateur et limiter les
+références conservées. Une désactivation seule ne vaut pas effacement complet.
+[À RENSEIGNER : procédure effective, contact, délais réellement tenables et justification
+des éventuelles conservations ; validation juridique indispensable]

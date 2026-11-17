@@ -1,6 +1,7 @@
 import signal
 import threading
 import time
+from pathlib import Path
 from typing import Any
 
 from django.core.management.base import BaseCommand, CommandParser
@@ -15,6 +16,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument("--once", action="store_true")
+        parser.add_argument("--heartbeat-file", type=Path)
 
     def handle(self, *args: Any, **options: Any) -> None:
         stop = threading.Event()
@@ -30,6 +32,8 @@ class Command(BaseCommand):
                 purge_ephemeral_data()
                 purge_notifications()
                 last_purge = time.monotonic()
+            if options["heartbeat_file"] is not None:
+                options["heartbeat_file"].touch(mode=0o600, exist_ok=True)
             if options["once"]:
                 self.stdout.write(f"{count} message(s) traité(s).")
                 break

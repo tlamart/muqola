@@ -12,6 +12,7 @@ def member(name: str = "Alice", verified: bool = True) -> User:
         email=f"{name.lower()}@example.test",
         display_name=name,
         email_verified_at=timezone.now() if verified else None,
+        adult_confirmed_at=timezone.now(),
         password="!",
     )
 
@@ -24,6 +25,7 @@ def catalogue_operator() -> User:
             "password": "!",
             "is_superuser": True,
             "email_verified_at": timezone.now(),
+            "adult_confirmed_at": timezone.now(),
         },
     )
     return user

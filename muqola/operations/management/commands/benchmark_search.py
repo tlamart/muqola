@@ -51,6 +51,7 @@ class Command(BaseCommand):
                         display_name=f"Synthétique {i}",
                         password="!",  # noqa: S106 — unusable password, synthetic account
                         email_verified_at=timezone.now(),
+                        adult_confirmed_at=timezone.now(),
                     )
                     for i in range(2)
                 ]

@@ -1,0 +1,9 @@
+[Unit]
+Description=Muqola lightweight operational monitoring
+OnFailure=muqola-alert@%n.service
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/muqola
+UMask=0077
+ExecStart=/opt/muqola/.venv/bin/python -m deploy.monitor --config /etc/muqola/monitor.json
+TimeoutStartSec=2m
