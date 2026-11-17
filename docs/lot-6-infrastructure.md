@@ -50,7 +50,11 @@ Les deux fichiers fournis ont des rôles différents :
 
 - `deploy/Caddyfile` est **uniquement un site à importer** : domaine cible,
   `reverse_proxy muqola-web:8000`, taille de corps 64 Ko, compression et en-têtes
-  réécrits, dont `X-Real-IP`/`X-Forwarded-For` depuis `{remote_host}`.
+  réécrits, dont `X-Real-IP`/`X-Forwarded-For` depuis `{remote_host}`. Le domaine
+  est littéral : une variable globale APP_DOMAIN d'une autre application ne doit
+  pas détourner ce site. Si le Caddy commun hérite d'un proxy HTTP sortant,
+  ajouter `muqola-web` à ses NO_PROXY/no_proxy avant le routage interne ; ne pas
+  remplacer les exclusions nécessaires aux autres applications.
 - `deploy/caddy-global-options.example` contient le filtre JSON à fusionner
   dans le bloc global existant : supprimer les objets requête/URI/en-têtes
   lors des erreurs. Ne pas activer d'access log contenant les liens sensibles.

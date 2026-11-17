@@ -1,5 +1,5 @@
 # Site fragment imported by the shared Caddy; no global/admin/TLS overrides.
-{$APP_DOMAIN:muqola.tlam.art} {
+muqola.tlam.art {
 	encode zstd gzip
 	request_body {
 		max_size 64KB

@@ -115,10 +115,10 @@ def main():
         proxy_dir.mkdir(mode=0o755)
         proxy_dir.chmod(0o755)
         fragment = (ROOT / "deploy/Caddyfile").read_text()
-        marker = "{$APP_DOMAIN:muqola.tlam.art} {"
+        marker = "muqola.tlam.art {"
         assert fragment.count(marker) == 1  # Never accidentally contact ACME.
         (proxy_dir / "muqola.caddy").write_text(
-            fragment.replace(marker, marker + "\n tls internal")
+            fragment.replace(marker, domain + " {\n tls internal")
         )
         (proxy_dir / "global-options").write_text(
             (ROOT / "deploy/caddy-global-options.example").read_text()
@@ -143,7 +143,11 @@ def main():
                     "services": {
                         "caddy": {
                             "image": CADDY_IMAGE,
-                            "environment": {"APP_DOMAIN": domain, "NO_PROXY": "*", "no_proxy": "*"},
+                            "environment": {
+                                "APP_DOMAIN": "unrelated.example.test",
+                                "NO_PROXY": "*",
+                                "no_proxy": "*",
+                            },
                             "networks": {"proxy": {"ipv4_address": caddy_ip}},
                             "ports": [
                                 {
