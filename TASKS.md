@@ -367,26 +367,51 @@ historiques des lots précédents restent inchangées. Aucun déploiement ni vol
 
 ### PR proposée 3 — Image validée et publication GHCR
 
-- [ ] **V8 / P0 — À faire : publier exclusivement après validation de main.** Dépendance : accord ; intégration après PR 1–2 pour les tests adaptés.
-  Acceptation : conserver CI des PR ; publier uniquement sur push `main` après
-  succès des contrôles du même commit ; image construite/testée sur runner,
-  Dockerfile durci conservé, GITHUB_TOKEN `contents:read` et `packages:write`
-  uniquement sur le job de publication de confiance ; aucune publication depuis PR.
-  Validation prévue : tests du workflow/événements/permissions, CI complète et
-  essais négatifs PR externe/échec de tests ; première publication réelle après fusion autorisée uniquement.
-  Fichiers : `.github/workflows/ci.yml`, `Dockerfile` conservé, tests workflows prévus.
-  Manuel : autoriser GHCR/Actions et choisir visibilité publique ou accès lecture privé ; aucune ressource créée pendant l'audit.
+Branche `feat/ghcr-publication` depuis `origin/main` `3ac1ac3`, après fusion #34.
+Périmètre : préparation/test V8–V9 ; aucune publication réelle avant fusion.
 
-- [ ] **V9 / P0 — À faire : traçabilité et promotion du même digest.** Dépendance : V8.
-  Acceptation : tag SHA complet, digest OCI immuable et métadonnées commit/run
-  de publication de confiance conservés ; entrée CD strictement
-  `ghcr.io/tlamart/muqola@sha256:<64 hex>`. Vérifier publication réussie depuis
-  main et disponibilité registre ; un tag SHA ou label seul ne suffit pas.
-  Aucune reconstruction lors de staging → production.
-  Validation prévue : refus latest/tag seul, mauvais dépôt/digest, commit non publié,
-  CI échouée, manifeste absent ou métadonnées incohérentes ; promotion digest identique.
-  Fichiers : workflow CI, validateur d'image dans `deploy/` et tests prévus, exemples env.
-  Manuel : conserver les images/digests nécessaires au rollback ; accès VPS lecture seule si GHCR privé.
+- [x] **V8 / P0 — Vérifié en synthétique : publication exclusivement après main validé.** Dépendance : PR 1–2 intégrées et accord reçu.
+  Acceptation : tous les contrôles PR/main conservés ; une seule construction sur
+  runner, même image testée puis transférée par artefact immuable et ID explicite,
+  aucun rebuild dans le publisher ; push main seulement après succès de checks.
+  Dockerfile durci inchangé ; contents:read global, packages:write au seul publisher,
+  GITHUB_TOKEN éphémère sur stdin, configuration Docker isolée/logout ; aucun SSH.
+  Validation exécutée : politique du vrai workflow parsée/testée (PR, fork, mauvais
+  ref/événement, échec/annulation refusés), actionlint 1.7.12 ; garde du script avant
+  toute mutation, transfert save/load avec hash/ID/labels/commit/run/tentative vérifiés.
+  Fichiers : `.github/workflows/ci.yml`, `scripts/image_candidate.py`, tests livraison.
+  Manuel **après fusion** : vérifier droits Actions/association et visibilité du
+  package GHCR (privée par défaut), succès de checks puis publish sur le nouveau main.
+
+- [x] **V9 / P0 — Vérifié en synthétique : traçabilité et promotion du même digest.** Dépendance : V8.
+  Acceptation : tag SHA complet + tag run/tentative, référence déployable strictement
+  ghcr.io/tlamart/muqola@sha256:<64 hex>, manifeste relu au registre avec digest de
+  configuration identique à l'image testée ; preuve commit/run conservée 90 jours.
+  Validation distante obligatoire avant promotion : API GitHub, push main réussi,
+  dépôt source/workflow/tentative exacts, jobs checks ET publish réussis et preuve
+  unique de ce run ; aucune confiance à un label, tag ou record local seul.
+  Validation exécutée : refus tag/mauvais dépôt, archive altérée, commit/run/ID ou
+  tentative incohérents, publication manquante/expirée/étrangère, CI échouée,
+  manifeste absent ou divergent ; même résultat pour staging/production sans rebuild.
+  Essai Docker réel save/load/push/readback dans un registre **loopback synthétique**,
+  identité conservée et volume retenu ; aucun push GHCR réel.
+  Fichiers : `deploy/image_provenance.py`, `scripts/image_delivery_smoke.py`, tests,
+  workflow et runbook. PyYAML dev seulement ; aucune dépendance runtime ajoutée.
+  Manuel **après fusion** : vérifier la première preuve réelle et le digest dans
+  GHCR ; conserver preuves/runs/digests de rollback et définir l'accès en lecture.
+
+- [ ] **V8–V9 / P0 — Validation GHCR réelle à faire après fusion humaine.**
+  Aucun run main publiant cette nouvelle chaîne n'existe encore. Vérifier le
+  succès complet, exécuter `deploy.image_provenance` sur le digest publié et
+  conserver la preuve distante ; aucune image n'est admissible avant ce contrôle.
+  Pas de changement automatique de visibilité ni d'achat en cas de quota.
+
+Preuves locales du 17 novembre : `scripts/check.sh` **479 tests réussis**,
+Ruff lint/format, mypy, Django/migrations/statiques ; `check --deploy` et audit
+runtime réussis ; actionlint et build Docker réussis ; essai registre loopback
+réussi, volumes conservés. La CI et les smokes finaux sont consignés dans la PR.
+V7 (mesure capacité VPS) reste ouverte ; ce lot ne constitue aucune autorisation
+SSH, de déploiement, de migration réelle ou de fusion.
 
 ### PR proposée 4 — CD manuel avec plan contrôlé et reprise
 
@@ -400,8 +425,12 @@ historiques des lots précédents restent inchangées. Aucun déploiement ni vol
   Validation prévue : refus empreinte inconnue, image/injection/chemin invalide,
   environnement inattendu, accès concurrents ; simulation SSH et pile locale jetable.
   Fichiers : `.github/workflows/deploy.yml`, scripts de livraison ciblés dans `deploy/`, tests prévus.
-  Manuel : créer environnements GitHub, restrictions à main, reviewers production
-  si disponibles, clés dédiées dans Secrets et clé publique autorisée sur VPS ; ne jamais les transmettre à l'agent.
+  Manuel : environnements `staging`/`production` déjà créés selon l'exploitant
+  (17 novembre), chacun avec vars SSH_KNOWN_HOSTS/VPS_HOST/VPS_USER et secret
+  VPS_SSH_KEY ; valeurs non inspectées. Vérifier restrictions main, reviewers
+  production disponibles et host keys hors bande au lot CD. VPS_USER sans sudo
+  ni Docker : conserver ces droits pour GHCR, mécanisme de commandes à définir
+  avant CD ; aucune clé à transmettre à l'agent.
 
 - [ ] **V11 / P0 — À faire : plan puis application autorisée.** Dépendances : V4, V9–V10.
   Acceptation : mode `plan` puis mode `apply` séparé avec référence/hash du plan
@@ -448,5 +477,5 @@ réussis. Les résultats des parcours navigateur et de la CI finale sont consign
 dans la PR. `compose.yaml`, Dockerfile et migrations historiques inchangés.
 Les cases V1–V4 attestent l'implémentation et les tests synthétiques, **pas leur
 installation sur VPS** ; toutes les actions manuelles ci-dessus restent à faire.
-V5–V13 restent ouverts et les dépendances d'intégration/accord ne sont pas levées
-par une CI verte. Aucune suppression de volume ni opération de production.
+À la livraison de PR 1, V5–V13 restaient ouverts ; les bilans suivants ci-dessus
+actualisent leur état. Une CI verte ne lève pas une dépendance d'accord ou de validation réelle. Aucune suppression de volume ni opération de production.

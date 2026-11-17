@@ -15,7 +15,7 @@ du lot 6 restent à faire ([état exact](docs/lot-6-infrastructure.md)).
 
 Les PR #24 (socle production), #25 (Wikidata/Commons), #28 (communautés),
 #29 (catalogue), #30 (recherche), #31 (prêt des fiches en attente) et #32
-(préparation production) sont fusionnées.
+(préparation production), #33 (Caddy partagé) et #34 (staging privé) sont fusionnées.
 Les communautés restent privées ; les fiches pending sont empruntables seulement
 via un exemplaire autorisé, sans publication au catalogue général.
 
@@ -37,8 +37,9 @@ aucun service Caddy ni port publié dans `compose.prod.yaml`. Seul web rejoint
 `proxy` sous `muqola-web` ; DB/worker/migration restent privés. Le fragment
 `deploy/Caddyfile` doit être intégré et validé par l'exploitant, avec le filtre
 global fourni et une IP Caddy stable explicitement approuvée. Le projet/volume
-PostgreSQL et les protections #32 sont conservés. Le staging est préparé ci-dessous ; publication GHCR et CD manuel restent les
-lots suivants. Aucune image n'est publiée par cette préparation.
+PostgreSQL et les protections #32 sont conservés. Le staging et le flux GHCR
+sont préparés ci-dessous ; le CD manuel reste le lot suivant. La première
+publication GHCR aura lieu après fusion et validation de main, sans déploiement.
 [Configuration, reload sans interruption et précontrôles](docs/lot-6-infrastructure.md#pr-1--caddy-partagé-et-exploitation-compatible).
 
 Contrôle structurel sans démarrage :
@@ -55,6 +56,26 @@ uv run --frozen python scripts/production_smoke.py --image muqola:local
 
 Il crée sa propre pile/volumes jetables, utilise une CA locale et ne contacte ni
 ACME ni SMTP externe. Voir le guide pour les limites et les preuves de validation.
+
+## Images GHCR et promotion
+
+La CI construit et teste une seule image, puis la conserve par save/load avec
+contrôle d'identité et de hash. **Après fusion seulement**, le job publish peut
+la publier sur GHCR si tous les contrôles du même push main réussissent ; aucune
+publication depuis une PR. Seul ce job possède `packages:write`.
+
+Le résumé du run fournit le digest et la preuve de publication (90 jours).
+Les tags SHA/run servent au suivi ; staging et production devront utiliser
+**le même digest** `ghcr.io/tlamart/muqola@sha256:…`, sans reconstruction.
+Le contrôle `python3 -m deploy.image_provenance --image … --run-id … --attempt …`
+vérifie l'API GitHub, les deux jobs réussis, la preuve distante et le manifeste GHCR.
+Un label ou un fichier local seul n'autorise aucune promotion.
+[Flux, commandes, rétention, accès privé et limites](docs/lot-6-infrastructure.md#pr-3--image-testée-et-publication-ghcr).
+
+Les environnements GitHub staging/production et leurs variables SSH sont déclarés
+configurés par l'exploitant. Ils serviront au lot CD manuel ; **aucun droit sudo
+ou Docker supplémentaire n'est nécessaire à VPS_USER pour ce lot GHCR**.
+Aucun déploiement ni accès SSH depuis cette PR.
 
 ## Staging privé éphémère
 

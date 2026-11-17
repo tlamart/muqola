@@ -13,6 +13,9 @@ jobs:
   checks:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    outputs:
+      candidate_artifact_id: ${{ steps.upload_candidate.outputs.artifact-id }}
+      candidate_image_id: ${{ steps.build.outputs.image_id }}
     env:
       APP_ENV: test
       DJANGO_SECRET_KEY: ci-only-synthetic-key-00000000000000000000000000000000000000000000
@@ -63,9 +66,15 @@ jobs:
       - name: Audit runtime dependencies
         run: uv run --frozen pip-audit -r requirements.txt --disable-pip --no-deps --progress-spinner off
       - name: Start a clean Compose stack (build, migration, healthcheck)
+        id: build
         run: |
           python scripts/init_dev.py
-          docker compose up --build --wait --wait-timeout 120
+          docker build --platform linux/amd64 --provenance=false \
+            --label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            --tag muqola:local .
+          printf 'image_id=%s\n' "$(docker image inspect --format '{{.Id}}' muqola:local)" >> "$GITHUB_OUTPUT"
+          docker compose up --no-build --wait --wait-timeout 120
           curl --fail http://127.0.0.1:8000/health/ready/
           docker compose exec -T web python manage.py send_dev_email
           curl --fail http://127.0.0.1:8025/api/v1/messages | python -c 'import json,sys; assert json.load(sys.stdin)["total"] >= 1'
@@ -80,6 +89,8 @@ jobs:
           PATH="$PWD/work/age-tools/age:$PATH" uv run --frozen python scripts/production_smoke.py --image muqola:local
       - name: Private ephemeral staging, SMTP capture and production isolation
         run: uv run --frozen python scripts/staging_smoke.py --image muqola:local
+      - name: Exact candidate save/load and loopback registry readback
+        run: python -m scripts.image_delivery_smoke
       - name: Gunicorn stays available with silent TCP preconnections
         run: |
           python - <<'PY'
@@ -134,6 +145,7 @@ jobs:
             work/search/*.png
             work/search-benchmark.json
             work/staging-smoke.json
+            work/image-delivery-smoke.json
             work/search-benchmark-plans.json
           if-no-files-found: ignore
           retention-days: 7
@@ -163,3 +175,69 @@ jobs:
       - name: Cleanup local containers
         if: always()
         run: docker compose down
+      - name: Export the exact tested candidate
+        env:
+          CANDIDATE_IMAGE_ID: ${{ steps.build.outputs.image_id }}
+        run: python -m scripts.image_candidate export --directory work/candidate --image-id "$CANDIDATE_IMAGE_ID"
+      - name: Preserve the tested candidate for this run only
+        id: upload_candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: muqola-candidate-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            work/candidate/candidate.json
+            work/candidate/image.tar.gz
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 3
+  publish:
+    needs: checks
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      github.repository == 'tlamart/muqola' &&
+      needs.checks.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+    env:
+      CANDIDATE_IMAGE_ID: ${{ needs.checks.outputs.candidate_image_id }}
+      CANDIDATE_ARTIFACT_ID: ${{ needs.checks.outputs.candidate_artifact_id }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          artifact-ids: ${{ needs.checks.outputs.candidate_artifact_id }}
+          path: work/candidate
+          merge-multiple: true
+      - name: Prepare isolated registry credentials
+        run: printf 'DOCKER_CONFIG=%s/muqola-ghcr-auth\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - name: Authenticate only this trusted publication job
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+        run: |
+          mkdir -m 700 -p "$DOCKER_CONFIG"
+          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GHCR_USER" --password-stdin
+      - name: Load and publish the tested image without rebuilding
+        run: >-
+          python -m scripts.image_candidate publish --directory work/candidate
+          --image-id "$CANDIDATE_IMAGE_ID" --candidate-artifact-id "$CANDIDATE_ARTIFACT_ID"
+          --output work/publication/publication.json
+      - name: Preserve publication evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: muqola-publication-${{ github.sha }}-${{ github.run_attempt }}
+          path: work/publication/publication.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Logout of GHCR
+        if: always()
+        run: docker logout ghcr.io

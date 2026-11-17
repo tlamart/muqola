@@ -1,5 +1,144 @@
 # Lot 6 — Préparation à la validation sur infrastructure réelle
 
+## PR 3 — Image testée et publication GHCR
+
+Base : main `3ac1ac3`, après fusion de #34 ; branche `feat/ghcr-publication`.
+Couvre V8–V9 ; aucun SSH, déploiement, changement Caddy ou droits du compte VPS.
+La première publication GHCR sera déclenchée uniquement après fusion humaine,
+par les contrôles du nouveau commit de main. Aucun push registre réel en développement.
+
+### Construire une fois, tester, puis publier
+
+Le job `checks` conserve tous les contrôles existants, sur PR et push main.
+Il construit **une seule image linux/amd64**, avec le Dockerfile durci inchangé,
+les labels OCI source/révision, puis démarre Compose avec `--no-build`.
+Les tests production/staging, TLS/CSRF, rôles, sauvegarde/restauration, navigateurs
+et Codespaces utilisent cette image. Aucun secret applicatif n'entre dans le build.
+
+Après succès de tous les contrôles et du nettoyage, `scripts.image_candidate export`
+vérifie l'ID Docker, l'UID non root, la plateforme et les labels. Il conserve
+l'image par `docker image save` et gzip, avec SHA-256 de l'archive et métadonnées
+commit/run/tentative dans un artefact immuable de ce run (rétention **3 jours**).
+Le job suivant télécharge l'**ID d'artefact** produit par `checks`, jamais un nom
+provenant d'une autre branche, d'un autre run ou d'un cache.
+
+Le job `publish` ne s'exécute que pour `push` sur `refs/heads/main` de
+`tlamart/muqola`, après `checks=success`. Aucune publication depuis PR, fork,
+workflow_dispatch ou pull_request_target. Les permissions globales restent
+`contents:read` ; **seul publish** obtient `packages:write`, sans SSH ni droits
+sur les environnements staging/production. Le script vérifie aussi ce contexte
+avant toute mutation Docker. L'authentification utilise le GITHUB_TOKEN éphémère,
+stdin, un DOCKER_CONFIG isolé du runner et un logout final ; aucun PAT de push requis.
+
+Le publisher vérifie archive, ID attendu et contexte, charge l'image, contrôle
+son identité puis publie sans reconstruction :
+
+- `ghcr.io/tlamart/muqola:<SHA complet>` ;
+- `ghcr.io/tlamart/muqola:<SHA complet>-<run>-<tentative>`, pour conserver une
+  référence par publication même après une réexécution du même commit.
+
+Aucun tag latest/main. Un tag reste mutable : une réexécution peut modifier le
+raccourci SHA. **Seul `ghcr.io/tlamart/muqola@sha256:<64 hex>` est déployable**.
+Le manifeste est relu depuis le registre par digest ; son digest de configuration
+OCI doit correspondre exactement à l'ID de l'image testée. L'image n'est pas
+reconstruite pour la promotion staging → production. Avant usage sur VPS, vérifier
+son architecture réelle (`uname -m` doit correspondre à amd64/x86_64) ; aucun
+support multiarchitecture non testé n'est prétendu.
+
+### Preuve de publication et vérification avant promotion
+
+Après push et relecture, le publisher conserve `publication.json` dans
+`muqola-publication-<SHA>-<tentative>` pendant **90 jours**, et résume digest,
+commit et run dans GitHub Actions. La preuve inclut ID d'image, hash de l'archive,
+plateforme et ID d'artefact candidat. Un push partiel ou un workflow ensuite
+échoué/annulé ne produit aucune image admissible, même si un tag existe au registre.
+
+Le contrôle en lecture seule `deploy.image_provenance` exige :
+
+1. Référence exacte du dépôt GHCR par digest ; pas de tag, autre dépôt ou argument shell.
+2. API GitHub authentifiée : run terminé avec succès, push/main, dépôt et dépôt
+   source attendus, workflow CI exact, SHA et tentative courante concordants.
+3. Jobs `checks` **et** `publish` terminés avec succès pour ce même commit/run.
+4. Preuve unique, non expirée, issue de ce run/tentative ; ZIP borné lu en mémoire,
+   fichier publication.json seulement, aucun fichier extrait sur disque.
+5. Concordance de toutes les métadonnées ; manifeste disponible dans GHCR et
+   digest de configuration identique à l'image testée.
+
+Un fichier local, un label OCI, un tag SHA ou le succès d'une ancienne CI de PR ne
+suffisent jamais. Preuve expirée/absente, API inaccessible, permissions manquantes,
+manifest absent ou réexécution non réussie : **refus**, sans option de contournement.
+Une réexécution remplace la tentative courante : ne pas utiliser une preuve d'une
+ancienne tentative. Pour reprendre une publication échouée/expirée, utiliser
+**Re-run all jobs** : relancer seulement les jobs échoués conserve un candidat
+d'une ancienne tentative, volontairement refusé. Le futur lot CD utilisera ce
+contrôle avant toute livraison.
+
+Exemple **après publication réelle**, sur runner CI ou poste opérateur équipé de
+Python 3, GitHub CLI et Docker avec buildx ; aucun démarrage de conteneur :
+
+```sh
+# Remplacer par les valeurs du run main ayant publié l'image.
+RELEASE_IMAGE='ghcr.io/tlamart/muqola@sha256:REMPLACER_64_HEX'
+RELEASE_RUN_ID=REMPLACER_RUN
+RELEASE_ATTEMPT=1
+python3 -m deploy.image_provenance --image "$RELEASE_IMAGE" \
+  --run-id "$RELEASE_RUN_ID" --attempt "$RELEASE_ATTEMPT" \
+  --output work/evidence/validated-image.json
+```
+
+GitHub CLI utilise sa connexion privée ou GH_TOKEN hors argv/logs ; le contrôle
+requiert lecture des métadonnées/artefacts Actions du dépôt. Docker/buildx utilise
+ses accès registre en lecture. Aucun jeton de publication n'est transmis au VPS.
+Le contrôle ne modifie pas Compose/env et ne déploie rien. Conserver run, preuve
+et versions GHCR nécessaires au rollback ; pas de purge automatique. Au-delà de
+la rétention, sans preuve distante disponible, nouvelle publication validée requise.
+
+### Configuration GitHub et interventions restantes
+
+Conserver la visibilité privée par défaut d'un nouveau package ; ce lot ne
+rend aucun package public. L'exploitant vérifiera après fusion les droits Actions
+et l'association du package au dépôt (label OCI source), le succès du job publish,
+le digest et la preuve. Si un package existe déjà, accorder à ce dépôt les droits
+d'écriture nécessaires plutôt que d'ajouter un PAT large au workflow. Si le quota
+Actions/Packages est atteint, publication bloquée : aucun achat automatique.
+Un accès privé en lecture pour le futur VPS sera à définir au lot CD ; décider
+séparément d'une visibilité publique éventuelle. Ne jamais transmettre les clés ici.
+
+**Déclaré par l'exploitant le 17 novembre :** environnements GitHub `staging` et
+`production` déjà créés, chacun avec variables `SSH_KNOWN_HOSTS`, `VPS_HOST`,
+`VPS_USER` et secret `VPS_SSH_KEY`. Le futur CD utilisera les variables par `vars`
+et la clé par `secrets`. Valeurs non consultées, aucune clé utilisée par ce lot.
+Les restrictions à main, approbations production si disponibles et empreintes SSH
+vérifiées hors bande restent à contrôler au lot 4.
+
+`VPS_USER` n'a actuellement ni sudo ni accès Docker : **aucun ajout nécessaire
+pour GHCR**, garder ces droits en l'état. Le lot CD précisera le mécanisme de
+commandes autorisées sur le VPS avant tout besoin de modification ; ne pas accorder
+sudo général par anticipation. L'accès libre au socket Docker équivaut à des
+privilèges administrateur ; il ne constitue pas une restriction de clé SSH.
+
+### Preuves synthétiques et limites
+
+Tests de la politique du workflow et des refus PR/fork/échec, altération archive,
+image/commit/run/tentative incorrects, preuves absentes/expirées/étrangères,
+manifest/config incohérents ; promotion du même digest vérifiée sans distinction
+de l'environnement cible. PyYAML ajouté **uniquement aux dépendances dev** pour
+parser réellement le workflow ; aucune nouvelle dépendance runtime.
+
+`python -m scripts.image_delivery_smoke` effectue réellement save/load/push et
+relecture du manifeste sur un **registre loopback synthétique**, avec vérification
+de l'identité conservée. Aucun GHCR réel ; son volume reste conservé/inventorié.
+La CI conserve son JSON avec les captures. Les smokes production/staging et tous
+les parcours existants restent dans le job checks. Résultats exacts dans TASKS/PR.
+Validation locale du 17 novembre : **479 tests réussis**, lint/format/typage,
+Django/migrations/statiques, check production, audit runtime sans vulnérabilité
+connue, actionlint 1.7.12, chargement des outils sous Python 3.13.5, build et smokes
+registre/production/staging réussis. La CI de la PR consigne le résultat du commit final.
+La première publication GHCR réelle et sa vérification distante restent à faire
+après fusion ; aucune mesure de capacité VPS ni ouverture publique validée ici.
+
+---
+
 ## PR 2 — Staging privé éphémère
 
 Base : main `67df970`, après fusion de #33 ; branche `feat/staging-ephemere`.
