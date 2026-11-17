@@ -2,8 +2,10 @@
 
 import ast
 import copy
+import hashlib
 import io
 import json
+import tarfile
 import zipfile
 from pathlib import Path
 from typing import Any
@@ -18,6 +20,8 @@ from scripts import image_candidate as candidate
 ROOT = Path(__file__).resolve().parents[1]
 COMMIT = "a" * 40
 IMAGE_ID = "sha256:" + "b" * 64
+CONFIG_BYTES = b'{"architecture":"amd64","os":"linux","config":{"User":"10001:10001"}}'
+CONFIG_DIGEST = "sha256:" + hashlib.sha256(CONFIG_BYTES).hexdigest()
 DIGEST = "sha256:" + "c" * 64
 IMAGE = provenance.IMAGE_REPOSITORY + "@" + DIGEST
 
@@ -97,6 +101,14 @@ def test_workflow_scopes_permissions_and_transfers_by_same_run_artifact_id() -> 
     assert document["on"]["pull_request"]["branches"] == ["main"]
     checks, publish = document["jobs"]["checks"], document["jobs"]["publish"]
     assert publish["needs"] == "checks"
+    assert (
+        publish["env"]["CANDIDATE_CONFIG_DIGEST"]
+        == "${{ needs.checks.outputs.candidate_config_digest }}"
+    )
+    assert (
+        checks["outputs"]["candidate_config_digest"]
+        == "${{ steps.export_candidate.outputs.config_digest }}"
+    )
     assert publish["permissions"] == {"contents": "read", "packages": "write"}
     assert "permissions" not in checks and "environment" not in publish
     assert not any("SSH" in str(job) for job in document["jobs"].values())
@@ -146,13 +158,20 @@ def test_script_refuses_untrusted_publication_before_docker(
     commands: list[list[str]] = []
     monkeypatch.setattr(candidate, "run", lambda args: commands.append(args))
     with pytest.raises(OperationError):
-        candidate.publish(tmp_path, IMAGE_ID, 42, tmp_path / "record")
+        candidate.publish(tmp_path, IMAGE_ID, CONFIG_DIGEST, 42, tmp_path / "record")
     assert commands == []
 
 
 def candidate_docker(args: list[str]) -> bytes:
     if args[:3] == ["docker", "image", "save"]:
-        Path(args[4]).write_bytes(b"Synthetic exported image")
+        with tarfile.open(args[4], "w") as archive:
+            for name, data in (
+                ("manifest.json", b'[{"Config":"config.json","RepoTags":["muqola:local"]}]'),
+                ("config.json", CONFIG_BYTES),
+            ):
+                entry = tarfile.TarInfo(name)
+                entry.size = len(data)
+                archive.addfile(entry, io.BytesIO(data))
         return b""
     if args[:3] == ["docker", "image", "inspect"]:
         return json.dumps(
@@ -185,7 +204,7 @@ def manifest() -> tuple[dict[str, Any], dict[str, Any]]:
     return {"digest": DIGEST}, {
         "schemaVersion": 2,
         "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
-        "config": {"digest": IMAGE_ID},
+        "config": {"digest": CONFIG_DIGEST},
         "layers": [{"digest": "sha256:" + "d" * 64}],
     }
 
@@ -203,7 +222,7 @@ def test_exact_candidate_export_load_and_publish_without_build(
     monkeypatch.setattr(candidate, "registry_manifest", lambda _: manifest())
     exported = candidate.export(tmp_path, IMAGE_ID)
     assert exported["archive_sha256"] == candidate.archive_digest(tmp_path / "image.tar.gz")
-    result = candidate.publish(tmp_path, IMAGE_ID, 42, tmp_path / "publication.json")
+    result = candidate.publish(tmp_path, IMAGE_ID, CONFIG_DIGEST, 42, tmp_path / "publication.json")
     provenance.validate_record(result, IMAGE, 123, 2)
     assert result["image_id"] == IMAGE_ID
     assert result["archive_sha256"] == exported["archive_sha256"]
@@ -211,10 +230,13 @@ def test_exact_candidate_export_load_and_publish_without_build(
         "ghcr.io/tlamart/muqola:" + COMMIT + "-123-2",
         "ghcr.io/tlamart/muqola:" + COMMIT,
     ]
+    assert all(cmd[3:5] == ["--platform", "linux/amd64"] for cmd in commands if cmd[2] == "push")
     assert not any("build" in cmd or "run" in cmd or "latest" in cmd for cmd in commands)
 
 
-@pytest.mark.parametrize("fault", ["archive", "image_id", "commit", "run_id", "run_attempt"])
+@pytest.mark.parametrize(
+    "fault", ["archive", "image_id", "config_digest", "commit", "run_id", "run_attempt"]
+)
 def test_tampered_candidate_is_refused_before_load_or_push(
     ci_context: None, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, fault: str
 ) -> None:
@@ -230,7 +252,7 @@ def test_tampered_candidate_is_refused_before_load_or_push(
     commands: list[list[str]] = []
     monkeypatch.setattr(candidate, "run", lambda args: commands.append(args))
     with pytest.raises(OperationError, match="candidate_transfer_mismatch"):
-        candidate.load(tmp_path, IMAGE_ID)
+        candidate.load(tmp_path, IMAGE_ID, CONFIG_DIGEST)
     assert commands == []
 
 
@@ -247,6 +269,7 @@ def evidence(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
         "run_attempt": 2,
         "image": IMAGE,
         "image_id": IMAGE_ID,
+        "config_digest": CONFIG_DIGEST,
         "platform": "linux/amd64",
         "candidate_artifact_id": 42,
         "archive_sha256": "sha256:" + "e" * 64,
@@ -320,7 +343,8 @@ def test_remote_evidence_and_manifest_allow_the_same_digest_for_both_environment
         ("run", "run_attempt", 3),
         ("record", "commit", "f" * 40),
         ("record", "image", "ghcr.io/tlamart/muqola@sha256:" + "f" * 64),
-        ("record", "image_id", "sha256:" + "f" * 64),
+        ("record", "image_id", "invalid-id"),
+        ("record", "config_digest", "sha256:" + "f" * 64),
         ("record", "run_id", 124),
         ("record", "run_attempt", 1),
         ("record", "platform", "linux/arm64"),
@@ -418,7 +442,7 @@ def test_downloaded_archive_is_read_without_extracting_files(
             provenance.GitHubEvidence().record(456)
 
 
-@pytest.mark.parametrize("fault", ["id", "user", "platform", "label"])
+@pytest.mark.parametrize("fault", ["user", "platform", "label"])
 def test_loaded_image_identity_is_verified_before_any_push(
     ci_context: None, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, fault: str
 ) -> None:
@@ -431,9 +455,7 @@ def test_loaded_image_identity_is_verified_before_any_push(
         value = candidate_docker(args)
         if args[:3] == ["docker", "image", "inspect"]:
             actual = json.loads(value)
-            if fault == "id":
-                actual[0]["Id"] = "sha256:" + "f" * 64
-            elif fault == "user":
+            if fault == "user":
                 actual[0]["Config"]["User"] = "root"
             elif fault == "platform":
                 actual[0]["Architecture"] = "arm64"
@@ -444,7 +466,7 @@ def test_loaded_image_identity_is_verified_before_any_push(
 
     monkeypatch.setattr(candidate, "run", docker)
     with pytest.raises(OperationError, match="tested_candidate_identity_mismatch"):
-        candidate.publish(tmp_path, IMAGE_ID, 42, tmp_path / "publication.json")
+        candidate.publish(tmp_path, IMAGE_ID, CONFIG_DIGEST, 42, tmp_path / "publication.json")
     assert not (tmp_path / "publication.json").exists()
     assert not any(cmd[2] in {"tag", "push"} for cmd in commands)
 
@@ -462,5 +484,48 @@ def test_failed_registry_push_never_writes_publication_evidence(
 
     monkeypatch.setattr(candidate, "run", fail)
     with pytest.raises(OperationError, match="command_failed"):
-        candidate.publish(tmp_path, IMAGE_ID, 42, tmp_path / "publication.json")
+        candidate.publish(tmp_path, IMAGE_ID, CONFIG_DIGEST, 42, tmp_path / "publication.json")
     assert not (tmp_path / "publication.json").exists()
+
+
+def test_cross_store_engine_ids_are_allowed_only_with_the_exact_tested_configuration(
+    ci_context: None, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(candidate, "run", candidate_docker)
+    exported = candidate.export(tmp_path, IMAGE_ID)
+    assert exported["config_digest"] == CONFIG_DIGEST != IMAGE_ID
+
+    def different_store(args: list[str]) -> bytes:
+        value = candidate_docker(args)
+        if args[:3] == ["docker", "image", "inspect"]:
+            actual = json.loads(value)
+            actual[0]["Id"] = "sha256:" + "f" * 64
+            return json.dumps(actual).encode()
+        return value
+
+    monkeypatch.setattr(candidate, "run", different_store)
+    assert candidate.load(tmp_path, IMAGE_ID, CONFIG_DIGEST) == exported
+
+
+def test_loaded_configuration_must_match_even_when_engine_inspection_passes(
+    ci_context: None, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(candidate, "run", candidate_docker)
+    candidate.export(tmp_path, IMAGE_ID)
+
+    def changed_configuration(args: list[str]) -> bytes:
+        value = candidate_docker(args)
+        if args[:3] == ["docker", "image", "save"]:
+            with tarfile.open(args[4], "w") as archive:
+                for name, data in (
+                    ("manifest.json", b'[{"Config":"config.json"}]'),
+                    ("config.json", CONFIG_BYTES + b" "),
+                ):
+                    entry = tarfile.TarInfo(name)
+                    entry.size = len(data)
+                    archive.addfile(entry, io.BytesIO(data))
+        return value
+
+    monkeypatch.setattr(candidate, "run", changed_configuration)
+    with pytest.raises(OperationError, match="loaded_configuration_mismatch"):
+        candidate.load(tmp_path, IMAGE_ID, CONFIG_DIGEST)

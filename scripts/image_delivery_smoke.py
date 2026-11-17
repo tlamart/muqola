@@ -3,13 +3,14 @@
 # ruff: noqa: S101 -- executable integration assertions
 
 import argparse
+import hashlib
 import json
 import os
 import tempfile
 import time
 import uuid
 from pathlib import Path
-from urllib.request import ProxyHandler, build_opener
+from urllib.request import ProxyHandler, Request, build_opener
 
 from deploy.common import run
 from deploy.image_provenance import IMAGE_REPOSITORY, registry_manifest, validate_manifest
@@ -46,9 +47,9 @@ def main() -> int:
         with tempfile.TemporaryDirectory(prefix="muqola-image-") as directory:
             location = Path(directory)
             candidate = export(location, image_id)
-            loaded = load(location, image_id, publishing=False)
+            loaded = load(location, image_id, candidate["config_digest"], publishing=False)
             assert candidate == loaded
-            inspect_candidate(image_id, commit)
+            loaded_id = inspect_candidate(None, commit)
             run(
                 [
                     "docker",
@@ -77,8 +78,8 @@ def main() -> int:
                         raise
                     time.sleep(0.2)
             tag = f"127.0.0.1:{port}/muqola-synthetic:{commit}"
-            run(["docker", "image", "tag", image_id, tag])
-            run(["docker", "image", "push", tag])
+            run(["docker", "image", "tag", loaded_id, tag])
+            run(["docker", "image", "push", "--platform", "linux/amd64", tag])
             published = json.loads(run(["docker", "image", "inspect", tag]))[0]
             reference = next(
                 v for v in published["RepoDigests"] if v.startswith(f"127.0.0.1:{port}/")
@@ -86,14 +87,43 @@ def main() -> int:
             descriptor, manifest = registry_manifest(reference)
             # Apply the same content checks to the loopback manifest. This is not GHCR evidence.
             validate_manifest(
-                IMAGE_REPOSITORY + "@" + reference.split("@")[1], image_id, descriptor, manifest
+                IMAGE_REPOSITORY + "@" + reference.split("@")[1],
+                candidate["config_digest"],
+                descriptor,
+                manifest,
             )
-            assert published["Id"] == image_id
+            assert published["Id"] == loaded_id
+            # Also exercise OCI media types, independent of the daemon image store.
+            oci = json.loads(json.dumps(manifest))
+            oci["mediaType"] = "application/vnd.oci.image.manifest.v1+json"
+            oci["config"]["mediaType"] = "application/vnd.oci.image.config.v1+json"
+            for layer in oci["layers"]:
+                layer["mediaType"] = "application/vnd.oci.image.layer.v1.tar+gzip"
+            body = json.dumps(oci).encode()
+            request = Request(  # noqa: S310 -- fixed loopback registry, synthetic only
+                f"http://127.0.0.1:{port}/v2/muqola-synthetic/manifests/oci",
+                data=body,
+                method="PUT",
+                headers={"Content-Type": oci["mediaType"]},
+            )
+            with opener.open(request, timeout=5) as response:
+                assert response.status == 201
+            oci_digest = "sha256:" + hashlib.sha256(body).hexdigest()
+            descriptor, oci_manifest = registry_manifest(
+                f"127.0.0.1:{port}/muqola-synthetic@{oci_digest}"
+            )
+            validate_manifest(
+                IMAGE_REPOSITORY + "@" + oci_digest,
+                candidate["config_digest"],
+                descriptor,
+                oci_manifest,
+            )
             report = {
                 "image_delivery_smoke": "passed",
                 "exact_save_load": True,
                 "registry_manifest_readback": True,
                 "configuration_digest_preserved": True,
+                "oci_manifest_readback": True,
                 "archive_sha256": candidate["archive_sha256"],
                 "volumes_preserved": True,
                 "ghcr_publication_validated": False,
@@ -101,6 +131,9 @@ def main() -> int:
             args.report.write_text(json.dumps(report))
             print(json.dumps(report))
     finally:
+        # Loading through another image store may change the engine handle.
+        # Restore the exact tag the remaining CI checks/export expect.
+        run(["docker", "image", "tag", image_id, "muqola:local"])
         if started:
             run(["docker", "stop", name])
             run(["docker", "container", "rm", name])

@@ -52,6 +52,7 @@ def validate_record(record: dict[str, Any], image: str, run_id: int, attempt: in
         or record.get("image") != image
         or not SHA.fullmatch(str(record.get("commit", "")))
         or not DIGEST.fullmatch(str(record.get("image_id", "")))
+        or not DIGEST.fullmatch(str(record.get("config_digest", "")))
         or not DIGEST.fullmatch(str(record.get("archive_sha256", "")))
         or record.get("platform") != "linux/amd64"
     ):
@@ -60,17 +61,18 @@ def validate_record(record: dict[str, Any], image: str, run_id: int, attempt: in
 
 
 def validate_manifest(
-    image: str, image_id: str, descriptor: dict[str, Any], manifest: dict[str, Any]
+    image: str, config_digest: str, descriptor: dict[str, Any], manifest: dict[str, Any]
 ) -> None:
     if (
         not IMAGE.fullmatch(image)
         or descriptor.get("digest") != image.split("@")[-1]
         or manifest.get("schemaVersion") != 2
         or manifest.get("mediaType") not in MEDIA_TYPES
-        or manifest.get("config", {}).get("digest") != image_id
         or not manifest.get("layers")
     ):
         raise OperationError("published_manifest_mismatch")
+    if manifest.get("config", {}).get("digest") != config_digest:
+        raise OperationError("published_configuration_mismatch")
 
 
 def registry_manifest(image: str) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -173,7 +175,7 @@ def verify(image: str, run_id: int, attempt: int) -> dict[str, Any]:
     if record["commit"] != source["head_sha"]:
         raise OperationError("publication_commit_mismatch")
     descriptor, manifest = registry_manifest(image)
-    validate_manifest(image, record["image_id"], descriptor, manifest)
+    validate_manifest(image, record["config_digest"], descriptor, manifest)
     return record
 
 

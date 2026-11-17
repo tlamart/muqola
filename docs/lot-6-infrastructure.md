@@ -17,7 +17,8 @@ et Codespaces utilisent cette image. Aucun secret applicatif n'entre dans le bui
 
 Après succès de tous les contrôles et du nettoyage, `scripts.image_candidate export`
 vérifie l'ID Docker, l'UID non root, la plateforme et les labels. Il conserve
-l'image par `docker image save` et gzip, avec SHA-256 de l'archive et métadonnées
+l'image par `docker image save` et gzip, avec SHA-256 de l'archive, digest canonique
+de configuration OCI extrait des octets sauvegardés et métadonnées
 commit/run/tentative dans un artefact immuable de ce run (rétention **3 jours**).
 Le job suivant télécharge l'**ID d'artefact** produit par `checks`, jamais un nom
 provenant d'une autre branche, d'un autre run ou d'un cache.
@@ -30,8 +31,10 @@ sur les environnements staging/production. Le script vérifie aussi ce contexte
 avant toute mutation Docker. L'authentification utilise le GITHUB_TOKEN éphémère,
 stdin, un DOCKER_CONFIG isolé du runner et un logout final ; aucun PAT de push requis.
 
-Le publisher vérifie archive, ID attendu et contexte, charge l'image, contrôle
-son identité puis publie sans reconstruction :
+Le publisher vérifie archive, ID source attendu, digest de configuration transmis
+par checks et contexte. Après chargement il réexporte la configuration pour
+vérifier ses octets, contrôle labels/UID/architecture puis publie sans reconstruction
+avec `docker image push --platform linux/amd64` (manifeste de cette plateforme) :
 
 - `ghcr.io/tlamart/muqola:<SHA complet>` ;
 - `ghcr.io/tlamart/muqola:<SHA complet>-<run>-<tentative>`, pour conserver une
@@ -40,7 +43,7 @@ son identité puis publie sans reconstruction :
 Aucun tag latest/main. Un tag reste mutable : une réexécution peut modifier le
 raccourci SHA. **Seul `ghcr.io/tlamart/muqola@sha256:<64 hex>` est déployable**.
 Le manifeste est relu depuis le registre par digest ; son digest de configuration
-OCI doit correspondre exactement à l'ID de l'image testée. L'image n'est pas
+OCI doit correspondre exactement à la configuration sauvegardée/testée. L'image n'est pas
 reconstruite pour la promotion staging → production. Avant usage sur VPS, vérifier
 son architecture réelle (`uname -m` doit correspondre à amd64/x86_64) ; aucun
 support multiarchitecture non testé n'est prétendu.
@@ -50,7 +53,7 @@ support multiarchitecture non testé n'est prétendu.
 Après push et relecture, le publisher conserve `publication.json` dans
 `muqola-publication-<SHA>-<tentative>` pendant **90 jours**, et résume digest,
 commit et run dans GitHub Actions. La preuve inclut ID d'image, hash de l'archive,
-plateforme et ID d'artefact candidat. Un push partiel ou un workflow ensuite
+plateforme, digest canonique de configuration et ID d'artefact candidat. Un push partiel ou un workflow ensuite
 échoué/annulé ne produit aucune image admissible, même si un tag existe au registre.
 
 Le contrôle en lecture seule `deploy.image_provenance` exige :
@@ -62,7 +65,7 @@ Le contrôle en lecture seule `deploy.image_provenance` exige :
 4. Preuve unique, non expirée, issue de ce run/tentative ; ZIP borné lu en mémoire,
    fichier publication.json seulement, aucun fichier extrait sur disque.
 5. Concordance de toutes les métadonnées ; manifeste disponible dans GHCR et
-   digest de configuration identique à l'image testée.
+   digest de configuration identique aux octets de la configuration testée.
 
 Un fichier local, un label OCI, un tag SHA ou le succès d'une ancienne CI de PR ne
 suffisent jamais. Preuve expirée/absente, API inaccessible, permissions manquantes,
@@ -130,7 +133,7 @@ relecture du manifeste sur un **registre loopback synthétique**, avec vérifica
 de l'identité conservée. Aucun GHCR réel ; son volume reste conservé/inventorié.
 La CI conserve son JSON avec les captures. Les smokes production/staging et tous
 les parcours existants restent dans le job checks. Résultats exacts dans TASKS/PR.
-Validation locale du 17 novembre : **480 tests réussis**, lint/format/typage,
+Validation locale du 17 novembre : **483 tests réussis**, lint/format/typage,
 Django/migrations/statiques, check production, audit runtime sans vulnérabilité
 connue, actionlint 1.7.12, chargement des outils sous Python 3.13.5, build et smokes
 registre/production/staging réussis. Correctif de régression staging : lecture du
@@ -139,6 +142,11 @@ test positif/négatif. Sans cela les quotas CPU étaient toujours réputés abse
 y compris sur une machine compatible. Le contrôleur et l'échantillonneur sont
 corrigés ; le daemon local reste réellement sans cgroups. La CI de la PR consigne
 le résultat du commit final ; ses métriques éventuelles ne valent pas mesure VPS.
+La CI a également révélé que l'ID moteur Docker peut être un digest de manifeste
+avec containerd. Le digest canonique est donc lu dans l'archive save, transmis
+par sortie du job checks et revérifié après load puis au registre. Les changements
+de handle entre moteurs sont acceptés uniquement avec la même configuration ;
+Docker et OCI sont testés par relecture réelle sur registre loopback.
 La première publication GHCR réelle et sa vérification distante restent à faire
 après fusion ; aucune mesure de capacité VPS ni ouverture publique validée ici.
 

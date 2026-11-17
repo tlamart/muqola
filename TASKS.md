@@ -374,6 +374,8 @@ Périmètre : préparation/test V8–V9 ; aucune publication réelle avant fusio
   Acceptation : tous les contrôles PR/main conservés ; une seule construction sur
   runner, même image testée puis transférée par artefact immuable et ID explicite,
   aucun rebuild dans le publisher ; push main seulement après succès de checks.
+  Digest canonique extrait de save et transmis comme sortie de checks, puis
+  configuration re-sauvegardée après load : identité indépendante du handle moteur.
   Dockerfile durci inchangé ; contents:read global, packages:write au seul publisher,
   GITHUB_TOKEN éphémère sur stdin, configuration Docker isolée/logout ; aucun SSH.
   Validation exécutée : politique du vrai workflow parsée/testée (PR, fork, mauvais
@@ -386,7 +388,7 @@ Périmètre : préparation/test V8–V9 ; aucune publication réelle avant fusio
 - [x] **V9 / P0 — Vérifié en synthétique : traçabilité et promotion du même digest.** Dépendance : V8.
   Acceptation : tag SHA complet + tag run/tentative, référence déployable strictement
   ghcr.io/tlamart/muqola@sha256:<64 hex>, manifeste relu au registre avec digest de
-  configuration identique à l'image testée ; preuve commit/run conservée 90 jours.
+  configuration identique aux octets testés/sauvegardés ; preuve conservée 90 jours.
   Validation distante obligatoire avant promotion : API GitHub, push main réussi,
   dépôt source/workflow/tentative exacts, jobs checks ET publish réussis et preuve
   unique de ce run ; aucune confiance à un label, tag ou record local seul.
@@ -394,7 +396,8 @@ Périmètre : préparation/test V8–V9 ; aucune publication réelle avant fusio
   tentative incohérents, publication manquante/expirée/étrangère, CI échouée,
   manifeste absent ou divergent ; même résultat pour staging/production sans rebuild.
   Essai Docker réel save/load/push/readback dans un registre **loopback synthétique**,
-  identité conservée et volume retenu ; aucun push GHCR réel.
+  identité conservée et volume retenu, formats Docker ET OCI relus ; refus si
+  config chargée différente malgré des labels corrects. Aucun push GHCR réel.
   Fichiers : `deploy/image_provenance.py`, `scripts/image_delivery_smoke.py`, tests,
   workflow et runbook. PyYAML dev seulement ; aucune dépendance runtime ajoutée.
   Manuel **après fusion** : vérifier la première preuve réelle et le digest dans
@@ -406,7 +409,7 @@ Périmètre : préparation/test V8–V9 ; aucune publication réelle avant fusio
   conserver la preuve distante ; aucune image n'est admissible avant ce contrôle.
   Pas de changement automatique de visibilité ni d'achat en cas de quota.
 
-Preuves locales du 17 novembre : `scripts/check.sh` **480 tests réussis**,
+Preuves locales du 17 novembre : `scripts/check.sh` **483 tests réussis**,
 Ruff lint/format, mypy, Django/migrations/statiques ; `check --deploy` et audit
 runtime réussis ; actionlint et build Docker réussis ; essai registre loopback
 réussi, volumes conservés. La CI et les smokes finaux sont consignés dans la PR.

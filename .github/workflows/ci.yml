@@ -16,6 +16,7 @@ jobs:
     outputs:
       candidate_artifact_id: ${{ steps.upload_candidate.outputs.artifact-id }}
       candidate_image_id: ${{ steps.build.outputs.image_id }}
+      candidate_config_digest: ${{ steps.export_candidate.outputs.config_digest }}
     env:
       APP_ENV: test
       DJANGO_SECRET_KEY: ci-only-synthetic-key-00000000000000000000000000000000000000000000
@@ -176,6 +177,7 @@ jobs:
         if: always()
         run: docker compose down
       - name: Export the exact tested candidate
+        id: export_candidate
         env:
           CANDIDATE_IMAGE_ID: ${{ steps.build.outputs.image_id }}
         run: python -m scripts.image_candidate export --directory work/candidate --image-id "$CANDIDATE_IMAGE_ID"
@@ -204,6 +206,7 @@ jobs:
       packages: write
     env:
       CANDIDATE_IMAGE_ID: ${{ needs.checks.outputs.candidate_image_id }}
+      CANDIDATE_CONFIG_DIGEST: ${{ needs.checks.outputs.candidate_config_digest }}
       CANDIDATE_ARTIFACT_ID: ${{ needs.checks.outputs.candidate_artifact_id }}
     steps:
       - uses: actions/checkout@v4
@@ -229,7 +232,8 @@ jobs:
       - name: Load and publish the tested image without rebuilding
         run: >-
           python -m scripts.image_candidate publish --directory work/candidate
-          --image-id "$CANDIDATE_IMAGE_ID" --candidate-artifact-id "$CANDIDATE_ARTIFACT_ID"
+          --image-id "$CANDIDATE_IMAGE_ID" --config-digest "$CANDIDATE_CONFIG_DIGEST"
+          --candidate-artifact-id "$CANDIDATE_ARTIFACT_ID"
           --output work/publication/publication.json
       - name: Preserve publication evidence
         uses: actions/upload-artifact@v4
