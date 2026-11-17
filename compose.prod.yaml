@@ -1,10 +1,11 @@
 # Production configuration only; never overlay compose.yaml or publish db/web.
-name: muqola-prod
+name: ${MUQOLA_PROJECT:-muqola-prod}
 x-logging: &logging
   driver: json-file
   options: {max-size: "5m", max-file: "3"}
 x-environment: &environment
   APP_ENV: production
+  TRUSTED_PROXY_IPS: ${TRUSTED_PROXY_IPS:?Exact Caddy IP addresses required}
   APP_BASE_URL: https://${APP_DOMAIN:?APP_DOMAIN required}
   ALLOWED_HOSTS: ${APP_DOMAIN:?APP_DOMAIN required}
   DJANGO_SECRET_KEY_FILE: /run/secrets/django_key
@@ -23,7 +24,8 @@ x-environment: &environment
   LEGAL_DOCUMENTS_DIR: /app/legal
   LEGAL_REVIEWED: ${LEGAL_REVIEWED:-false}
 x-app: &app
-  image: ${MUQOLA_IMAGE:?MUQOLA_IMAGE required}
+  image: ${MUQOLA_IMAGE:?Immutable GHCR image required}
+  networks: [private]
   environment: *environment
   secrets: [django_key, db_app_password, smtp_password]
   volumes:
@@ -40,6 +42,7 @@ x-app: &app
 services:
   db:
     image: ${POSTGRES_IMAGE:?POSTGRES_IMAGE required}
+    networks: [private]
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-muqola}
       POSTGRES_USER: muqola_admin
@@ -79,6 +82,10 @@ services:
     restart: "no"
   web:
     <<: *app
+    networks:
+      private: {}
+      proxy:
+        aliases: [muqola-web]
     depends_on:
       db: {condition: service_healthy}
     restart: unless-stopped
@@ -102,29 +109,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 30s
-  caddy:
-    image: ${CADDY_IMAGE:?CADDY_IMAGE required}
-    environment:
-      APP_DOMAIN: ${APP_DOMAIN:?APP_DOMAIN required}
-      ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL required}
-      # Keep the internal reverse proxy out of any host-injected HTTP proxy.
-      NO_PROXY: web,db,localhost,127.0.0.1
-      no_proxy: web,db,localhost,127.0.0.1
-    ports: ["80:80", "443:443", "443:443/udp"]
-    volumes:
-      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      web: {condition: service_healthy}
-    restart: unless-stopped
-    cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
-    read_only: true
-    tmpfs: ["/tmp:size=16m,mode=1777"]
-    mem_limit: 128m
-    cpus: 0.5
-    logging: *logging
 secrets:
   django_key: {file: '${SECRETS_DIR:?SECRETS_DIR required}/django_key'}
   db_admin_password: {file: '${SECRETS_DIR:?SECRETS_DIR required}/db_admin_password'}
@@ -133,5 +117,9 @@ secrets:
   smtp_password: {file: '${SECRETS_DIR:?SECRETS_DIR required}/smtp_password'}
 volumes:
   postgres_data:
-  caddy_data:
-  caddy_config:
+# Former Caddy volumes are intentionally not removed by this configuration.
+networks:
+  private: {}
+  proxy:
+    external: true
+    name: ${PROXY_NETWORK:-proxy}

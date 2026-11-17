@@ -31,11 +31,9 @@ def inspect(config: dict[str, Any]) -> list[str]:
     if isinstance(containers, dict):
         containers = [containers]
     by_service = {item["Service"]: item for item in containers}
-    for service in ("web", "worker", "db", "caddy"):
+    for service in ("web", "worker", "db"):
         item = by_service.get(service, {})
-        if item.get("State") != "running" or (
-            service != "caddy" and item.get("Health") != "healthy"
-        ):
+        if item.get("State") != "running" or item.get("Health") != "healthy":
             issues.append(service + "_unhealthy")
     metrics = json.loads(
         run([*compose(config), "exec", "-T", "web", "python", "manage.py", "check_operations"])

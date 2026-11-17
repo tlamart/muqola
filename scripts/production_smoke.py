@@ -1,13 +1,14 @@
 """Exercise real production containers, roles and encrypted restore, synthetic only.
 
 Requires Docker Compose >=2.24, age and rclone. Never uses the development stack,
-ACME, public DNS, external SMTP or a real backup remote.
+ACME, public DNS, external SMTP or a real backup remote. Retains all volumes.
 """
 
 # ruff: noqa: S101 -- executable integration test, assertions are intended
 
 import argparse
 import hashlib
+import ipaddress
 import json
 import os
 import re
@@ -16,10 +17,13 @@ import socket
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 from pathlib import Path
 from uuid import uuid4
 
 ROOT = Path(__file__).resolve().parents[1]
+CADDY_IMAGE = "caddy:2.11.9@sha256:f971688b2aaf1a26d256de552f17fb13f64fc5ed2dee4cf40c7f9d70cea0e12d"
 
 
 def run(args, *, data=None, ok=True):
@@ -77,6 +81,9 @@ def main():
         )
         values.update(
             MUQOLA_IMAGE=args.image,
+            APP_DOMAIN="muqola.example.test",
+            MUQOLA_PROJECT=project,
+            TRUSTED_PROXY_IPS="127.0.0.1",
             SECRETS_DIR=str(secret_dir),
             LEGAL_DOCUMENTS_DIR=str(legal_dir),
             LEGAL_REVIEWED="true",
@@ -95,17 +102,76 @@ def main():
         domain = values["APP_DOMAIN"]
         for service in ("web", "worker", "migrate"):
             config["services"][service]["environment"]["APP_BASE_URL"] = f"https://{domain}:{port}"
-        caddy = directory / "Caddyfile"
-        caddy.write_text(
-            (ROOT / "deploy/Caddyfile")
-            .read_text()
-            .replace("{$APP_DOMAIN} {", "{$APP_DOMAIN} {\n    tls internal")
+        network = project + "-proxy"
+        run(["docker", "network", "create", network])
+        info = json.loads(run(["docker", "network", "inspect", network]).stdout)[0]
+        subnet = ipaddress.ip_network(info["IPAM"]["Config"][0]["Subnet"])
+        caddy_ip = str(subnet.network_address + 10)
+        config["networks"]["proxy"]["name"] = network
+        config["networks"]["private"]["name"] = project + "_private"
+        for service in ("web", "worker", "migrate"):
+            config["services"][service]["environment"]["TRUSTED_PROXY_IPS"] = caddy_ip
+        proxy_dir = directory / "proxy-config"
+        proxy_dir.mkdir(mode=0o755)
+        proxy_dir.chmod(0o755)
+        fragment = (ROOT / "deploy/Caddyfile").read_text()
+        marker = "{$APP_DOMAIN:muqola.tlam.art} {"
+        assert fragment.count(marker) == 1  # Never accidentally contact ACME.
+        (proxy_dir / "muqola.caddy").write_text(
+            fragment.replace(marker, marker + "\n tls internal")
         )
-        caddy.chmod(0o444)
-        config["services"]["caddy"]["ports"] = [
-            {"target": 443, "published": str(port), "host_ip": "127.0.0.1", "protocol": "tcp"}
-        ]
-        config["services"]["caddy"]["volumes"][0]["source"] = str(caddy)
+        (proxy_dir / "global-options").write_text(
+            (ROOT / "deploy/caddy-global-options.example").read_text()
+        )
+        witness = "witness.example.test"
+        proxy_file = proxy_dir / "Caddyfile"
+        proxy_text = (
+            "{\n admin localhost:2019\n import /etc/caddy/global-options\n}\n"
+            "import /etc/caddy/muqola.caddy\n"
+            + witness
+            + ' {\n tls internal\n respond "witness-v1"\n}\n'
+        )
+        proxy_file.write_text(proxy_text)
+        for path in proxy_dir.iterdir():
+            path.chmod(0o644)
+        proxy_config = directory / "proxy.json"
+        proxy_project = project + "-edge"
+        proxy_config.write_text(
+            json.dumps(
+                {
+                    "name": proxy_project,
+                    "services": {
+                        "caddy": {
+                            "image": CADDY_IMAGE,
+                            "environment": {"APP_DOMAIN": domain, "NO_PROXY": "*", "no_proxy": "*"},
+                            "networks": {"proxy": {"ipv4_address": caddy_ip}},
+                            "ports": [
+                                {
+                                    "target": 443,
+                                    "published": str(port),
+                                    "host_ip": "127.0.0.1",
+                                    "protocol": "tcp",
+                                }
+                            ],
+                            "volumes": [
+                                str(proxy_dir) + ":/etc/caddy:ro",
+                                "data:/data",
+                                "config:/config",
+                            ],
+                            "read_only": True,
+                            "tmpfs": ["/tmp"],  # noqa: S108 -- isolated container tmpfs
+                            "cap_drop": ["ALL"],
+                            "mem_limit": "128m",
+                        }
+                    },
+                    "networks": {"proxy": {"external": True, "name": network}},
+                    "volumes": {
+                        name: {"name": proxy_project + "_" + name} for name in ("data", "config")
+                    },
+                }
+            )
+        )
+        edge = ["docker", "compose", "-f", str(proxy_config)]
         compose_file = directory / "compose.json"
         compose_file.write_text(json.dumps(config))
         command = ["docker", "compose", "--env-file", str(env), "-f", str(compose_file)]
@@ -155,12 +221,29 @@ def main():
         try:
             run([*command, "up", "-d", "--wait", "--wait-timeout", "120", "db"])
             run([*command, "run", "--rm", "migrate"])
-            run([*command, "up", "-d", "--wait", "--wait-timeout", "120", "web", "worker", "caddy"])
+            run([*command, "up", "-d", "--wait", "--wait-timeout", "120", "web", "worker"])
+            run([*edge, "up", "-d"])
+            for _attempt in range(30):
+                ready = run(
+                    [
+                        *edge,
+                        "exec",
+                        "-T",
+                        "caddy",
+                        "test",
+                        "-f",
+                        "/data/caddy/pki/authorities/local/root.crt",
+                    ],
+                    ok=False,
+                )
+                if ready.returncode == 0:
+                    break
+                time.sleep(0.2)
             ca = directory / "ca.crt"
             ca.write_bytes(
                 run(
                     [
-                        *command,
+                        *edge,
                         "exec",
                         "-T",
                         "caddy",
@@ -232,6 +315,83 @@ def main():
                 ]
             ).stdout
             assert valid_csrf == b"200"  # Invalid form, but valid HTTPS CSRF.
+            # All spoofed client addresses still consume the same edge-client budget.
+            for attempt in range(10):
+                limited = run(
+                    [
+                        *curl,
+                        "-o",
+                        "/dev/null",
+                        "-w",
+                        "%{http_code}",
+                        "-H",
+                        "Cookie: csrftoken=" + cookie[1],
+                        "-H",
+                        f"Origin: https://{domain}:{port}",
+                        "-H",
+                        f"X-Real-IP: 198.51.100.{attempt + 1}",
+                        "-H",
+                        f"X-Forwarded-For: 203.0.113.{attempt + 1}",
+                        "--data-urlencode",
+                        "csrfmiddlewaretoken=" + cookie[1],
+                        f"https://{domain}:{port}/accounts/signup/",
+                    ]
+                ).stdout
+                assert limited == (b"200" if attempt < 9 else b"429")
+            witness_curl = [*curl, "--resolve", f"{witness}:{port}:127.0.0.1"]
+            witness_url = f"https://{witness}:{port}/"
+            assert run([*witness_curl, "--fail", witness_url]).stdout == b"witness-v1"
+            observed = []
+            first_probe = threading.Event()
+
+            def probe_witness():
+                for _ in range(20):
+                    result = run([*witness_curl, "--fail", witness_url], ok=False)
+                    observed.append((result.returncode, result.stdout))
+                    first_probe.set()
+                    time.sleep(0.05)
+
+            probe = threading.Thread(target=probe_witness)
+            probe.start()
+            assert first_probe.wait(timeout=10)
+            try:
+                proxy_file.write_text(proxy_text.replace("witness-v1", "witness-v2"))
+                run(
+                    [
+                        *edge,
+                        "exec",
+                        "-T",
+                        "caddy",
+                        "caddy",
+                        "validate",
+                        "--config",
+                        "/etc/caddy/Caddyfile",
+                        "--adapter",
+                        "caddyfile",
+                    ]
+                )
+                run(
+                    [
+                        *edge,
+                        "exec",
+                        "-T",
+                        "caddy",
+                        "caddy",
+                        "reload",
+                        "--config",
+                        "/etc/caddy/Caddyfile",
+                        "--adapter",
+                        "caddyfile",
+                    ]
+                )
+            finally:
+                probe.join(timeout=30)
+            assert not probe.is_alive() and len(observed) == 20
+            assert all(
+                code == 0 and body in {b"witness-v1", b"witness-v2"} for code, body in observed
+            )
+            assert run([*witness_curl, "--fail", witness_url]).stdout == b"witness-v2"
+            run([*curl, "--fail", f"https://{domain}:{port}/health/ready/"])
             for forbidden in (
                 "CREATE TABLE forbidden(id int)",
                 "CREATE SCHEMA forbidden",
@@ -282,6 +442,7 @@ def main():
             backup_config.write_text(
                 json.dumps(
                     dict(
+                        project=project,
                         compose_file=str(compose_file),
                         compose_env=str(env),
                         rclone_config=str(rclone),
@@ -336,10 +497,12 @@ def main():
                     *curl,
                     "-H",
                     "Cookie: private=" + marker,
+                    "-H",
+                    "Authorization: Bearer " + marker,
                     f"https://{domain}:{port}/accounts/verify/{marker}/",
                 ]
             )
-            proxy_logs = run([*command, "logs", "--no-color", "caddy"]).stdout
+            proxy_logs = run([*edge, "logs", "--no-color", "caddy"]).stdout
             assert marker.encode() not in proxy_logs
             assert b"http.log.error" in proxy_logs
             run([*command, "stop", "db"])
@@ -356,6 +519,8 @@ def main():
                     dict(
                         production_smoke="passed",
                         roles=True,
+                        shared_proxy_reload=True,
+                        volumes_preserved=True,
                         proxy_errors_redacted=True,
                         tls=True,
                         csrf=True,
@@ -377,10 +542,16 @@ def main():
             )
             raise
         finally:
-            # These names and volumes were generated here, never read from user
-            # configuration. Removing only this disposable synthetic project.
+            # Stop/remove only this test's containers/networks. Never remove volumes.
             assert project.startswith("muqola-lot6-synthetic-")
-            run([*command, "down", "--volumes", "--remove-orphans"], ok=False)
+            run([*command, "down", "--timeout", "10"], ok=False)
+            run([*edge, "down", "--timeout", "10"], ok=False)
+            run(["docker", "network", "rm", network], ok=False)
+            retained = list(config["volumes"].values()) + [
+                {"name": proxy_project + "_" + name} for name in ("data", "config")
+            ]
+            manifest = ROOT / "work" / (project + "-retained-volumes.json")
+            manifest.write_text(json.dumps({"project": project, "volumes": retained}))
     return 0
 
 

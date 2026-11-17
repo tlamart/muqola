@@ -1,4 +1,4 @@
-"""Serveur du Compose de développement ; aucun réglage de production livré ici."""
+"""Serveur partagé entre développement et production ; budgets contrôlés par Compose."""
 
 bind = "0.0.0.0:8000"
 workers = 2

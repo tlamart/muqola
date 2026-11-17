@@ -20,6 +20,8 @@ class Command(BaseCommand):
 
     def handle(self, *args: Any, **options: Any) -> None:
         issues = []
+        if not settings.TRUSTED_PROXY_IPS:
+            issues.append("trusted_proxy_not_configured")
         host = urlsplit(settings.APP_BASE_URL).hostname or ""
         if (
             settings.APP_ENV != "production"

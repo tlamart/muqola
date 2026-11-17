@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -56,7 +57,19 @@ def run(arguments: list[str], *, stdin: Any = None, timeout: int = 300) -> bytes
 def compose(config: dict[str, Any]) -> list[str]:
     env = Path(config["compose_env"])
     private_file(env)
-    return [tool("docker"), "compose", "--env-file", str(env), "-f", str(config["compose_file"])]
+    project = str(config.get("project", ""))
+    if not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,62}", project):
+        raise OperationError("explicit_compose_project_required")
+    return [
+        tool("docker"),
+        "compose",
+        "--project-name",
+        project,
+        "--env-file",
+        str(env),
+        "-f",
+        str(config["compose_file"]),
+    ]
 
 
 def atomic_json(path: Path, value: dict[str, Any]) -> None:

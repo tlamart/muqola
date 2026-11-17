@@ -243,3 +243,184 @@ conservées. [Règles, droits et preuves](docs/pret-fiches-en-attente.md).
 - [x] P1.4 Préserver UUID, exemplaires, partages et prêts lors de validation/correction/fusion/rejet ; au rejet annuler REQUESTED, empêcher nouveaux prêts, conserver clôture des ACCEPTED/HANDED_OVER. Une correction auteur ne lève pas le rejet ; ses propres titres/alias rejetés ne peuvent pas être reproposés à l’identique pour le contourner.
 - [x] P1.5 Adapter formulaires, messages et documentation ; tester accès directs et fragments, privé/A/B/multicommunautés, retraits, concurrence rejet/demande/acceptation, tous états des prêts et budgets SQL.
 - [x] P1.6 Exécuter suite complète, lint/format/typage, migrations, contrôles production, audit/build et navigateur (demande/acceptation avant validation, validation pendant prêt actif), puis PR indépendante sans fusion/déploiement.
+
+## Lot 6 — Intégration VPS, Caddy partagé et CI/CD
+
+**Audit documentaire du 17 novembre 2026, avant accord d'implémentation.**
+Base synchronisée : `origin/main` `ff9e0c208be067b993f22b5f4b3b5751d5a8579d`.
+La PR #32 est fusionnée ; ses preuves et toutes les tâches historiques ci-dessus
+sont conservées. [Audit et stratégie proposés](docs/lot-6-infrastructure.md#audit-caddy-partagé-staging-et-cicd--17-novembre-2026).
+L'infrastructure OVH/Debian/Caddy/HTTPS est déclarée disponible par l'exploitant ;
+elle n'a pas été inspectée par SSH. Aucun déploiement autorisé par ces cases.
+P0 = sécurité/prérequis bloquant ; P1 = livraison ; P2 = exploitation/mesures ;
+P3 = améliorations ultérieures. Aucun P3 nécessaire à ce périmètre.
+
+### V0 — Audit et porte d'accord
+
+- [x] **V0 / P0 — Vérifié (audit uniquement).** Dépendances : aucune.
+  Acceptation : lire les références, synchroniser main, vérifier la fusion #32,
+  cartographier les dépendances Caddy/SMTP/backup/tests et préparer le découpage.
+  Preuves : `git fetch origin`, `git rev-parse origin/main`, API GitHub PR #32
+  (`merged=true`, fusion `ff9e0c2`), `docker compose --env-file .env.production.example -f compose.prod.yaml config --quiet` réussi ; lecture du code.
+  Fichiers : `AGENTS.md`, documents de référence, `deploy/`, `scripts/production_smoke.py`, tests, workflows.
+  Manuel : **accord reçu** par réponse « oui » au découpage en quatre PR ; aucune autorisation de déploiement ni de fusion.
+  CI du merge `ff9e0c2` : [run 44088074202 réussi](https://github.com/tlamart/muqola/actions/runs/44088074202), vérifié par API. Les 373 tests de #32 restent une preuve historique, pas une nouvelle exécution locale de cet audit.
+
+### PR proposée 1 — Caddy partagé et compatibilité d'exploitation
+
+- [x] **V1 / P0 — Vérifié en synthétique : réseau et Compose production.** Dépendances : V0 + accord.
+  Acceptation : retirer le service Caddy et ses ports du Compose applicatif,
+  garder ses anciens volumes hors suppression ; seul web rejoint le réseau externe
+  `proxy` sous `muqola-web`, en plus du réseau privé ; db/worker/migrate restent privés.
+  Préserver rôles, secrets, healthchecks et budgets ; aucun build ni port web/DB publié.
+  Validation exécutée : rendu Compose avec profil maintenance et tests `test_deploy_configuration.py` réussis (réseaux, ports, volume stable, rôles/secrets, GHCR immuable et refus des configurations dangereuses).
+  Fichiers : `compose.prod.yaml`, `.env.production.example`, `tests/test_deploy_configuration.py` (prévu).
+  Manuel **à faire sur VPS** : vérifier/créer `proxy`, y connecter le Caddy commun ; préserver noms de projet/volumes existants.
+
+- [x] **V2 / P0 — Vérifié en synthétique : extrait Caddy commun et rechargement.** Dépendance : V1.
+  Acceptation : domaines `muqola.tlam.art` et futur staging, alias uniques ; limite
+  de corps, en-têtes réécrits, URI/cookies/Authorization exclus des logs même en erreur.
+  Ne pas recopier `admin off` ni remplacer les options globales des autres sites ;
+  admin de rechargement local au conteneur, jamais exposé au public.
+  Validation exécutée : validate puis reload sur Caddy séparé 2.11.9 ; 20 sondes du site témoin sans échec, nouvelle réponse visible et Muqola disponible ; erreur proxy avec cookie/Authorization/URI secrets expurgés.
+  Fichiers : `deploy/Caddyfile` (extrait à adapter), `scripts/production_smoke.py`, runbook existant.
+  Manuel **à faire sur VPS** : fusionner l'extrait dans `/opt/caddy/Caddyfile`, vérifier la configuration complète puis recharger ; aucune modification du VPS par l'agent.
+
+- [x] **V3 / P0 — Vérifié en synthétique : identité du proxy et limites par IP.** Dépendances : V1–V2.
+  Acceptation : conserver HTTPS/CSRF ; distinguer les IP clientes derrière Caddy,
+  accepter les en-têtes d'identité uniquement depuis les adresses Caddy explicitement
+  approuvées ; refuser l'usurpation et ne pas approuver tout le réseau partagé.
+  Validation exécutée : tests IP distinctes/budget e-mail commun, source non approuvée, faux X-Forwarded-For/protocole, cookies/CSRF et passage réel par Caddy ; aucune confiance au subnet entier.
+  Fichiers : `config/settings.py`, `muqola/identity/ratelimit.py`, middleware ciblé si nécessaire, tests comptes/proxy.
+  Manuel **à faire sur VPS** : confirmer adressage/identité stable du Caddy sur `proxy` et les autres applications connectées.
+
+- [x] **V4 / P1 — Vérifié en synthétique : monitoring/backup compatibles.** Dépendance : V1.
+  Acceptation : réutiliser backup/restore sans réécriture ; identifier explicitement
+  le projet et sa configuration ; dissocier supervision Caddy commun et app,
+  éviter le faux `caddy_unhealthy` et les chemins/états partagés entre environnements.
+  Adapter le cleanup du smoke : le `down --volumes` actuel est incompatible avec
+  cette mission ; conserver les volumes, y compris synthétiques, sans commande de destruction.
+  Validation exécutée : tests monitoring/backup et exercice age/rclone sur projet explicite, restauration comparée à la source et six états de prêt préservés ; modules hôte importés seuls sous Python 3.13.18.
+  Fichiers : `deploy/common.py`, `deploy/monitor.py`, exemples JSON/systemd, tests et smoke existants.
+  Manuel **à faire sur VPS** : configurer séparément chemins, états, alertes et cible de sauvegarde ; vérifier l'interpréteur hôte Debian 13 sans changer le Python 3.12 de l'image.
+
+### PR proposée 2 — Staging éphémère isolé
+
+- [ ] **V5 / P0 — À faire : isolation du staging.** Dépendances : PR 1 intégrée.
+  Acceptation : projet `muqola-staging`, base/volumes/secrets/chemins indépendants,
+  alias `muqola-staging-web`, domaine `staging.muqola.tlam.art`, cookies propres à
+  l'hôte, aucun lien avec la DB/les secrets de production, aucune copie de données réelles.
+  Validation prévue : rendu des deux Compose avec valeurs synthétiques et tests
+  négatifs de collision noms/volumes/secrets/alias ; arrêt staging sans effet sur prod,
+  sans suppression de volumes ; paramètres Django de sécurité inchangés.
+  Fichiers : `compose.staging.yaml`, `.env.staging.example` (prévus), `.gitignore`, `.dockerignore`, tests configuration et smoke.
+  Manuel : DNS staging et répertoires/secrets distincts ; ne pas réutiliser la clé Django production.
+
+- [ ] **V6 / P0 — À faire : accès privé, indexation et SMTP capturé.** Dépendance : V5.
+  Acceptation : authentification au Caddy commun sur toutes les routes staging,
+  `X-Robots-Tag: noindex, nofollow, noarchive` ; capture SMTP interne sans relais,
+  sans credentials Brevo ni publication de son interface ; worker sans accès SMTP extérieur.
+  Garder `APP_ENV=production`, 18+ et contrôle légal ; ne pas assouplir
+  `production_readiness` pour la production. Préparer un contrôle staging distinct
+  qui exige la capture et conserve les autres protections applicables.
+  Validation prévue : HTTP 401 sans accès/200 avec accès, absence de secret dans
+  logs, hôtes/cookies/CSRF, outbox capturée et refus du SMTP réel en staging.
+  Fichiers : Compose staging, extrait Caddy, contrôles operations, tests et smoke existants.
+  Manuel : déposer les accès staging hachés par canal privé et définir les seuls testeurs ; revue des documents légaux avant toute activation de leur indicateur.
+
+- [ ] **V7 / P2 — À faire : capacité et cycle de vie.** Dépendances : V5–V6.
+  Acceptation : staging arrêté par défaut ; start/stop sans rebuild ni suppression
+  de volume, contrôle capacité avant démarrage/migration et mesure de pointe sous charge synthétique.
+  Plafonds actuels : 1 472 Mio/pile, donc 2 944 Mio pour deux piles, hors Caddy,
+  capture/OS/autres apps ; chaque migration ajoute 512 Mio. Ces plafonds ne
+  prouvent pas que les piles tiennent ensemble sur 4 Go.
+  Validation prévue : `docker stats --no-stream`, `free -m`, `df -h`, mesure des
+  pointes lors des migrations ; tests de refus si capacité insuffisante.
+  Fichiers : budgets Compose staging, précontrôles CD futurs, runbook.
+  Manuel : mesurer sur le VPS après autorisation, choisir seuils et créneaux ; ne pas activer les deux piles tant que la marge n'est pas démontrée.
+
+### PR proposée 3 — Image validée et publication GHCR
+
+- [ ] **V8 / P0 — À faire : publier exclusivement après validation de main.** Dépendance : accord ; intégration après PR 1–2 pour les tests adaptés.
+  Acceptation : conserver CI des PR ; publier uniquement sur push `main` après
+  succès des contrôles du même commit ; image construite/testée sur runner,
+  Dockerfile durci conservé, GITHUB_TOKEN `contents:read` et `packages:write`
+  uniquement sur le job de publication de confiance ; aucune publication depuis PR.
+  Validation prévue : tests du workflow/événements/permissions, CI complète et
+  essais négatifs PR externe/échec de tests ; première publication réelle après fusion autorisée uniquement.
+  Fichiers : `.github/workflows/ci.yml`, `Dockerfile` conservé, tests workflows prévus.
+  Manuel : autoriser GHCR/Actions et choisir visibilité publique ou accès lecture privé ; aucune ressource créée pendant l'audit.
+
+- [ ] **V9 / P0 — À faire : traçabilité et promotion du même digest.** Dépendance : V8.
+  Acceptation : tag SHA complet, digest OCI immuable et métadonnées commit/run
+  de publication de confiance conservés ; entrée CD strictement
+  `ghcr.io/tlamart/muqola@sha256:<64 hex>`. Vérifier publication réussie depuis
+  main et disponibilité registre ; un tag SHA ou label seul ne suffit pas.
+  Aucune reconstruction lors de staging → production.
+  Validation prévue : refus latest/tag seul, mauvais dépôt/digest, commit non publié,
+  CI échouée, manifeste absent ou métadonnées incohérentes ; promotion digest identique.
+  Fichiers : workflow CI, validateur d'image dans `deploy/` et tests prévus, exemples env.
+  Manuel : conserver les images/digests nécessaires au rollback ; accès VPS lecture seule si GHCR privé.
+
+### PR proposée 4 — CD manuel avec plan contrôlé et reprise
+
+- [ ] **V10 / P0 — À faire : workflow et SSH vérifié.** Dépendances : PR 3 et PR 1–2 intégrées.
+  Acceptation : `workflow_dispatch`, choix staging/production, provenance V9,
+  checkout exclusivement de code de confiance ; host key SSH vérifiée par canal
+  indépendant, `StrictHostKeyChecking=yes`, pas de confiance au seul ssh-keyscan.
+  Configs/secrets propres à l'environnement ; transfert par liste explicite de
+  fichiers versionnés correspondant à la version déployée, sans .env/secret/données.
+  Concurrence par environnement et verrou hôte ; aucun build ni action sur Caddy commun.
+  Validation prévue : refus empreinte inconnue, image/injection/chemin invalide,
+  environnement inattendu, accès concurrents ; simulation SSH et pile locale jetable.
+  Fichiers : `.github/workflows/deploy.yml`, scripts de livraison ciblés dans `deploy/`, tests prévus.
+  Manuel : créer environnements GitHub, restrictions à main, reviewers production
+  si disponibles, clés dédiées dans Secrets et clé publique autorisée sur VPS ; ne jamais les transmettre à l'agent.
+
+- [ ] **V11 / P0 — À faire : plan puis application autorisée.** Dépendances : V4, V9–V10.
+  Acceptation : mode `plan` puis mode `apply` séparé avec référence/hash du plan
+  approuvé, image et état du schéma revérifiés sous verrou ; sauvegarde récente
+  réussie, preuve d'exercice de restauration, échec fermé si prérequis absents.
+  Plan examiné avant toute migration ; opération inconnue/destructive bloquée,
+  aucune option de confirmation générique ne permet une migration destructive.
+  Un seul lancement de migration par tentative autorisée ; reprise après échec
+  sans relance aveugle. Bootstrap base neuve traité explicitement.
+  Validation prévue : absence/âge de backup, preuve invalide, plan périmé,
+  migration inconnue/destructive, changement de schéma, double apply et échec partiel.
+  Fichiers : script CD, `deploy/migrate.sh` réutilisé, contrôles/proofs et tests prévus.
+  Manuel : reviewer examine le plan ; approbation GitHub production si disponible,
+  sinon validation manuelle explicite liée au plan/run/digest ; aucune restauration automatique.
+
+- [ ] **V12 / P1 — À faire : livraison, smoke et rollback.** Dépendance : V11.
+  Acceptation : pull sans build, mise à jour contrôlée web/worker, healthchecks et
+  HTTPS (auth staging), arrêt explicite du flux si échec ; historique atomique
+  des digests précédent/candidat/réussi et du résultat de migration.
+  Rollback d'image seulement si compatible avec le schéma et les protections ;
+  aucune rétro-migration ni restauration de DB automatisée. Les autres sites
+  Caddy et l'autre environnement doivent rester disponibles.
+  Validation prévue : échecs pull/migration/health/HTTPS, interruption et relance,
+  état précédent conservé, rollback sans migration compatible et refus sinon.
+  Fichiers : scripts CD et tests, `scripts/production_smoke.py` adapté, workflow CD.
+  Manuel : décider rollback après revue, vérifier anciennes images conservées,
+  sauvegarde et interruption d'écriture si intervention DB distincte nécessaire.
+
+- [ ] **V13 / P1 — À faire : runbook Debian 13 et validations d'exploitant.** Dépendances : V1–V12.
+  Acceptation : mettre à jour la documentation existante : Caddy partagé,
+  installation sans build VPS, GHCR/GitHub, plan/apply, staging start/stop,
+  rollback, backup/restore, supervision et incidents, Brevo et SPF/DKIM/DMARC.
+  Distinguer preuves synthétiques, contrôles réels et ouverture publique.
+  Validation prévue : `./scripts/check.sh`, CI complète, Compose/Caddy, tests
+  synthétiques adaptés sans destruction de volumes, relecture des commandes Debian.
+  Fichiers : `README.md`, `ARCHITECTURE.md`, `docs/lot-6-infrastructure.md`, `TASKS.md`, `LAUNCH_CHECKLIST.md`.
+  Manuel : OVH/Caddy/DNS/capacité, GitHub/GHCR/SSH, Brevo, backup/alertes,
+  informations légales ; toutes les conditions d'ouverture restent dans LAUNCH_CHECKLIST.
+
+**Preuves locales de PR 1 :** `./scripts/check.sh` : 386 tests, Ruff lint/format,
+mypy, Django, migrations/statiques réussis ; contrôle `check --deploy`, audit
+runtime sans vulnérabilité connue, build Docker et smoke partagé backup/restore
+réussis. Les résultats des parcours navigateur et de la CI finale sont consignés
+dans la PR. `compose.yaml`, Dockerfile et migrations historiques inchangés.
+Les cases V1–V4 attestent l'implémentation et les tests synthétiques, **pas leur
+installation sur VPS** ; toutes les actions manuelles ci-dessus restent à faire.
+V5–V13 restent ouverts et les dépendances d'intégration/accord ne sont pas levées
+par une CI verte. Aucune suppression de volume ni opération de production.

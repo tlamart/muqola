@@ -15,6 +15,8 @@
 - [ ] Mobile : parcourir tous les écrans à 360 px et sur un vrai téléphone ; navigation clavier et contrastes.
 
 ## Infrastructure et sécurité
+- [ ] **BLOQUANT** : Caddy commun seul exposé, web seul sur `proxy` sous `muqola-web`, DB/worker privés ; IP Caddy stable/exacte, en-têtes et limites vérifiés ; autre site disponible pendant reload, aucun secret dans les logs d'erreur.
+- [ ] **BLOQUANT** : image GHCR par digest, provenance main validée et disponibilité vérifiées ; contrôle `deploy.check_config` réussi ; aucune image locale/build sur le VPS.
 - [ ] **BLOQUANT** : Compose de production séparé du Compose local (Mailpit interdit en production), `APP_ENV=production`, URL HTTPS, proxy de confiance, cookies sécurisés, secrets distincts, services internes non publiés et rôle PostgreSQL à privilèges minimaux.
 - [ ] **BLOQUANT** : HTTPS opérationnel, domaine dirigé vers le bon VPS, secrets forts non présents dans Git.
 - [ ] **BLOQUANT** : base PostgreSQL persistante (comptes, communautés, prêts, outbox et catalogue, y compris fiches importées) ; migration documentée ; sauvegarde **hors VPS**, chiffrée, avec rétention définie et **restaurée avec succès** sur un environnement de test.
@@ -46,8 +48,8 @@
 
 ## Informations et actions à fournir par le propriétaire
 
-- [ ] Domaine : nom/droits/budget, achat et contact ACME surveillé.
-- [ ] VPS : fournisseur/région/budget, location, SSH/pare-feu/mises à jour, stockage persistant et accès Docker restreints.
+- [ ] Domaine existant : confirmer droits/contact ACME et DNS staging ; aucun nouvel achat prévu.
+- [ ] VPS OVH existant : confirmer SSH/pare-feu/mises à jour, stockage persistant, capacité et accès Docker restreints ; aucune nouvelle location prévue.
 - [ ] SMTP : compte transactionnel, domaine/expéditeur vérifiés, identifiants privés, quotas et suivi bounces.
 - [ ] DNS : A/AAAA fonctionnels, SPF unique, DKIM et DMARC selon fournisseur ; vérification réelle.
 - [ ] Légal : identité/statut/contact de l'exploitant, publication, hébergeur/sous-traitants, bases et durées, droits RGPD/suppression effective, revue compétente des quatre textes.

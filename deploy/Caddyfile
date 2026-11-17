@@ -1,27 +1,13 @@
-{
-	# No access logging: invite/account URLs contain secrets. Caddy's own
-	# operational errors remain available through the bounded container logs.
-	admin off
-	# Upstream failures otherwise include the request URI, cookies and tokens.
-	log {
-		format filter {
-			wrap json
-			fields {
-				request delete
-				uri delete
-				headers delete
-			}
-		}
-	}
-	email {$ACME_EMAIL}
-}
-{$APP_DOMAIN} {
+# Site fragment imported by the shared Caddy; no global/admin/TLS overrides.
+{$APP_DOMAIN:muqola.tlam.art} {
 	encode zstd gzip
 	request_body {
 		max_size 64KB
 	}
-	reverse_proxy web:8000 {
+	reverse_proxy muqola-web:8000 {
 		# Never trust a client-supplied forwarding value at this public edge.
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
 		header_up X-Forwarded-Proto {scheme}
 		header_up X-Forwarded-Host {host}
 	}

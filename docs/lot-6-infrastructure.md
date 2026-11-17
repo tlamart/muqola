@@ -1,5 +1,311 @@
 # Lot 6 — Préparation à la validation sur infrastructure réelle
 
+## PR 1 — Caddy partagé et exploitation compatible
+
+Accord d'implémentation reçu après l'audit ci-dessous. Branche
+`feat/caddy-partage`, issue de main `ff9e0c2`. Cette PR couvre V1–V4 ; les PR
+staging, publication GHCR et CD manuel restent des lots suivants, après intégration
+de leurs prérequis. Aucun accès SSH ni déploiement effectué par l'agent.
+
+### Configuration applicative livrée
+
+`compose.prod.yaml` ne démarre plus Caddy et ne publie **aucun port**.
+Seul web rejoint le réseau externe `proxy` (alias `muqola-web`) et le réseau
+`private`. DB, worker et migration ne rejoignent que `private`, avec sortie
+nécessaire vers le SMTP production ; ce réseau privé n'est pas un annuaire public.
+Seules des applications administrées et fiables doivent rejoindre `proxy`.
+La clé Django, les trois rôles PostgreSQL, la distribution de secrets, les
+healthchecks et budgets de #32 sont conservés ; `compose.yaml` n'est pas modifié.
+Le projet reste `muqola-prod`, donc le volume reste
+`muqola-prod_postgres_data`. Ne jamais changer ce nom pour une mise à jour.
+Les anciens volumes Caddy ne sont pas supprimés ; le Caddy commun existant
+conserve ses propres données/certificats dans `/opt/caddy`.
+
+Renseigner dans le fichier privé d'environnement : domaine `muqola.tlam.art`,
+`MUQOLA_PROJECT=muqola-prod`, `PROXY_NETWORK=proxy`, image
+`ghcr.io/tlamart/muqola@sha256:<64 hex>` et **IP exacte et stable du Caddy**
+dans `TRUSTED_PROXY_IPS` (liste séparée par virgules si IPv4 et IPv6).
+Aucun CIDR, joker ou nom DNS n'est accepté comme source de confiance.
+Le modèle contient des marqueurs à remplacer, pas des identifiants utilisables.
+La publication/provenance et disponibilité GHCR seront vérifiées par les PR 3–4 ;
+cette PR fournit un contrôle local de la forme et de l'isolation :
+
+```sh
+# Configuration JSON privée contenant project, compose_env et compose_file :
+python3 -m deploy.check_config --config /etc/muqola/monitor.json
+```
+
+Exit non nul si image mutable/autre dépôt, ports/build, réseaux inattendus,
+service ajouté ou projet incohérent. Ce précontrôle ne lance aucun service,
+ne prouve pas la provenance de l'image et n'autorise aucun déploiement.
+Les commandes futures de production doivent passer par cette vérification,
+la sauvegarde et la revue du plan décrites plus bas.
+
+### Configuration Caddy commune : actions futures de l'exploitant
+
+Confirmer la version réelle de Caddy et le nom de son service Compose. Le test
+utilise Caddy 2.11.9 épinglé de #32 ; il ne met pas à jour le Caddy du VPS.
+Ne pas remplacer le Caddyfile global ni installer une seconde instance.
+Les deux fichiers fournis ont des rôles différents :
+
+- `deploy/Caddyfile` est **uniquement un site à importer** : domaine cible,
+  `reverse_proxy muqola-web:8000`, taille de corps 64 Ko, compression et en-têtes
+  réécrits, dont `X-Real-IP`/`X-Forwarded-For` depuis `{remote_host}`.
+- `deploy/caddy-global-options.example` contient le filtre JSON à fusionner
+  dans le bloc global existant : supprimer les objets requête/URI/en-têtes
+  lors des erreurs. Ne pas activer d'access log contenant les liens sensibles.
+  Préserver les options et journaux des autres applications et vérifier leurs
+  éventuels loggers spécifiques. Ne pas recopier l'ancien `admin off` :
+  l'API de reload doit écouter **uniquement localhost dans le conteneur**,
+  jamais une interface réseau publiée.
+
+Après autorisation d'exploitation distincte, sur Debian 13, depuis `/opt/caddy`
+(et en adaptant le nom du service si ce n'est pas `caddy`) :
+
+```sh
+# Lecture seule : vérifier réseau et montages avant de préparer les changements.
+docker network inspect proxy
+docker compose config --quiet
+```
+
+Si `proxy` n'existe pas, le créer une seule fois après revue de l'adressage,
+puis connecter Caddy via **son** Compose existant. Si l'IP Caddy n'est pas stable,
+préparer une réservation IPv4/IPv6 dans cet adressage, hors collisions ; aucune
+adresse réelle n'est inventée par le dépôt. Renseigner la même adresse exacte
+côté Django. Ne pas approuver tout le subnet : les autres applications partagent
+le réseau. Un changement d'IP Caddy nécessite la mise à jour contrôlée de cette
+configuration applicative.
+
+Préparer une copie complète du Caddyfile conservant tous les sites, y importer
+le fragment Muqola et fusionner le filtre global. L'import peut par exemple
+viser `/etc/caddy/sites/muqola.caddy` si **le répertoire** correspondant est monté
+et déclaré dans la configuration commune. Vérifier la copie avec le même
+conteneur/version et les mêmes imports/certificats avant installation.
+Si seul un fichier est bind-monté, un remplacement par renommage change son
+inode et peut laisser le conteneur sur l'ancien contenu : contrôler le montage
+et les fichiers effectivement visibles dans le conteneur. Privilégier un montage
+de répertoire pour des mises à jour atomiques ; toute modification du montage
+existant exige une opération distincte revue avec l'exploitant.
+
+Une fois les fichiers approuvés installés et visibles dans le conteneur :
+
+```sh
+docker compose exec -T caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+# Seulement après validation, sans arrêt/restart des autres sites :
+docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
+```
+
+Surveiller un autre site avant/pendant/après le reload et vérifier Muqola,
+HTTPS, cookies et absence de jeton/Authorization dans les erreurs. Ne jamais
+publier 2019, 8000 ou 5432. Les ports UFW TCP existants suffisent pour HTTPS ;
+HTTP/3 est facultatif et n'impose pas d'ouvrir UDP pour cette intégration.
+
+### Identité cliente et protection du protocole
+
+Le middleware de confiance est exécuté **avant** SecurityMiddleware. Hors
+production il n'altère pas le développement/Codespaces ; les limites continuent
+à ignorer les en-têtes clients directs. En production, les en-têtes de forwarding
+sont supprimés si l'adresse du pair n'est pas une IP Caddy approuvée. Seuls les
+healthchecks internes loopback sur leurs deux routes publiques gardent le
+protocole de leur sonde ; cette exception ne s'applique pas aux routes métier.
+Le calcul des limites prend `X-Real-IP` uniquement depuis un Caddy approuvé,
+une seule adresse valide, sinon l'adresse du pair. Une liste/valeur malformée
+ne crée pas de nouveaux buckets arbitraires. Les limites par adresse e-mail
+restent communes aux IP. `production_readiness` refuse une confiance proxy vide.
+
+### Sauvegarde, supervision et Debian 13
+
+Chaque JSON d'exploitation doit désormais inclure `"project": "muqola-prod"`,
+en plus de ses chemins `compose_file` et `compose_env`. Les outils passent
+explicitement `--project-name` et refusent une configuration sans projet ;
+mettre à jour les JSON **avant** de remplacer l'outillage. Garder les chemins et
+statuts historiques de production ; les futurs statuts staging seront distincts.
+Les outils pg_dump/age/rclone, chiffrement, rétention et restauration sont réutilisés.
+
+Le monitoring contrôle web/worker/DB dans le projet applicatif et la disponibilité
+HTTPS via le Caddy commun, sans attendre un service Caddy local. La supervision
+propre du Caddy partagé reste sous la responsabilité de `/opt/caddy` ; la sonde
+externe indépendante reste nécessaire pour détecter une panne du VPS.
+
+Les modules hôte de `deploy/` n'utilisent que la bibliothèque standard ; les
+units systemd utilisent `/usr/bin/python3`. Sur Debian 13, vérifier `python3 --version`,
+installer au besoin `python3`, `age`, `rclone`, `ca-certificates` via apt après
+revue des versions ; Docker/Compose sont déjà présents. Ne pas installer le
+projet Django/uv ni reconstruire son image sur le VPS. Django reste sous
+Python 3.12 dans l'image ; la contrainte `<3.13` du projet ne s'applique pas
+à l'import autonome des modules hôte. Exécuter depuis `/opt/muqola`, conserver
+configs 0600 et clés de récupération hors VPS.
+
+### Validation et limites
+
+Le smoke utilise un **projet Caddy séparé**, un réseau externe synthétique, un
+site témoin et l'application isolée. Il vérifie la continuité du témoin pendant
+reload, les en-têtes/CSRF/limites/logs, les rôles SQL et le cycle backup/restore.
+Il retire seulement ses conteneurs et réseaux ; **tous les volumes sont conservés**,
+avec inventaire sous `work/muqola-lot6-synthetic-*-retained-volumes.json`.
+Ni purge globale ni suppression de volume n'est autorisée par cet outillage.
+Les fixtures restent synthétiques et aucun SMTP réel/ACME/VPS n'est contacté.
+Résultats locaux : `scripts/check.sh` réussit avec **386 tests**, lint/format,
+typage, Django, migrations et statiques ; contrôle Django production et audit
+runtime sans vulnérabilité connue. Le smoke partagé a réussi reload/HTTPS/CSRF,
+expurgation des erreurs et backup/restore ; les six états de prêts sont conservés.
+Les modules hôte s'importent sous **Python 3.13.18**, sans installation de Django
+(test autonome, pas qualification du VPS). Les parcours navigateur et la CI
+sur le commit final sont consignés dans la PR ; les validations serveur restent
+strictement des actions manuelles à réaliser après autorisation distincte.
+
+---
+
+
+## Audit Caddy partagé, staging et CI/CD — 17 novembre 2026
+
+**Audit préalable conservé comme historique ; découpage approuvé ensuite par l’exploitant.**
+Branche locale `docs/lot-6-cicd-audit`, issue de `origin/main` synchronisé à
+`ff9e0c208be067b993f22b5f4b3b5751d5a8579d`. La [PR #32](https://github.com/tlamart/muqola/pull/32)
+est **fusionnée depuis le 17 novembre à 13 h 57, heure de Paris** ; son commit
+`7945797` et toute sa préparation font désormais partie de main. Il n'y a donc
+ni reprise de branche ouverte ni implémentation parallèle à entreprendre.
+La preuve historique de [CI #89 verte](https://github.com/tlamart/muqola/actions/runs/44045607508)
+porte sur ce commit de PR. La [CI du merge 44088074202](https://github.com/tlamart/muqola/actions/runs/44088074202)
+est également **terminée avec succès** sur `ff9e0c2`, vérification API du présent audit.
+
+### Infrastructure et périmètre vérifié
+
+Selon les informations de l'exploitant : OVH VPS-1, 2 vCores/4 Go, Debian 13,
+Docker/Compose installés, UFW 22/80/443 TCP, SSH par clé sans root, Caddy commun
+dans `/opt/caddy`, HTTPS disponible sur `muqola.tlam.art`. Le réseau externe
+`proxy` est **prévu**, sa présence et son adressage restent à vérifier par
+l'exploitant. Staging cible : `staging.muqola.tlam.art`, arrêté par défaut.
+Ces informations ne constituent pas une inspection serveur : aucun SSH ni
+changement du VPS, aucune vérification du service applicatif public effectuée.
+L'ouverture publique reste régie par `LAUNCH_CHECKLIST.md`.
+
+### Écarts et risques concrets
+
+| Point | Constat dans main | Adaptation proposée avant livraison |
+| --- | --- | --- |
+| Caddy/ports | `compose.prod.yaml` démarre Caddy et publie 80/443 TCP + 443 UDP | Retirer ce service et ses ports ; laisser les anciens volumes intacts ; Caddy commun seul maître des ports |
+| Réseaux | Tous les services sur `default`, sans réseau externe ni alias propre | web sur privé + `proxy`, alias `muqola-web` ; staging `muqola-staging-web` ; db/worker/migrate privés ; aucune route vers l'alias ambigu `web` |
+| Confiance réseau | Django fait confiance au protocole fourni par le proxy | N'admettre sur `proxy` que des applications administrées et fiables ; le réseau partagé ne garantit pas l'isolation entre les web des applications ; DB et secrets restent privés |
+| Rechargement Caddy | Le fichier fourni contient `admin off` | Ne pas recopier ce bloc dans le Caddy commun : conserver son endpoint admin interne permettant `caddy reload`, sans l'exposer ; préserver les autres sites/options/certificats |
+| Journaux et en-têtes | Filtrage des requêtes/URI/en-têtes et réécriture du protocole déjà présents | Reprendre ces protections dans un extrait à fusionner ; ajouter un test d'erreur avec Authorization/cookie/jeton et un second site témoin pendant reload |
+| Limites par IP | `identity/ratelimit.py` utilise `REMOTE_ADDR` : derrière Caddy, budget partagé entre clients | Déduire l'IP uniquement depuis le Caddy explicitement approuvé et son en-tête réécrit ; tester l'usurpation, ne pas approuver tout `proxy` |
+| Image | Pas de build dans le Compose production, mais référence libre ; exemple de tag local | Exiger `ghcr.io/tlamart/muqola@sha256:…` et sa provenance ; garder le tag SHA complet comme trace, jamais comme garantie d'immuabilité |
+| CI/GHCR | Un workflow de contrôles PR/main, aucun publisher ni CD | Ajouter publication du candidat testé après contrôles du même main, puis workflow manuel ; aucune publication depuis PR, aucun `pull_request_target` exécutant du code non fiable |
+| Staging | Aucun Compose, secret, volume ou protection d'accès dédié | Projet/base/volumes/chemins/clés propres ; accès Caddy protégé, noindex et capture SMTP privée, sans copie de production |
+| SMTP staging | `APP_ENV` ne connaît pas staging ; flags de sécurité activés seulement par production ; `production_readiness` refuse capture et absence de TLS SMTP | Garder `APP_ENV=production` en staging ; contrôle staging distinct exigeant Mailpit interne sans relais/egress SMTP et conservant les autres protections ; ne pas assouplir le contrôle production ni les portes 18+/légales |
+| Monitoring | `deploy/monitor.py` attend un service `caddy` dans le projet app | Séparer état du Caddy commun et état de l'app ; sonde HTTPS adaptée à l'auth staging ; credentials de sonde privés et absents des logs |
+| Backup/restore | Outils #32 opérationnels sur synthétique, configuration un seul projet/fichier Compose | Réutiliser pg_dump/age/rclone ; configurations/env/états/préfixes indépendants et sélection explicite de projet ; ne jamais confondre état de backup staging et production |
+| Migrations | `deploy/migrate.sh` applique explicitement migrate + grants, sans protocole CD | Plan puis application autorisée, backup frais et preuve de restauration ; contrôle du schéma et du plan, verrou ; opération destructive/inconnue bloquée, aucune restauration automatique |
+| Rollback | Procédure documentaire sans registre de release | Enregistrer ancien/candidat/réussi avec digest et schéma ; rollback d'image seulement si compatible, arrêt avec diagnostic après migration incertaine |
+| Test existant | `production_smoke.py` possède son Caddy et termine par `down --volumes` | Adapter au proxy partagé et retirer la destruction de volumes ; ne pas exécuter ce script inchangé sous les contraintes de cette mission |
+| Debian 13 | Image Python 3.12 ; projet limité à Python <3.13 ; units hôte pointant sur `.venv` | Vérifier Python hôte Debian (normalement 3.13) et tester les outils `deploy/` en stdlib sous l'interpréteur Debian ; ne pas imposer uv sync du projet ni construire Python/Django sur le VPS |
+
+**Budget :** le rendu Compose donne 512 Mio web + 192 Mio worker + 768 Mio DB,
+soit 1 472 Mio par pile ; deux piles plafonnent à 2 944 Mio, hors Caddy commun,
+SMTP capturé, système, Docker et autres applications. Deux migrations
+simultanées ajoutent 1 024 Mio : plus de marge raisonnable sur 4 Go.
+Ce calcul porte sur les **limites**, pas sur la consommation. Mesurer RSS/CPU,
+pointes de migration, MemAvailable et disque ; sérialiser les opérations lourdes,
+refuser un démarrage sans marge et garder le staging arrêté hors usage.
+Les limites CPU des services ne constituent pas une réservation de capacité.
+
+### Modifications prévues, fichier par fichier
+
+Cette liste est un plan, pas une liste de changements déjà réalisés.
+
+| Fichier existant ou prévu | Intervention après accord |
+| --- | --- |
+| `compose.prod.yaml` | Caddy retiré, réseaux/alias, durcissement conservé, projet/volumes stables, image GHCR par digest |
+| `.env.production.example` | Domaine réel cible sans secret, image immuable, chemins et identité explicite du projet/proxy |
+| `compose.staging.yaml`, `.env.staging.example` (nouveaux) | Paramètres isolés, domaine/alias propres, capture SMTP sans relais, ressources et arrêt à la demande ; réemploi de la configuration commune sans hériter des secrets production |
+| `deploy/Caddyfile` | Extrait pour Caddy commun, routes/auth staging/noindex ; consignes de fusion du bloc de logs et de l'admin local, sans écrasement des autres sites |
+| `config/settings.py`, `muqola/core/proxy.py` (prévu), `muqola/identity/ratelimit.py` | Paramètres des proxys approuvés, résolution d'IP bornée/testée ; préserver tous les flags de sécurité et le fonctionnement local |
+| `config/gunicorn.py` | Conserver les réglages éprouvés ; clarifier le commentaire qui les décrit encore comme réservés au développement ; tuning seulement après mesures |
+| `deploy/common.py` | Choix explicite de projet/configuration par environnement, compatible avec les backups existants |
+| `deploy/monitor.py`, `deploy/monitor.example.json` | Caddy externe, app/HTTPS/outbox/backup propres à l'environnement, auth staging privée |
+| `deploy/backup.example.json`, `deploy/systemd/*` | Chemins, statuts, unités et interpréteur hôte Debian compatibles, sans réécrire le chiffrement/restore |
+| `deploy/backup.py`, `deploy/restore.py`, `deploy/postgres/*`, `deploy/migrate.sh` | Réemploi ; seulement les adaptations indispensables, aucun changement de rôles ou garantie de restauration affaiblie |
+| `muqola/operations/management/commands/production_readiness.py` | Garder les exigences production ; mutualiser uniquement les contrôles sûrs si un contrôle staging dédié est ajouté |
+| `.github/workflows/ci.yml` | Conserver tous les contrôles ; job publication main seulement après succès, candidat testé conservé, packages:write limité au publisher ; SHA et digest archivés |
+| `.github/workflows/deploy.yml` (nouveau) | workflow_dispatch staging/production, modes plan/apply, validation de provenance, environnements GitHub, approbation, concurrence et SSH strict |
+| `deploy/release.py` et `deploy/image_provenance.py` (prévus) | Orchestration limitée : liste de fichiers versionnés, vérifications digest/plan/backup, verrou, pull/migrate/health/smoke, état de release et rollback compatible |
+| `scripts/production_smoke.py` | Proxy partagé synthétique, deux sites/environnements, pas de destruction de volumes ; conserver TLS/CSRF/logs/SQL/backup/restore |
+| `tests/test_deploy_configuration.py`, `tests/test_release.py` (prévus) | Isolation/ports/alias, source d'image approuvée, permissions workflows, échecs/interruptions/rollback et plans périmés |
+| `tests/test_deploy_monitor.py`, `tests/test_deploy_backup.py`, `tests/test_production_readiness.py`, tests comptes | Adapter Caddy/staging, prouver conservation des protections et refus de l'usurpation |
+| `.gitignore`, `.dockerignore` | Autoriser seulement les nouveaux exemples et continuer à exclure secrets, données et fichiers d'environnement réels |
+| `README.md`, `ARCHITECTURE.md`, présent document, `TASKS.md`, `LAUNCH_CHECKLIST.md` | Runbooks Debian 13 et preuves ; conserver les historiques et validations d'ouverture non satisfaites |
+| `Dockerfile`, `compose.yaml`, migrations historiques, règles métier | Réutilisation sans refonte ; développement local inchangé, aucun média utilisateur |
+
+### Quatre PR proposées après accord
+
+1. **Caddy partagé et exploitation compatible** : V1–V4. Réseaux, logs/en-têtes,
+   IP de confiance, monitoring/backup et smoke adapté. Aucun besoin de GHCR pour
+   tester localement ; un contournement de test accepte uniquement une image
+   synthétique locale dans le harness, jamais dans le chemin de déploiement.
+2. **Staging privé éphémère** : V5–V7, après PR 1 intégrée. Isolation/capture,
+   authentification, non-indexation et contrôles de capacité. Usage réel suspendu
+   aux mesures et à la configuration de l'exploitant.
+3. **Publication GHCR après main validé** : V8–V9. Préserver exactement l'image
+   candidate testée, tag SHA complet, digest et enregistrement de publication de
+   confiance ; pas de secret GHCR dans les PR ni de publication depuis PR.
+4. **CD manuel et exploitation documentée** : V10–V13, après PR 1–3 intégrées.
+   Deux modes manuels `plan` puis `apply` pour que le reviewer puisse examiner
+   le plan produit **avant** l'application ; apply référence un plan récent,
+   un digest et un état de schéma revérifiés. La simple approbation d'un job avant
+   calcul du plan ne suffit pas. Rollback contrôlé, sans opération DB automatique.
+
+Chaque PR est créée depuis la dernière main, après intégration de ses
+prérequis, avec preuves propres et aucun merge automatique. Les textes existants
+sont mis à jour dans chacune ; aucun second système de sauvegarde ni manuel
+redondant. Aucun déploiement réel ne sera exécuté pour ces implémentations.
+
+### Actions manuelles à préparer
+
+- **GitHub/GHCR :** choisir package public ou privé ; configurer droits Actions
+  et environnements `staging`/`production`, branches autorisées, reviewer production
+  si disponible pour le compte ; empêcher l'auto-approbation si possible.
+  Prévoir secret SSH dédié par environnement, host key vérifiée hors bande et,
+  si nécessaire, accès GHCR VPS limité à la lecture. Ne pas fournir les clés privées
+  dans le chat. Sans reviewers disponibles : plan puis validation manuelle explicite
+  liée au run/digest, avec accès workflow restreint ; documenter la limite.
+- **OVH/VPS/Caddy :** confirmer version/conteneur Caddy, mode de montage du
+  Caddyfile (attention au remplacement atomique d'un fichier bind-monté), service
+  Compose réel et admin local ; réseau `proxy` et identité stable du Caddy,
+  répertoires séparés, permissions, espace/mémoire/CPU et autres apps.
+  Les comptes autorisés à Docker disposent de privilèges comparables à root :
+  les limiter, ne pas prétendre qu'une clé SSH est limitée si elle accède librement
+  au socket Docker. Ne pas ouvrir 8000/5432 ; aucun changement UFW nécessaire
+  pour ajouter le staging HTTPS. HTTP/3 reste facultatif avec 443 UDP actuellement fermé.
+- **DNS/Brevo :** confirmer l'enregistrement staging A/AAAA (IPv6 seulement si
+  opérationnel), créer/vérifier le compte SMTP et expéditeur Brevo, copier les
+  valeurs SPF/DKIM/DMARC fournies et cohérentes avec les autres expéditeurs.
+  Credentials SMTP uniquement en production ; staging capture interne sans relais.
+  Tests de délivrabilité ultérieurs sur adresses contrôlées et suivi des rejets/quotas.
+- **Sauvegarde et conformité :** stockage extérieur, destinataire age public,
+  clé privée séparée, politique de rétention, restauration isolée et RPO/RTO ;
+  alerte indépendante du VPS. Fournir les informations légales, revue et procédure
+  effective de suppression ; ne pas activer un indicateur de revue fictif.
+
+### Preuves de cet audit et arrêt demandé
+
+Références synchronisées, état de fusion lu par API, fichiers obligatoires et
+outils existants examinés ; rendu Compose production valide avec/sans profil
+maintenance, limites calculées depuis ce rendu. Aucun test de nouvelle CI/CD
+n'est présenté comme réussi : elle n'est pas encore implémentée. Les 373 tests
+et le smoke de #32 restent des preuves historiques ; pas de relance du smoke
+qui détruit ses volumes sous sa forme actuelle. Aucun accès SSH, déploiement,
+push GHCR, modification de Caddy réel, création de secret ou suppression de volume.
+Seuls cet audit et la section V0–V13 de TASKS.md ont été préparés localement.
+
+**Accord reçu ; voir l’état de PR 1 ci-dessus et les tâches de suivi.**
+
+---
+
+Les sections suivantes actualisent le runbook de #32 pour le Caddy partagé ;
+les résultats datés de #32 restent des preuves historiques.
+
+
 État du 17 novembre 2026. Base : `main` 0b5e928, après les PR #24
 (infrastructure initiale), #25 (Wikidata/Commons), #28 (communautés), #29
 (catalogue), #30 (recherche) et #31 (prêt des fiches en attente).
@@ -24,24 +330,26 @@ conserve ses validations réelles non cochées.
 ## Configuration et frontières de confiance
 
 Ne jamais superposer `compose.yaml` (développement, Mailpit) au fichier de
-production. Seul Caddy publie 80/443 TCP et 443 UDP. Web et DB n'ont aucun port
-publié. Le réseau Docker et son administrateur font partie de la frontière de
+production. Seul le **Caddy commun externe** publie les ports HTTP/HTTPS. Le Compose
+applicatif ne publie aucun port ; UDP/HTTP3 reste facultatif. Le réseau Docker et son administrateur font partie de la frontière de
 confiance : Django accepte le protocole fourni par Caddy, qui écrase les en-têtes
 clients. Ne pas connecter de conteneur non fiable à ce réseau.
 
 Le runtime tourne sous UID 10001, en lecture seule et sans capacités Linux ;
-`/tmp` est un tmpfs borné. PostgreSQL et les certificats Caddy persistent dans
-des volumes distincts. Restart `unless-stopped`, arrêt gracieux et logs Docker
-bornés à 3 × 5 Mo par service. Web 512 Mo, worker 192 Mo, DB 768 Mo, Caddy 128 Mo :
+`/tmp` est un tmpfs borné. PostgreSQL persiste dans le projet applicatif ; les certificats Caddy restent
+dans les volumes du projet `/opt/caddy`, sans transfert ni suppression. Restart `unless-stopped`, arrêt gracieux et logs Docker
+bornés à 3 × 5 Mo par service. Web 512 Mio, worker 192 Mio, DB 768 Mio ; le budget du Caddy commun
+est à vérifier séparément :
 cible initiale **2 vCPU / 4 Go RAM**, à mesurer sur le VPS, sans garantie de charge.
 Les limites CPU/mémoire Compose s'appliquent sans Swarm. Les erreurs Caddy
 filtrent URI, en-têtes et objet requête ; aucun access log n’est activé, pour
 protéger aussi les jetons lors d’une panne de Django.
 
-Les versions PostgreSQL, Caddy et Python sont épinglées par digest. Construire
-l'image applicative depuis un commit revu, la nommer `muqola:sha-<40 hex>` puis
-renseigner de préférence son digest de registre immuable. Ne pas utiliser
-`latest`. Revoir régulièrement correctifs et digests en PR, reconstruire,
+Les images PostgreSQL et Python sont épinglées par digest ; la version du
+Caddy commun est gérée indépendamment. L'image applicative doit être construite
+sur runner et référencée sous `ghcr.io/tlamart/muqola@sha256:…`, sans build VPS.
+La publication automatisée avec trace du SHA complet relève de la PR 3 à venir ;
+ni tag local ni `latest` ne passent le précontrôle de production. Revoir régulièrement correctifs et digests en PR, reconstruire,
 auditer et tester avant toute mise à jour. Ne pas changer de version majeure
 PostgreSQL sans procédure distincte.
 
@@ -94,11 +402,12 @@ Commandes **futures**, seulement après configuration et autorisation de
 l'opérateur, depuis `/opt/muqola` (aucune exécutée ici sur infrastructure réelle) :
 
 ```sh
+python3 -m deploy.check_config --config /etc/muqola/monitor.json
 docker compose --env-file /etc/muqola/production.env -f compose.prod.yaml up -d --wait db
 docker compose --env-file /etc/muqola/production.env -f compose.prod.yaml run --rm migrate python manage.py migrate --plan
 # Sauvegarde préalable vérifiée, revue du plan et autorisation avant la suite :
 docker compose --env-file /etc/muqola/production.env -f compose.prod.yaml run --rm migrate
-docker compose --env-file /etc/muqola/production.env -f compose.prod.yaml up -d --wait web worker caddy
+docker compose --env-file /etc/muqola/production.env -f compose.prod.yaml up -d --wait web worker
 docker compose --env-file /etc/muqola/production.env -f compose.prod.yaml exec -T web python manage.py check --deploy --fail-level WARNING
 docker compose --env-file /etc/muqola/production.env -f compose.prod.yaml exec -T web python manage.py production_readiness
 ```
@@ -116,7 +425,7 @@ une opération automatique fournie pour une base réelle inconnue.
 
 ## Sauvegarde et restauration
 
-Outils hôte : Python 3.12, Docker Compose, **age 1.3.2** et rclone (version
+Outils hôte : Python 3 Debian (stdlib uniquement), Docker Compose, **age 1.3.2** et rclone (version
 maintenue à fixer dans l'inventaire VPS). La clé privée age est générée et
 conservée **hors VPS**, avec copie de secours chiffrée accessible à l'opérateur.
 Le VPS n'a besoin que du destinataire public `age1…`. La perte de la clé privée
@@ -219,7 +528,7 @@ webhook non demandé. Une reprise après interruption peut produire un doublon
 ## Supervision, alertes et incidents
 
 `python -m deploy.monitor --config /etc/muqola/monitor.json` : HTTPS avec
-certificat vérifié, état/health web/worker/DB/Caddy, SELECT 1, outbox en échec
+certificat vérifié, état/health web/worker/DB, HTTPS via le Caddy commun, SELECT 1, outbox en échec
 ou en retard >15 minutes, disque (<1 Gio libre ou >90 %), sauvegarde absente,
 échouée ou âgée de >36 h, erreurs JSON web/worker des 10 dernières minutes.
 Ne publie que des codes, jamais les logs bruts ou identités. Heartbeat worker
@@ -227,7 +536,7 @@ actualisé après une boucle réussie, périmé après 120 s. `/health/ready/` r
 minimal/public ; les métriques d'exploitation restent privées.
 
 Adapter les modèles systemd `deploy/systemd/` : backup quotidien, sonde toutes
-les 5 minutes. Installer l'environnement Python hôte depuis le lock, protéger
+les 5 minutes. Utiliser `/usr/bin/python3` sans installer Django sur l’hôte, protéger
 configs 0600 et répertoires 0700. Créer et tester **avant activation**
 `/etc/muqola/notify-operator` et `muqola-alert@.service` à partir du modèle,
 via canal indépendant du SMTP applicatif. `OnFailure` transmet uniquement le
@@ -311,21 +620,21 @@ Le smoke production avec vrais outils a réussi le chiffrement/restauration,
 la rétention, les rôles, TLS/CSRF et les refus de clé/base invalides ; la PR et sa
 CI conservent la preuve de la version finale. Aucune validation distante réelle.
 
-Le smoke crée un projet `muqola-lot6-synthetic-<aléatoire>` distinct et des
-volumes neufs, sans ports DB/web publiés. HTTPS loopback avec CA Caddy interne
+Le smoke crée un projet applicatif `muqola-lot6-synthetic-<aléatoire>` et un
+projet Caddy séparé, avec volumes neufs, sans ports DB/web publiés. HTTPS loopback avec CA Caddy interne
 (pas d'ACME), cookies/CSRF et en-têtes vérifiés, interdictions SQL testées,
 pg_dump/age/rclone réels, rétention, restauration dans une base distincte, refus
 clé erronée/base peuplée, comparaison de toutes les lignes et des six états de
-prêts. La source reste identique. Seuls ses propres volumes synthétiques sont
-retirés. Ce test n'atteste ni stockage distant réel, ni SMTP réel, ni certificat
+prêts. La source reste identique. Ses conteneurs/réseaux sont retirés et ses
+volumes sont **conservés**, avec inventaire dans work/. Ce test n'atteste ni stockage distant réel, ni SMTP réel, ni certificat
 public. Résultats exacts et CI sont consignés dans la PR.
 
 ## Interventions du propriétaire et ordre des validations
 
-1. **Domaine :** vérifier nom/marque, budget et titulaire ; achat seulement sur
-   votre initiative. Fournir domaine et contact ACME surveillé.
-2. **VPS :** choisir fournisseur/région/budget, louer et durcir SSH/pare-feu,
-   mises à jour, accès Docker restreint, disque chiffré si nécessaire et volumes.
+1. **Domaine existant :** confirmer nom/droits, contact ACME surveillé et DNS
+   nécessaires ; aucun achat prévu.
+2. **VPS OVH existant :** vérifier intégration Caddy, SSH/pare-feu, mises à jour,
+   accès Docker restreint, capacité, disque et volumes ; aucune nouvelle location.
 3. **SMTP :** créer compte transactionnel, vérifier domaine/expéditeur, quotas,
    contact bounces ; déposer credentials privés, choisir TLS correct.
 4. **DNS :** A/AAAA exacts (ne pas publier IPv6 non fonctionnel), SPF/DKIM/DMARC

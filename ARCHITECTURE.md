@@ -86,3 +86,20 @@ Attestation 18+ obligatoire côté serveur pour les nouvelles activités ; les
 prêts existants et l'exercice des droits restent accessibles sans attestation.
 Documents légaux complets/revus hors image requis pour ouvrir les inscriptions
 en production. [Audit, tests, procédures et validations humaines restantes](docs/lot-6-infrastructure.md).
+
+## Caddy commun et sources de confiance
+
+Le Compose applicatif conserve web/worker/migrate/DB et un réseau privé, sans
+port publié. Seul web rejoint également le réseau externe `proxy`, sous l'alias
+`muqola-web`. Le Caddy indépendant de `/opt/caddy` reste maître des ports et des
+certificats, avec admin local pour reload ; les anciens volumes Caddy sont conservés.
+Le filtrage JSON global et la réécriture des en-têtes sont fournis comme fragments
+à fusionner sans écraser les autres applications.
+
+Le middleware de proxy précède SecurityMiddleware : en production, forwarding
+accepté depuis des IP Caddy exactes uniquement ; `X-Real-IP` validé alimente les
+limites de débit tout en conservant les limites par compte. Aucune confiance
+implicite au réseau partagé, aux en-têtes publics ou à un nom DNS. Le développement
+local/Codespaces garde sa configuration. Les outils d'exploitation ciblent un
+projet explicite, et le monitoring vérifie HTTPS via le Caddy commun sans attendre
+un service edge dans le projet applicatif. [Procédure et limites](docs/lot-6-infrastructure.md#pr-1--caddy-partagé-et-exploitation-compatible).
