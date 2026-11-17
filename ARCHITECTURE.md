@@ -118,3 +118,19 @@ sans assouplir la porte de production. Admission locale : isolation et valeurs
 des secrets, revue de capacité et mesures de marge ; aucune migration appliquée
 par le start, arrêt limité au staging et volumes conservés. Mesures réelles VPS
 requises avant activation ; le smoke à deux piles n'en tient pas lieu.
+
+## Image candidate et preuve GHCR
+
+La CI construit une image linux/amd64 puis la teste sans rebuild ; archive
+save/load, hash et digest canonique de configuration lient les jobs checks/publish
+du même run. Ce digest est lu dans l’archive et revérifié après chargement ;
+les handles moteur Docker/containerd peuvent différer sans altérer ce contenu.
+Publication limitée aux push main réussis, packages:write au seul publisher.
+Tags SHA complet et run/tentative pour la traçabilité ; digest comme seule entrée
+de promotion. Le Dockerfile et les profils applicatifs restent inchangés.
+
+Le validateur indépendant interroge GitHub pour le succès du run main et des deux
+jobs, télécharge la preuve bornée liée au commit/tentative, puis relit le manifeste
+GHCR par digest et compare sa configuration à l'image testée. Ni tag/label ni
+record local ne vaut provenance. Échec fermé si preuve expirée ou registre/API
+indisponible ; aucune reconstruction, installation VPS ou livraison dans ce lot.

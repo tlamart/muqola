@@ -65,3 +65,13 @@
 - [ ] Capacité mesurée sur le VPS sous charge/migration autorisées, marge validée et admission réussie ; staging arrêté hors usage.
 - [ ] Plan de migration revu/appliqué explicitement, start/stop/restart et production témoin vérifiés ; aucune suppression de volume.
 - [ ] Sonde HTTPS privée et monitoring utilisés lorsque staging actif, sauvegardes/états séparés si conservation nécessaire.
+
+## Publication GHCR — contrôles réels après fusion
+
+- [ ] Premier run main : checks et publish réussis, package lié au dépôt, visibilité et droits revus.
+- [ ] Digest/commit/run/tentative et preuve distante vérifiés avec `deploy.image_provenance` ; conservation des preuves et digests de rollback.
+- [ ] Architecture VPS compatible avec l'image linux/amd64, accès registre en lecture défini si privé.
+- [ ] Environnements staging/production : restrictions main, approbations disponibles et empreintes SSH revues ; droits VPS à préciser au lot CD, aucun ajout requis pour GHCR.
+
+La préparation/test synthétique GHCR ne valide ni capacité VPS, ni déploiement,
+ni SMTP réel, ni ouverture publique. Les conditions précédentes restent requises.

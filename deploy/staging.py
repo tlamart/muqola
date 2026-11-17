@@ -41,7 +41,7 @@ def host_resources(data_path: str) -> dict[str, int | float]:
         "cpu_count": cpus,
         "limits_enforced": bool(
             info.get("MemoryLimit")
-            and info.get("CPUCfsQuota")
+            and info.get("CpuCfsQuota")
             and info.get("CgroupDriver") != "none"
         ),
     }
