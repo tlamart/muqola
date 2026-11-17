@@ -26,8 +26,8 @@ ROOT = Path(__file__).resolve().parents[1]
 CADDY_IMAGE = "caddy:2.11.9@sha256:f971688b2aaf1a26d256de552f17fb13f64fc5ed2dee4cf40c7f9d70cea0e12d"
 
 
-def run(args, *, data=None, ok=True):
-    result = subprocess.run(args, input=data, capture_output=True, timeout=300)  # noqa: S603
+def run(args, *, data=None, ok=True, timeout=300):
+    result = subprocess.run(args, input=data, capture_output=True, timeout=timeout)  # noqa: S603
     if ok and result.returncode:
         # Only synthetic values exist in this isolated test, but avoid dumping
         # container environments and private keys even in test diagnostics.

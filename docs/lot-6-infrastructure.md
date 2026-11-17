@@ -1,5 +1,198 @@
 # Lot 6 — Préparation à la validation sur infrastructure réelle
 
+## PR 4 — CD manuel, plan contrôlé et reprise
+
+Branche `feat/cd-manuel`, base main `98a5a61` après fusion #35. La première
+publication GHCR est réussie : [run 44125680324](https://github.com/tlamart/muqola/actions/runs/44125680324),
+image `ghcr.io/tlamart/muqola@sha256:a3ee7c80c8c7a51983eb4f71ca9447b56883748182fbdbcd53da44999c4468df`.
+Aucun SSH, déploiement ou changement de droits VPS effectué pour ce lot.
+Validation locale : **552 tests**, lint/typage/Django/migrations/statiques, contrôle
+production, audit runtime et actionlint réussis ; build et scénario staging/CD
+avec identifiants d’images distincts réussis. La CI exacte est consignée dans la PR.
+
+### Contrat du workflow
+
+`Manual Muqola delivery` ne possède que `workflow_dispatch`, exécutable sur main
+du dépôt attendu. Choisir staging/production, plan/apply, deploy/rollback, digest
+GHCR, run et tentative de publication. Concurrence par environnement sans annulation, verrou par environnement et
+verrou hôte commun sérialisant les opérations lourdes staging/production. Permissions limitées à contents/actions/packages **read** ; aucun
+build, publication, modification du Caddy commun, restore ou suppression de volume.
+
+Le code de contrôle provient du checkout de confiance du workflow sur main. La
+provenance GitHub/GHCR est revérifiée avec l'outil V9 à **chaque** plan/application.
+Seuls les huit fichiers de `deploy.release.ASSETS` sont lus au commit de l'image
+validée et transférés : trois Compose, migrate.sh et quatre scripts SQL/PG existants.
+Jamais de .env, clé, dump, catalogue ou document légal dans ce transfert. Leurs
+empreintes sont vérifiées sur l'hôte avant utilisation.
+
+SSH utilise VPS_HOST/VPS_USER/SSH_KNOWN_HOSTS des variables de l'environnement et
+VPS_SSH_KEY de ses Secrets. Pas de root, ssh-keyscan, désactivation de vérification,
+agent forwarding ou commande utilisateur arbitraire. Clé temporaire 0600, known_hosts
+fourni/vérifié hors bande ; hôte inconnu ou clé changée bloque la connexion.
+Le secret est absent d'argv. Une rupture SSH échoue sans reprise automatique.
+
+Un GITHUB_TOKEN éphémère de lecture est transmis par stdin sur le canal SSH vérifié
+pour le pull GHCR privé. Il n'apparaît ni dans les plans, ni dans les arguments/logs.
+Le contrôleur épingle le démon Unix vérifié, puis stocke sa configuration Docker
+dans un répertoire temporaire privé,
+nettoyé en sortie normale ; le jeton expire avec le job en cas d'interruption.
+Aucun PAT permanent ou secret SMTP n'est transféré par le workflow.
+
+### Installation préalable par l'exploitant, après revue uniquement
+
+La première image utilisable par le CD devra être publiée **après fusion de ce
+lot**, car les images précédentes n'incluent pas `release_snapshot`. La publication
+GHCR de #35 reste une preuve du registre, pas un candidat compatible avec ce protocole.
+
+Installer une version revue du contrôleur dans `/opt/muqola-controller/deploy` :
+release.py, common.py, check_config.py, image_provenance.py, probe.py, staging.py,
+staging_config.py. Garder ce code hors écriture du compte de livraison ordinaire
+et ne pas le remplacer depuis le bundle applicatif. Python 3 de Debian 13 et Docker
+Compose récent suffisent sur l'hôte ; ni Django, uv, GitHub CLI ni build VPS requis.
+Protocole initial 1 ; mettre à jour client/contrôleur ensemble si ce contrat change.
+
+Copier les exemples privés hors dépôt : production `/etc/muqola/release.json`,
+staging `/etc/muqola/staging/release.json`, fichiers 0600 appartenant au compte
+opérateur. Les statuts backup/restore doivent être lisibles en 0600 par ce même
+compte : adapter le User des unités de sauvegarde à la politique opérateur revue
+plutôt que rendre leurs fichiers publics pour contourner un refus. Répertoires `/var/lib/muqola/production/cd` et `/var/lib/muqola/staging/cd`
+0700. Préparer aussi `/var/lib/muqola/cd.lock`, accessible en écriture aux seuls
+comptes de livraison autorisés (même compte, ou groupe dédié si comptes distincts).
+Les cibles ne peuvent pas être remplacées par un chemin libre dans le workflow.
+Renseigner compose_env, data_path et preuves de chaque environnement. Conserver
+`capacity_reviewed=false` avant revue de capacité réelle ; staging exige aussi
+synthetic_data_only, accès privé, SMTP capturé et référence production. Production
+exige la référence staging pour vérifier les collisions de secrets/volumes/réseaux.
+Les références monitor JSON privées doivent cibler les projets et Compose corrects.
+
+Inventorier les volumes/projets existants avant toute installation : le contrôleur
+refuse un nom de volume inattendu et ne réinitialise aucune base. DB et capture
+staging doivent être initialisées/démarrées dans un créneau distinct autorisé.
+**Bootstrap neuf :** inventaire, plan de migrations existant puis initialisation
+manuelle revue avec sauvegarde/retour adaptés ; le CD refuse d'appliquer le bootstrap.
+Le refus n'est contournable par aucun flag. Refaire un plan après initialisation.
+
+Une application déjà active sans état CD exige une **adoption opérateur revue**.
+Créer state.json privé avec current contenant image par digest, commit, publication
+V9 validée, compose_file du modèle existant et schema fourni par release_snapshot
+dans le contexte migration. Comparer à l'image réellement exécutée ; ne pas fabriquer
+un état précédent. Si aucune application n'est active, le premier succès enregistre
+current sans précédent ; aucun rollback vers une version inexistante n'est proposé.
+Conserver les anciens fichiers/env/volumes et l'inventaire d'adoption hors Git.
+
+Les environnements GitHub sont déclarés déjà créés avec les variables et la clé.
+Vérifier restriction à main, droits de déclenchement et reviewer production si
+l'offre GitHub le permet, sans auto-approbation. Le compte VPS doit pouvoir lire
+sa configuration et utiliser **le même démon Docker que le Caddy commun**. Ce flux
+n'utilise pas sudo. Pour son exécution future, un compte dédié avec accès Docker
+peut être nécessaire : cet accès peut équivaloir à root et doit être approuvé par
+l'exploitant. Ne pas ajouter sudo général, ni changer les droits pendant ces tests.
+Un helper root restreint serait une adaptation distincte avant activation si préféré.
+
+### Sauvegarde et exercice de restauration obligatoires
+
+Réutiliser `deploy.backup` et `deploy.restore` de #32 ; aucune seconde filière.
+Le contrôleur exige un statut de sauvegarde privé ok, objet renseigné et succès
+dans les dernières **24 h** (horodatage futur refusé). Le fichier de restauration
+est un compte rendu opérateur 0600 d'un exercice **réel**, isolé et revu, daté de
+moins de 30 jours, avec :
+
+```json
+{
+  "project": "muqola-prod",
+  "success": true,
+  "isolated": true,
+  "reviewed_by": "REMPLACER_APRES_REVUE_REELLE",
+  "exercise_id": "REFERENCE_DU_RAPPORT_ET_DES_COMPARAISONS",
+  "completed_at": "HORODATAGE_UTC_ISO_APRES_EXERCICE"
+}
+```
+
+Adapter le projet en staging. Ne pas transformer un essai Cloud ou un simple accès
+au stockage en preuve de restauration VPS. Archiver comparaison, objet sauvegardé,
+base isolée, RPO/RTO et compte rendu associés à exercise_id. Ce document est une
+attestation de l'opérateur de confiance, pas un contrôle indépendant du stockage.
+Sans preuve complète, aucune application autorisée ; aucun restore automatique.
+
+### Plan puis application
+
+1. Déclencher **plan** pour le digest publié et son run/tentative. Le contrôleur
+   vérifie sauvegarde/restauration, isolation et capacité, pull sans build puis
+   inventaire en lecture seule sous rôle migration. Les droits runtime restent
+   séparés. Plan expirant après **une heure**, lié au schéma, migrations/fichiers,
+   image/provenance, configuration/secrets (empreintes seulement), images réellement
+   actives et état précédent. Une image active absente du journal bloque le plan
+   jusqu’à une adoption opérateur revue.
+   Un nonce unique donne à chaque nouvelle revue son propre hash, même si le
+   diagnostic est identique ; les anciennes tentatives consommées restent conservées.
+2. Télécharger `muqola-plan-staging-<tentative>` ou `muqola-plan-production-<tentative>` du run réussi.
+   Lire plan.json : image, état précédent, opérations de migration et hash.
+   Le plan ne contient ni compte utilisateur ni valeurs de secrets. Aucun service
+   n'est arrêté et aucune migration n'est appliquée à cette étape.
+3. Après revue humaine, déclencher **apply** avec le même digest/publication,
+   le run du plan et son hash exact. La source est vérifiée par l'API GitHub :
+   workflow manuel sur main réussi, artefact non expiré, environnement/image/kind
+   concordants. L'hôte compare son exemplaire du plan au nouveau diagnostic sous
+   verrou ; backup/config/schéma/state modifiés ou plan expiré => refaire un plan.
+   Si reviewers d'environnement indisponibles, la saisie manuelle du run et hash
+   après lecture est la validation explicite liée au plan ; limiter qui déclenche.
+4. Marquage durable du plan consommé **avant** arrêt web/worker. Schéma revérifié
+   après arrêt ; migrations au plus une fois via migrate.sh puis grants existants.
+   `release_snapshot` et politique d'empreintes historiques revues bloquent toute
+   migration inconnue/modifiée. Une nouvelle migration exige une PR avec analyse,
+   tests et ajout conscient à migration_policy, jamais un flag force générique.
+5. Contrôle readiness production/staging (18+, légal, rôles, SMTP), up sans build avec `--no-deps` (DB/capture non recréées),
+   santé web/worker et HTTPS avec certificat vérifié ; accès privé staging contrôlé
+   avant mutation et après démarrage. Succès : historique, previous/current et
+   lien actif mis à jour. Les autres sites Caddy et l'autre environnement ne sont
+   pas manipulés. Les volumes et tous les exemplaires/prêts sont conservés.
+
+Pour monitoring/backup actifs, configurer compose_file vers
+`/var/lib/muqola/<environment>/cd/active/compose.json` après adoption/premier succès,
+avec compose_env et projet explicites. Le JSON résolu reste privé sur VPS (0600),
+pas dans les artefacts ; il contient les chemins et paramètres propres à l'hôte.
+Ne pas utiliser ce lien avant qu'il existe ; garder la configuration précédente.
+
+### Incident et rollback
+
+Un échec arrête le flux et conserve current/previous ; les services peuvent rester
+arrêtés ou la candidate rester démarrée selon la phase. Examiner state.json privé,
+les healthchecks et logs expurgés. Pas de restauration ou retour de schéma implicite.
+Interruption pendant migration => résultat unknown enregistré avant son lancement ;
+si des migrations restent en attente, reprise bloquée jusqu'à réparation/revue
+manuelle. Si le schéma est propre et sans migration en attente, produire un nouveau
+plan pour poursuivre ; ne jamais réutiliser un hash consommé ni relancer aveuglément.
+
+Rollback : nouveau **plan**, kind=rollback, puis nouvel apply après revue. Après
+un succès, choisir le digest/publication de previous ; après un échec ou une
+interruption, choisir current, la dernière version réussie conservée au journal. Le schéma actuel doit être **identique** au fingerprint
+conservé de cette version et aucune migration ne doit être en attente. C'est une
+condition conservatrice : une modification de schéma, même additive, bloque le
+rollback automatique d'image. Décider alors séparément une correction en avant
+ou une intervention DB avec sauvegarde/arrêt des écritures/autorisation explicite.
+Le workflow n'offre aucune rétro-migration ni restauration automatisée.
+Le rollback automatique vise uniquement les images capables d'exécuter le
+protocole CD : une version antérieure sans release_snapshot exige une procédure
+opérateur distincte revue ; le contrôleur ne fabrique pas de compatibilité.
+
+### Vérifications et limites
+
+Tests PostgreSQL de snapshot/politique, Compose réellement rendu et collisions,
+refus backup/restauration/périmètre, plans périmés/modifiés, schéma changé, échec
+migration/readiness/health, double application, concurrence et rollback incompatible.
+Transport SSH simulé, validation d'hôte inconnu et invariants du workflow testés.
+Le harness du staging exerce apply avec **vrais cycles de services**, inventaires
+SQL, readiness et HTTPS loopback, journal/reprise/rollback entre deux identifiants d’image distincts (même code,
+configuration de test dérivée localement et jamais publiée), et production témoin
+sondée en continu et inchangée ; admission/provenance y sont des adaptateurs de test. Aucun
+flag de bypass n'est livré au contrôleur. Aucune migration n'est en attente dans
+cette fixture : l'exécution unique et l'échec de migration sont couverts en tests
+unitaires, les migrations historiques/restaurations par les smokes existants.
+La capacité réelle, le SSH du VPS, les autorisations GitHub, les sauvegardes et la
+première livraison réelle restent à valider séparément. Aucun déploiement de ce lot.
+
+---
+
 ## PR 3 — Image testée et publication GHCR
 
 Base : main `3ac1ac3`, après fusion de #34 ; branche `feat/ghcr-publication`.

@@ -89,7 +89,7 @@ jobs:
           tar -xzf work/age-tools/age.tar.gz -C work/age-tools
           PATH="$PWD/work/age-tools/age:$PATH" uv run --frozen python scripts/production_smoke.py --image muqola:local
       - name: Private ephemeral staging, SMTP capture and production isolation
-        run: uv run --frozen python scripts/staging_smoke.py --image muqola:local
+        run: uv run --frozen python scripts/staging_smoke.py --image muqola:local --exercise-release
       - name: Exact candidate save/load and loopback registry readback
         run: python -m scripts.image_delivery_smoke
       - name: Gunicorn stays available with silent TCP preconnections
@@ -146,6 +146,7 @@ jobs:
             work/search/*.png
             work/search-benchmark.json
             work/staging-smoke.json
+            work/release-smoke.json
             work/image-delivery-smoke.json
             work/search-benchmark-plans.json
           if-no-files-found: ignore

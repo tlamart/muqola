@@ -12,6 +12,7 @@ import json
 import os
 import re
 import secrets
+import sys
 import tempfile
 import threading
 import time
@@ -152,6 +153,7 @@ def snapshot(command, database):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--image", default="muqola:local")
+    parser.add_argument("--exercise-release", action="store_true")
     args = parser.parse_args()
     os.umask(0o077)
     prefix = "muqola-stage-synthetic-" + secrets.token_hex(6)
@@ -541,6 +543,46 @@ def main():
                     sql(stage, "muqola_staging", "SELECT count(*) FROM identity_user").strip()
                     == b"1"
                 )
+            if args.exercise_release:
+                release_stop = threading.Event()
+                release_probes = []
+
+                def witness_during_release():
+                    while not release_stop.is_set():
+                        response = run(
+                            [*curl, "--max-time", "3", "--fail", prod_url + "/health/ready/"],
+                            ok=False,
+                        )
+                        release_probes.append(response.returncode == 0)
+                        release_stop.wait(0.3)
+
+                witness = threading.Thread(target=witness_during_release)
+                witness.start()
+                try:
+                    release_result = run(
+                        [
+                            sys.executable,
+                            "-m",
+                            "scripts.release_smoke",
+                            "--compose-file",
+                            str(stage_path),
+                            "--compose-env",
+                            str(directory / "staging" / "environment"),
+                            "--url",
+                            stage_url,
+                            "--cacert",
+                            str(ca),
+                            "--netrc",
+                            str(netrc),
+                        ],
+                        timeout=900,
+                    )
+                finally:
+                    release_stop.set()
+                    witness.join(timeout=5)
+                assert not witness.is_alive() and release_probes and all(release_probes)
+                print(release_result.stdout.decode().strip())
+                assert snapshot(prod, "muqola") == before
             run([*stage, "stop", "--timeout", "10", "web"])
             marker = "synthetic-private-" + secrets.token_hex(16)
             run(

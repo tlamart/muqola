@@ -447,3 +447,18 @@ def test_host_resources_recognizes_docker_info_cpu_quota_field(
     docker_info["CpuCfsQuota"] = True
     docker_info["CgroupDriver"] = "none"
     assert lifecycle.host_resources(str(tmp_path))["limits_enforced"] is False
+
+
+@pytest.mark.parametrize("explicit_context", [False, True])
+def test_local_daemon_selection_preserves_docker_context_precedence(
+    monkeypatch: pytest.MonkeyPatch, explicit_context: bool
+) -> None:
+    monkeypatch.setenv("DOCKER_HOST", "unix://host.sock")
+    if explicit_context:
+        monkeypatch.setenv("DOCKER_CONTEXT", "selected")
+    else:
+        monkeypatch.delenv("DOCKER_CONTEXT", raising=False)
+    monkeypatch.setattr(lifecycle, "run", lambda _: b'"unix://context.sock"')
+    assert lifecycle.require_local_docker() == (
+        "unix://context.sock" if explicit_context else "unix://host.sock"
+    )
