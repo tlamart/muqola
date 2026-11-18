@@ -90,6 +90,39 @@ def geometry(page: Page) -> None:
     )
 
 
+def vertical_gap(page: Page, before: str, after: str) -> float:
+    first = page.locator(before).bounding_box()
+    second = page.locator(after).bounding_box()
+    if first is None or second is None:
+        raise RuntimeError("Élément absent du contrôle d’espacement")
+    return second["y"] - first["y"] - first["height"]
+
+
+def account_spacing(page: Page) -> None:
+    check(
+        vertical_gap(page, ".account form button[type=submit]", ".account form + p") >= 12,
+        "Lien de suivi collé au bouton du formulaire",
+    )
+    geometry(page)
+
+
+def community_spacing(page: Page) -> None:
+    for before, after in ((".badge", "h2"), ("h2", "p")):
+        check(
+            vertical_gap(page, f".community-card {before}", f".community-card {after}") >= 12,
+            "Badge, titre ou compteur de communauté trop rapprochés",
+        )
+    check(
+        page.locator(".community-card > div").evaluate(
+            "e => Math.min(parseFloat(getComputedStyle(e).paddingLeft), "
+            "parseFloat(getComputedStyle(e).paddingRight))"
+        )
+        >= 16,
+        "Contenu de carte sans marge intérieure suffisante",
+    )
+    geometry(page)
+
+
 def no_validation_errors(page: Page) -> None:
     expect(page.locator(".errorlist, [aria-invalid=true], form [role=alert]")).to_have_count(0)
 
@@ -186,7 +219,23 @@ with sync_playwright() as playwright:
     for page in (alice, bob):
         page.on("pageerror", lambda error: failures.append(str(error)))
         page.on("requestfailed", request_failed)
+    for width in (360, 1200):
+        alice.set_viewport_size({"width": width, "height": 900})
+        for name in ("login", "signup"):
+            alice.goto(args.url + f"/accounts/{name}/")
+            account_spacing(alice)
+            alice.screenshot(path=str(output / f"{name}-spacing-{width}.png"), full_page=True)
+    alice.set_viewport_size({"width": 390, "height": 844})
     register(browser, alice, "Alice")
+    alice.goto(args.url + "/communities/")
+    expect(alice.get_by_role("heading", name="Aucune communauté pour le moment")).to_be_visible()
+    check(
+        alice.locator(".community-cards > li").evaluate(
+            "e => parseFloat(getComputedStyle(e).paddingLeft)"
+        )
+        >= 16,
+        "État vide des communautés sans marge intérieure",
+    )
     alice.goto(args.url + "/communities/new/")
     community_name = "Amis · Démo " + secrets.token_hex(2)
     alice.get_by_label("Nom de la communauté").fill(community_name)
@@ -201,6 +250,16 @@ with sync_playwright() as playwright:
     # PR C : lecture membre, copie refusée avec solution manuelle et carte clavier.
     expect(bob.locator("#invitation-link")).to_have_value(invitation)
     expect(bob.get_by_text("Lien permanent · sans expiration", exact=True)).to_be_visible()
+    for width in (360, 1200):
+        bob.set_viewport_size({"width": width, "height": 900})
+        check(
+            vertical_gap(bob, "#invitation-link", "[data-copy-invitation]") >= 12,
+            "Bouton de copie collé au lien d’invitation",
+        )
+        check(
+            vertical_gap(bob, "[data-copy-invitation]", "[data-copy-status]") >= 12,
+            "Message de copie collé au bouton",
+        )
     bob_context.grant_permissions(["clipboard-read", "clipboard-write"])
     bob.get_by_role("button", name="Copier le lien", exact=True).click()
     expect(bob.locator("[data-copy-status]")).to_have_text("Lien copié.")
@@ -216,6 +275,11 @@ with sync_playwright() as playwright:
     expect(card).to_have_count(1)
     expect(card).to_contain_text("2 membres")
     expect(card).to_contain_text("Privée")
+    for width in (360, 1200):
+        bob.set_viewport_size({"width": width, "height": 900})
+        community_spacing(bob)
+        bob.screenshot(path=str(output / f"communities-spacing-{width}.png"), full_page=True)
+    bob.set_viewport_size({"width": 390, "height": 844})
     bob.screenshot(path=str(output / "communities-390.png"), full_page=True)
     card.focus()
     bob.keyboard.press("Enter")
@@ -388,7 +452,8 @@ with sync_playwright() as playwright:
             {
                 "widths": widths,
                 "screens": list(routes),
-                "screenshots": 15,
+                "screenshots": 22,
+                "spacing": "passed",
                 "navigation": "passed",
                 "filters": "passed",
                 "without_js": "passed",

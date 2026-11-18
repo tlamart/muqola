@@ -528,3 +528,21 @@ Les cases V1–V4 attestent l'implémentation et les tests synthétiques, **pas 
 installation sur VPS** ; toutes les actions manuelles ci-dessus restent à faire.
 À la livraison de PR 1, V5–V13 restaient ouverts ; les bilans suivants ci-dessus
 actualisent leur état. Une CI verte ne lève pas une dépendance d'accord ou de validation réelle. Aucune suppression de volume ni opération de production.
+
+## Correctif UI — espacements des communautés et formulaires
+
+Signalement du 18 novembre 2026 sur téléphone et ordinateur, depuis `main`
+`27ec280`. [Périmètre et vérification](docs/ui-espacements.md).
+
+- [x] Séparer badge, titre et compteur de communauté avec un rythme explicite,
+  conserver la marge intérieure et le lien de carte accessible ; rétablir le
+  padding de l’état vide, sans changer les données ni les droits.
+- [x] Espacer les actions et liens des panneaux de formulaire, dont la copie
+  d’invitation ; réutiliser les variables CSS communes.
+- [x] Vérifier les espacements réels à 360 et 1 200 px ; conserver les parcours
+  navigateur, contenus longs et repli sans JS aux cinq largeurs existantes.
+- [x] Exécuter Ruff/format, mypy, Django/migrations/statiques, les 552 tests
+  PostgreSQL et le build Docker ; documenter les preuves et limites.
+
+La livraison sur le staging et la vérification sur Firefox Android physique
+restent distinctes de cette correction locale.

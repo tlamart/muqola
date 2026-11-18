@@ -142,6 +142,9 @@ button:disabled { opacity: .65; cursor: wait; }
 .account { max-width: 620px; margin: var(--space-3) auto var(--space-7); }
 .account h1 { font-size: clamp(1.75rem, 4vw, 2.4rem); }
 .account h2 { margin-top: var(--space-7); }
+.account > :where(form, textarea, button, details) + * { margin-top: var(--space-4); }
+.account > :first-child { margin-top: 0; }
+.account > :last-child { margin-bottom: 0; }
 .empty-state { background: var(--white); padding: var(--space-6); border: 1px dashed var(--line); border-radius: var(--radius); }
 .empty-state h2, .empty-state h3 { margin-bottom: var(--space-2); }
 .empty-state > :last-child { margin-bottom: 0; }
@@ -384,9 +387,10 @@ details { min-width: 0; }
 .game-art--compact .game-cover__title { font-size: .875rem; }
 
 /* Cartes privées : un seul lien sémantique, toute la surface est tactile. */
-.community-cards > li { padding: 0; overflow: hidden; }
+.community-cards > .community-card-item { padding: 0; overflow: hidden; }
 .community-card { display: block; height: 100%; color: inherit; text-decoration: none; }
 .community-card > img { display: block; width: 100%; height: 10rem; object-fit: cover; }
-.community-card > div { padding: 1.25rem; overflow-wrap: anywhere; }
+.community-card__content { display: grid; justify-items: start; gap: var(--space-3); padding: var(--space-5); overflow-wrap: anywhere; }
+.community-card__content > h2, .community-card__content > p { margin: 0; }
 .community-card:focus-visible { outline: 3px solid currentColor; outline-offset: -4px; }
 .community-card:hover h2 { text-decoration: underline; }

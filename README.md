@@ -502,6 +502,8 @@ L’URL `/` affiche l’accueil public aux visiteurs et redirige les comptes con
 vers leur tableau de bord (ou la vérification d’e-mail si nécessaire).
 Navigation mobile au clavier/tactile, sans framework frontend et avec police Inter
 locale ; les formulaires restent utilisables sans JavaScript.
+Le [correctif d’espacement](docs/ui-espacements.md) précise les marges des cartes
+de communauté, des états vides et des actions de formulaire sur mobile et ordinateur.
 
 ```sh
 uv sync --frozen --group browser
