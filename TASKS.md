@@ -6,6 +6,24 @@
 > **P1 — décision du 16 novembre 2026 :** prêt immédiat des exemplaires en attente dans les communautés autorisées ; B1 est amendé ci-dessous. Le catalogue général reste réservé aux fiches validées.
 > Arbitrages **B1–B4 et C1–C2 validés le 16 novembre 2026** ; B (#29) et A (#30) sont intégrées dans `main` ; C (#28) et le correctif P1 (#31) sont aussi fusionnés.
 
+## Maintenance CI — runtimes GitHub Actions (19 novembre 2026)
+
+Lot indépendant de la correction UI, depuis `main` `27ec280`.
+
+- [x] Remplacer les actions Node.js 20 de la CI et de la CD manuelle par des
+  versions déclarant Node.js 24, vérifiées dans leurs manifestes officiels :
+  checkout 7.0.1, setup-python 7.1.0, setup-uv 10.3.3, upload-artifact 7.0.2
+  et download-artifact 8.0.2 ; figer leurs SHA et documenter les versions.
+- [x] Fixer les trois jobs sur `ubuntu-24.04` pour éviter la migration implicite
+  du label `ubuntu-latest` vers Ubuntu 26.
+- [x] Valider les deux workflows avec actionlint 1.7.12, Ruff/format, le build
+  Docker et les 134 tests de publication/CD (8,25 s) : permissions,
+  déclenchements, provenance, transfert d’artefact par identifiant et barrières
+  de livraison conservés.
+
+La CI GitHub du commit final reste à vérifier. Aucun workflow CD déclenché,
+aucune fusion, aucune modification du VPS, du runtime applicatif ou des données.
+
 ## Lot 0 — Décision technique et socle
 - [x] Lire le kit, rédiger `docs/adr/0001-stack.md` et documenter les compromis.
 - [x] Initialiser dépôt, monolithe modulaire, PostgreSQL, migrations, Docker Compose, capture locale des e-mails.
