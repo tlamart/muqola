@@ -162,8 +162,11 @@ Annuler une invitation efface seulement `PendingJoin` du compte et le digest de
 sa session, via le verrou métier ; aucune appartenance ou invitation n’est supprimée.
 
 Le parcours d’ajout prépare deux écrans sur l’endpoint existant. Les valeurs
-du brouillon transitent comme champs de formulaire échappés, sans état métier
-intermédiaire en base. Ces champs restent des entrées non fiables : l’éligibilité
+du brouillon transitent comme champs de formulaire échappés ; notes et partages
+sont aussi conservés dans la session après « Changer de jeu », pour les recherches
+GET et la navigation avec ou sans JavaScript. L'enregistrement réussi ou
+l'annulation explicite efface ce brouillon, sans créer d'état métier intermédiaire.
+Ces champs restent des entrées non fiables : l’éligibilité
 du jeu est centralisée dans `reusable_game`, et la création finale conserve
 validation, protection contre les doublons et transaction de `add_to_collection`.
 Les POST historiques restent compatibles. Aucun changement de modèle ou migration.

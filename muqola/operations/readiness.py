@@ -97,6 +97,6 @@ def readiness_issues(*, staging: bool = False) -> list[str]:
         owns = cursor.fetchone()[0]
     if any(role) or any(creation) or owns:
         issues.append("runtime_database_privileges_too_broad")
-    if User.objects.filter(is_active=True, adult_confirmed_at__isnull=True).exists():
-        issues.append("existing_accounts_need_adult_confirmation")
+    # Legacy attestations are enforced per account. Blocking the service here
+    # would prevent those users from signing in to attest or closing their loans.
     return issues

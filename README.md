@@ -24,6 +24,8 @@ sauvegardes chiffrées/restauration isolée, supervision et SMTP sur l'outbox ex
 **Bêta réservée aux 18+** : case obligatoire à l'inscription, confirmation pour les
 anciens comptes, clôture des prêts existants préservée. Les documents légaux
 incomplets bloquent l'inscription en production.
+Les attestations manquantes limitent le compte concerné ; elles ne bloquent pas
+le contrôle de disponibilité ni les livraisons du service.
 
 [Audit et procédures du lot 6](docs/lot-6-infrastructure.md) : configuration,
 commandes futures, sauvegarde/restore, SMTP/DNS, alertes, incidents, droits et
@@ -89,6 +91,8 @@ Provenance revérifiée, SSH strict avec les variables/secrets déjà configuré
 verrou hôte, sauvegarde/restauration/capacité obligatoires et migrations connues
 seulement. Aucun build VPS, recréation de DB, restore ou suppression de volume.
 Un rollback d'image nécessite son propre plan et un schéma compatible.
+Les scripts shell transférés gardent leurs permissions exécutables, y compris
+les commandes de sauvegarde/restauration montées dans PostgreSQL.
 [Installation opérateur, permissions nécessaires, adoption, reprise et limites](docs/lot-6-infrastructure.md#pr-4--cd-manuel-plan-contrôlé-et-reprise).
 
 Ce flux exige une image publiée après intégration de ce lot et un contrôleur
@@ -112,7 +116,11 @@ et restreint les comptes à `@example.test`. Il ne satisfait jamais le contrôle
 
 Le cycle de vie préparé dans `deploy/staging.py` vérifie l'isolation, les valeurs
 des secrets, la revue de capacité et la marge réelle mémoire/CPU/disque avant
-start ; il ne construit aucune image et n'applique aucune migration. Les opérations
+start ; il ne construit aucune image et n'applique aucune migration. Après une
+livraison CD, start/stop/status utilisent automatiquement le modèle privé pointé
+par `cd/active/compose.json`, vérifié contre le journal CD, plutôt que l'ancien
+digest du fichier d'environnement. Un état incomplet refuse le redémarrage ;
+les opérations de cycle de vie et de livraison partagent leurs verrous. Les opérations
 VPS restent à autoriser séparément. [Préparation, plan de migration, start/stop,
 mesures et limites](docs/lot-6-infrastructure.md#pr-2--staging-privé-éphémère).
 
@@ -397,6 +405,10 @@ permet de promouvoir un membre existant ; aucune promotion automatique.
 ## Catalogue et collection — PR B
 
 [Statuts, revue opérateur, fusion, migrations et retour](docs/catalogue-refonte.md).
+Pendant « Changer de jeu », les notes et communautés du brouillon sont conservées
+dans la session à travers les recherches, pages de résultats et proposition manuelle,
+avec ou sans JavaScript. L'ajout final revalide tous les champs et les droits ;
+enregistrer ou « Annuler l’ajout » efface ce brouillon.
 **Mes propositions** permet de suivre les motifs de correction/refus ; les nouveaux
 exemplaires peuvent être partagés et prêtés immédiatement dans les communautés choisies,
 même si la fiche est encore en attente. Sans partage, ils restent privés.

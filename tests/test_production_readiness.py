@@ -18,6 +18,7 @@ from muqola.identity.services import register
 from muqola.inventory.services import borrowable, write_copy
 from muqola.loans import services as loans
 from muqola.notifications.models import EmailOutbox
+from muqola.operations.readiness import readiness_issues
 from tests.helpers import member
 from tests.test_loans import scenario
 
@@ -133,6 +134,14 @@ def test_readiness_reports_codes_not_credentials() -> None:
     assert "runtime_database_privileges_too_broad" in report
     assert "legal_review_required" in report
     assert "password" not in report and "@example.test" not in report
+
+
+@pytest.mark.parametrize("staging", [False, True])
+def test_legacy_attestations_do_not_block_service_readiness(staging: bool) -> None:
+    user = member()
+    before = readiness_issues(staging=staging)
+    User.objects.filter(pk=user.pk).update(adult_confirmed_at=None)
+    assert readiness_issues(staging=staging) == before
 
 
 @pytest.mark.django_db(transaction=True)

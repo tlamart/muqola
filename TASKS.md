@@ -531,6 +531,33 @@ actualisent leur état. Une CI verte ne lève pas une dépendance d'accord ou de
 
 ## Correctif UI — espacements des communautés et formulaires
 
+### Corrections de revue — disponibilité, cycle de vie et brouillon
+
+- [x] Garder l'attestation 18+ au niveau du compte sans bloquer les contrôles de
+  disponibilité du service ; préserver la clôture des prêts existants.
+- [x] Résoudre le modèle CD actif pour start/stop/status du staging, vérifier le
+  journal, le chemin privé, le projet et les images ; refuser un retour implicite
+  au profil source après livraison et partager les verrous hôte/environnement.
+- [x] Restaurer les permissions 0755 des scripts shell avant transfert et les
+  préserver avec SCP, notamment pour dump/restore montés dans PostgreSQL.
+- [x] Conserver notes/partages en session après « Changer de jeu » pendant les
+  recherches GET, la pagination et la navigation vers une proposition manuelle ;
+  revalider au dernier POST, effacer après succès ou annulation explicite.
+
+Tests de régression : comptes hérités, cible staging active/explicite/invalide,
+concurrence avec CD, permissions du transfert, recherches/brouillon/annulation
+et retrait d'appartenance. Le parcours navigateur recherche couvre le brouillon
+avec JavaScript et sans JavaScript à 360/1280 px. Commandes de validation :
+`./scripts/check.sh`, `docker compose build` et
+`uv run --frozen --group browser python scripts/search_browser_smoke.py --browser /usr/bin/google-chrome`.
+Tests locaux avec `APP_ENV=test`, `APP_BASE_URL=http://localhost:8000` et PostgreSQL
+sur boucle locale ; la configuration Wi-Fi de l'application est conservée.
+Bilan exécuté : `scripts/check.sh` réussi, **585 tests PostgreSQL réussis en
+190,50 s**, Ruff/format, mypy, Django, absence de migration et collecte des
+statiques validés. Build Docker réussi ; parcours navigateur recherche réussi,
+y compris conservation du brouillon et annulation avec/sans JavaScript.
+Aucune migration ajoutée, aucun déploiement VPS, aucune suppression de données.
+
 Signalement du 18 novembre 2026 sur téléphone et ordinateur, depuis `main`
 `27ec280`. [Périmètre et vérification](docs/ui-espacements.md).
 
