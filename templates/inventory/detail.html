@@ -1,27 +1,44 @@
-{% extends 'base.html' %}{% block title %}{{ copy.game.title }} · Exemplaire — Muqola{% endblock %}
-{% block content %}<a class="detail-back" href="{% if copy.game.hidden %}{% url 'inventory:mine' %}{% else %}{% url 'catalogue:detail' copy.game_id %}{% endif %}">
-<span aria-hidden="true">←&nbsp;</span> {% if copy.game.hidden %}Mes jeux{% else %}Fiche générique du jeu{% endif %}</a>
-<div class="detail-grid">{% include 'components/game_cover.html' with game=copy.game large=True %}<section class="detail-content">
-<p class="eyebrow">Un exemplaire physique</p>
-<h1>{{ copy.game.title }}</h1>
-<p class="intro">Exemplaire de {{ copy.owner.display_name }}</p>
-<p class="help">{{ copy.game.get_moderation_status_display }} · {{ copy.game.get_kind_display }}</p>
-{% include 'components/game_moderation.html' with game=copy.game %}
-{% if copy.game.created_by_id == user.pk %}{% if copy.game.moderation_status == 'pending' or copy.game.moderation_status == 'rejected' %}<p><a href="{% url 'catalogue:proposals' %}">Suivre mes propositions</a></p>{% endif %}{% endif %}
-{% if copy.game.moderation_status == 'pending' %}<p>Vous pouvez emprunter cet exemplaire si son partage vous y autorise. La fiche reste hors du catalogue général.</p>{% endif %}
-<p class="game-metadata muted">{% include 'components/game_metadata.html' with game=copy.game %}</p>{% with available=copy.available %}<span class="badge{% if available %} badge--available{% endif %}">{% if copy.withdrawn %}Retiré du prêt{% elif available %}Disponible{% else %}Indisponible{% endif %}</span>
-<div class="panel">
-<h2>À propos de cet exemplaire</h2>
-<p class="game-description">{{ copy.notes|default:'Aucun commentaire sur cet exemplaire.' }}</p>{% if copy.owner_id == user.pk %}<div class="actions">
-<a class="button" href="{% url 'inventory:edit' copy.pk %}">Modifier mon exemplaire et son partage</a>
+{% extends 'base.html' %}
+{% block title %}{{ copy.game.title }} · Exemplaire — Muqola{% endblock %}
+{% block content %}
+<a class="detail-back" href="{% if copy.game.hidden %}{% url 'inventory:mine' %}{% else %}{% url 'catalogue:detail' copy.game_id %}{% endif %}">
+  <span aria-hidden="true">←&nbsp;</span> {% if copy.game.hidden %}Mes jeux{% else %}Fiche générique du jeu{% endif %}
+</a>
+<div class="detail-grid copy-detail-grid">
+  {% include 'components/game_cover.html' with game=copy.game large=True %}
+  <section class="detail-content" aria-labelledby="copy-game-title">
+    <header class="game-summary">
+      <p class="eyebrow">Un exemplaire physique</p>
+      <h1 id="copy-game-title">{{ copy.game.title }}</h1>
+      <p class="intro">Exemplaire de {{ copy.owner.display_name }}</p>
+      <p class="help">{{ copy.game.get_moderation_status_display }} · {{ copy.game.get_kind_display }}</p>
+      {% include 'components/game_moderation.html' with game=copy.game %}
+      <p class="game-metadata muted">{% include 'components/game_metadata.html' with game=copy.game %}</p>
+      {% with available=copy.available %}
+        <span class="badge{% if available %} badge--available{% endif %}">{% if copy.withdrawn %}Retiré du prêt{% elif available %}Disponible{% else %}Indisponible{% endif %}</span>
+      {% endwith %}
+    </header>
+    {% if copy.game.moderation_status == 'pending' %}
+      <section class="copy-notice">
+        <p>{% if copy.owner_id == user.pk %}Vous pouvez déjà partager et prêter votre exemplaire dans vos communautés.{% else %}Vous pouvez emprunter cet exemplaire si son partage vous y autorise.{% endif %} La fiche reste hors du catalogue général.</p>
+        {% if copy.game.created_by_id == user.pk %}<a href="{% url 'catalogue:proposals' %}">Suivre mes propositions</a>{% endif %}
+      </section>
+    {% elif copy.game.moderation_status == 'rejected' and copy.game.created_by_id == user.pk %}
+      <section class="copy-notice"><a href="{% url 'catalogue:proposals' %}">Suivre mes propositions</a></section>
+    {% endif %}
+    <section class="panel copy-detail-panel">
+      {% if copy.owner_id == user.pk %}
+        <h2>Mon exemplaire</h2>
+        <a class="button" href="{% url 'inventory:edit' copy.pk %}">Modifier mon exemplaire et son partage</a>
+      {% else %}
+        <h2>À propos de cet exemplaire</h2>
+        <p class="game-description">{{ copy.notes|default:'Aucun commentaire sur cet exemplaire.' }}</p>
+        {% if copy.available %}
+          <p class="help">Une demande ne réserve pas le jeu. Vous choisirez une date de retour future.</p>
+          <a class="button button--accent" href="{% url 'inventory:request' copy.pk %}">Demander ce jeu</a>
+        {% endif %}
+      {% endif %}
+    </section>
+  </section>
 </div>
-<h3>Partagé dans</h3>
-<ul>{% for visibility in copy.visibilities.all %}<li>{{ visibility.community.name }}</li>{% empty %}<li>Aucune communauté : collection privée.</li>{% endfor %}</ul>
-<details>
-<summary>Archiver mon exemplaire</summary>
-<p>Un exemplaire avec un prêt actif ne peut pas être archivé.</p>
-<form method="post" action="{% url 'inventory:archive' copy.pk %}">{% csrf_token %}<button class="secondary" type="submit">Confirmer l’archivage</button>
-</form>
-</details>{% elif available %}<p class="help">Une demande ne réserve pas le jeu. Vous choisirez une date de retour future.</p>
-<a class="button button--accent" href="{% url 'inventory:request' copy.pk %}">Demander ce jeu</a>{% endif %}</div>{% endwith %}</section>
-</div>{% endblock %}
+{% endblock %}

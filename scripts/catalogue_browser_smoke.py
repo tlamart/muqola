@@ -14,6 +14,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import urlopen
 
+from browser_checks import continue_copy
 from playwright.sync_api import Route, expect, sync_playwright
 
 parser = argparse.ArgumentParser(description=__doc__)
@@ -132,6 +133,7 @@ with sync_playwright() as playwright:
                 expect(image).to_have_js_property("naturalWidth", 1)
                 expect(page.locator(".image-credit").first).to_contain_text("CC BY-SA 4.0")
                 expect(page.locator(".image-credit").first).to_contain_text("Auteur fictif")
+            continue_copy(page)
             page.get_by_label("État et commentaires de mon exemplaire").fill(
                 "Ajout rapide synthétique"
             )
@@ -145,7 +147,7 @@ with sync_playwright() as playwright:
             )
             page.get_by_role("button", name="Ajouter à ma collection", exact=True).click()
             page.wait_for_url("**/copies/*/")
-            expect(page.locator("main")).to_contain_text("Ajout rapide synthétique")
+            saved_url = page.url
             if args.expected_title:
                 expect(page.get_by_role("heading", level=1)).to_have_text(args.expected_title)
             if args.commons_fixture and javascript:
@@ -156,11 +158,18 @@ with sync_playwright() as playwright:
                 expect(failed_image).to_be_hidden()
                 expect(page.locator(".game-cover").first).to_be_visible()
                 expect(page.locator(".image-credit").first).to_contain_text("CC BY-SA 4.0")
-            if width == 360:
-                expect(page.locator("main")).to_contain_text("Aucune communauté")
-            else:
-                for name in community_names:
-                    expect(page.locator("main")).to_contain_text(name)
+            page.get_by_role(
+                "link", name="Modifier mon exemplaire et son partage", exact=True
+            ).click()
+            expect(page.get_by_label("État et commentaires de mon exemplaire")).to_have_value(
+                "Ajout rapide synthétique"
+            )
+            for name in community_names:
+                if width == 360:
+                    expect(page.get_by_label(name, exact=True)).not_to_be_checked()
+                else:
+                    expect(page.get_by_label(name, exact=True)).to_be_checked()
+            page.goto(saved_url)
             if args.commons_fixture:
                 saved_url = page.url
                 saved_path = urlparse(saved_url).path
@@ -185,12 +194,17 @@ with sync_playwright() as playwright:
             page.wait_for_url(re.compile(r"[?&]title="))
             page.get_by_role("link", name="Mon jeu n’est pas dans la liste", exact=True).click()
             expect(page.get_by_label("Titre du jeu")).to_have_value(manual)
+            continue_copy(page)
             page.get_by_role(
                 "button", name="Proposer ce jeu et ajouter mon exemplaire", exact=True
             ).click()
             page.wait_for_url("**/copies/*/")
             expect(page.get_by_role("heading", level=1)).to_have_text(manual)
-            expect(page.locator("main")).to_contain_text("Aucune communauté")
+            page.get_by_role(
+                "link", name="Modifier mon exemplaire et son partage", exact=True
+            ).click()
+            for name in community_names:
+                expect(page.get_by_label(name, exact=True)).not_to_be_checked()
             if external:
                 raise RuntimeError("Appel BGG inattendu")
             ctx.close()

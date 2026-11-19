@@ -10,7 +10,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from browser_checks import expected_search_abort
+from browser_checks import continue_copy, expected_search_abort
 from catalogue_fixture import local_command
 from playwright.sync_api import Request, Route, expect, sync_playwright
 
@@ -124,17 +124,19 @@ with sync_playwright() as playwright:
     expect(page.locator("#search-results")).to_have_attribute("aria-busy", "false")
     page.locator("input[type=radio][name=game_id]").first.check()
     selected = page.locator("#selected-game").input_value()
+    continue_copy(page)
     page.get_by_label("État et commentaires de mon exemplaire").fill("Notes conservées")
     page.get_by_label(f"Groupe {prefix}", exact=True).check()
+    shared = page.get_by_label(f"Groupe {prefix}", exact=True).input_value()
+    page.get_by_role("button", name="Changer de jeu", exact=True).click()
+    expect(page.get_by_role("heading", name="Ajouter un jeu", exact=True)).to_be_visible()
     input.fill("Introuvable-xyz")
     page.clock.run_for(250)
     expect(page.locator("[data-result-count]")).to_have_attribute("data-result-count", "0")
     expect(page.locator("#selected-game")).to_have_value(selected)
     expect(page.locator("#selection-status")).to_contain_text("Choix conservé")
-    expect(page.get_by_label("État et commentaires de mon exemplaire")).to_have_value(
-        "Notes conservées"
-    )
-    expect(page.get_by_label(f"Groupe {prefix}", exact=True)).to_be_checked()
+    expect(page.locator("input[type=hidden][name=notes]")).to_have_value("Notes conservées")
+    expect(page.locator("input[type=hidden][name=communities]")).to_have_value(shared)
     # IME never searches an unfinished composition, and submits once afterwards.
     before = len(requests)
     input.dispatch_event("compositionstart")
@@ -235,6 +237,7 @@ with sync_playwright() as playwright:
     expect(page.locator("input[type=radio][name=game_id]")).to_have_count(10)
     # Actual selection can still be posted after fragment replacements.
     page.locator("input[type=radio][name=game_id]").first.check()
+    continue_copy(page)
     page.get_by_role("button", name="Ajouter à ma collection", exact=True).click()
     page.wait_for_url("**/copies/*/")
     page.goto(args.url + "/copies/?title=" + prefix)

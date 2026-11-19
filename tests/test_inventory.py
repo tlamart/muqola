@@ -212,7 +212,7 @@ def test_copy_edit_form_saves_notes_and_respects_moderation(client: Client, hidd
     response = client.post(url, {"notes": "Notes corrigées", "communities": [str(community.pk)]})
     assert response.status_code == 302
     assert response["Location"] == reverse("inventory:detail", args=[item.pk])
-    assert "Notes corrigées" in client.get(response["Location"]).content.decode()
+    assert "Notes corrigées" in client.get(url).content.decode()
     item.refresh_from_db()
     item.game.refresh_from_db()
     assert item.notes == "Notes corrigées" and item.game.hidden == hidden

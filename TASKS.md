@@ -546,3 +546,27 @@ Signalement du 18 novembre 2026 sur téléphone et ordinateur, depuis `main`
 
 La livraison sur le staging et la vérification sur Firefox Android physique
 restent distinctes de cette correction locale.
+
+### Complément UI — retours du 19 novembre 2026
+
+Même branche/PR #37, depuis la première passe ci-dessus. [Bilan détaillé](docs/ui-retours-staging.md).
+
+- [x] Regrouper les paramètres de communauté et l’invitation dans des fenêtres
+  nommées, avec fermeture/Échap, restitution du focus et repli `details` sans JS.
+- [x] Masquer les mutations du lien derrière une roue dentée et les actions de
+  membre derrière un crayon, en conservant contrôles serveur et confirmations.
+- [x] Proposer l’inscription directement dans la page de connexion ; ajouter une
+  annulation d’adhésion qui nettoie seulement l’intention du compte/session.
+- [x] Séparer choix du jeu et préparation d’exemplaire, conserver le brouillon au
+  retour et ne créer les données qu’à la validation finale du parcours.
+- [x] Déplacer la gestion/archivage d’un exemplaire sur sa page propriétaire et
+  corriger la grille du détail mobile, notamment pour une copie pending privée.
+- [x] Ajouter un favicon SVG local aux pages normales et d’erreur.
+- [x] Vérifier permissions, CSRF, annulation sans adhésion, préparation sans
+  création, revalidation et compatibilité des POST historiques ; 566 tests réussis.
+- [x] Vérifier les parcours navigateur produit, recherche, UI et ajout avec/sans JS,
+  ainsi que les fenêtres et la copie pending aux cinq largeurs existantes.
+
+Restent à faire après livraison autorisée : relecture sur Firefox Android réel
+et validation visuelle du propriétaire. Aucun déploiement effectué, aucune
+migration ajoutée ; les portes d’exploitation du lot 6 restent distinctes.

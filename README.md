@@ -504,6 +504,9 @@ Navigation mobile au clavier/tactile, sans framework frontend et avec police Int
 locale ; les formulaires restent utilisables sans JavaScript.
 Le [correctif d’espacement](docs/ui-espacements.md) précise les marges des cartes
 de communauté, des états vides et des actions de formulaire sur mobile et ordinateur.
+Les [retours du staging](docs/ui-retours-staging.md) couvrent aussi les fenêtres
+de gestion, l’invitation avec inscription/annulation visibles, l’ajout en deux
+écrans, la gestion séparée des exemplaires et le favicon local.
 
 ```sh
 uv sync --frozen --group browser

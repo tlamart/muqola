@@ -1,6 +1,8 @@
 # Espacements des communautés et formulaires
 
-Correctif du 18 novembre 2026, depuis `main` `27ec280`. Le signalement sur le
+Première passe du 18 novembre 2026, depuis `main` `27ec280`. Les retours suivants
+du 19 novembre sont détaillés dans [le bilan complémentaire](ui-retours-staging.md).
+Le signalement initial sur le
 staging concerne le badge « Privée », le titre et le compteur d’une communauté,
 sur téléphone et ordinateur.
 
@@ -36,11 +38,11 @@ formulaires de connexion et d’inscription, de la carte et des actions de copie
 d’invitation à 360 et 1 200 px, ainsi que le padding de l’état vide. Il conserve
 ses parcours avec deux comptes fictifs, navigation clavier/tactile, presse-papiers
 refusé, absence de JavaScript, recherche, demande datée et contenus longs à
-360 / 390 / 768 / 1 200 / 1 280 px. Il produit 22 captures et un résultat JSON dans
+360 / 390 / 768 / 1 200 / 1 280 px. Cette première passe produisait 22 captures et un résultat JSON dans
 `work/ui-redesign/`, également conservés par la CI.
 
 Les captures mobile de connexion et communautés ont été inspectées localement.
-Résultats exécutés : Ruff/format et mypy réussis, contrôles Django/migrations/
+Résultats de la première passe : Ruff/format et mypy réussis, contrôles Django/migrations/
 statiques réussis, **552 tests PostgreSQL réussis en 123,57 s**, build Docker réussi
 et parcours navigateur complet réussi avec 22 captures, sans erreur JS/réseau.
 La vérification automatisée utilise Chromium ; la validation du correctif sur

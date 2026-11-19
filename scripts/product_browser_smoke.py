@@ -10,6 +10,7 @@ from pathlib import Path
 from urllib.request import urlopen
 from zoneinfo import ZoneInfo
 
+from browser_checks import open_invitation
 from catalogue_fixture import approve_proposal
 from playwright.sync_api import Browser, Page, sync_playwright
 
@@ -78,7 +79,9 @@ with sync_playwright() as playwright:
     alice.get_by_label("Nom de la communauté").fill(community_name)
     alice.get_by_role("button", name="Créer ma communauté", exact=True).click()
     community_url = alice.url
-    alice.get_by_role("button", name="Créer un lien d'invitation", exact=True).click()
+    open_invitation(alice, settings=True)
+    alice.get_by_role("button", name="Créer un lien d’invitation", exact=True).click()
+    open_invitation(alice)
     invitation = alice.locator("textarea[readonly]").first.input_value()
     bob.goto(invitation)
     bob_email = register(browser, bob, "Bob")
@@ -175,7 +178,8 @@ with sync_playwright() as playwright:
     response = outsider.goto(loan_url)
     check(response is not None and response.status == 404, "Prêt visible par un tiers")
     alice.goto(community_url)
-    alice.get_by_text("Gérer ce membre", exact=True).first.click()
+    alice.get_by_label("Modifier le membre Bob", exact=True).click()
+    alice.get_by_text("Retirer ce membre", exact=True).click()
     alice.get_by_role("button", name="Confirmer le retrait", exact=True).click()
     response = bob.goto(copy_url)
     check(response is not None and response.status == 404, "Accès conservé après retrait")

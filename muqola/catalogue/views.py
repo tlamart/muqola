@@ -14,7 +14,24 @@ from muqola.communities.models import Membership
 from muqola.core.http import actor
 from muqola.core.search import bounded_search
 from muqola.inventory.models import GameVisibility
-from muqola.inventory.services import add_to_collection, available, borrowable, visible
+from muqola.inventory.services import (
+    add_to_collection,
+    available,
+    borrowable,
+    reusable_game,
+    visible,
+)
+
+
+def _copy_setup(request: HttpRequest, form: QuickAddForm, status: int = 200) -> HttpResponse:
+    game_id = form.cleaned_data.get("game_id")
+    game = reusable_game(actor(request), game_id) if game_id else None
+    return render(
+        request,
+        "catalogue/copy.html",
+        {"form": form, "selected_game": game, "manual": game is None},
+        status=status,
+    )
 
 
 @require_http_methods(["GET", "POST"])
@@ -30,7 +47,13 @@ def index(request: HttpRequest) -> HttpResponse:
     )
     if request.method == "POST" and request.FILES:
         form.add_error(None, "Les fichiers et photos utilisateur ne sont pas acceptés.")
-    if request.method == "POST" and form.is_valid():
+    step = request.POST.get("step", "") if request.method == "POST" else ""
+    if step in {"copy", "save", "choose"}:
+        manual = bool(request.POST.get("title"))
+    valid = request.method == "POST" and form.is_valid()
+    if step == "copy" and valid:
+        return _copy_setup(request, form)
+    if valid and step != "choose":
         try:
             saved = add_to_collection(
                 actor(request),
@@ -45,6 +68,10 @@ def index(request: HttpRequest) -> HttpResponse:
         else:
             messages.success(request, "Jeu ajouté à votre collection.")
             return redirect("inventory:detail", copy_id=saved.pk)
+    if step == "save" or (
+        step == "copy" and (form.errors.get("notes") or form.errors.get("communities"))
+    ):
+        return _copy_setup(request, form, status=400)
     return render(
         request,
         "catalogue/results.html"
@@ -56,7 +83,7 @@ def index(request: HttpRequest) -> HttpResponse:
             "form": form,
             "manual": manual,
         },
-        status=400 if request.method == "POST" else 200,
+        status=400 if request.method == "POST" and (step != "choose" or request.FILES) else 200,
     )
 
 

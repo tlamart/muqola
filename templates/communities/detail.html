@@ -1,44 +1,111 @@
-{% extends 'base.html' %}{% block title %}{{ community.name }} — Muqola{% endblock %}
-{% block content %}<header class="page-heading">
-<p class="eyebrow">Communauté privée</p>
-<h1>{{ community.name }}</h1>
-<p class="intro">{{ community.description }}</p>
+{% extends 'base.html' %}
+{% block title %}{{ community.name }} — Muqola{% endblock %}
+{% block content %}
+<header class="page-heading">
+  <p class="eyebrow">Communauté privée</p>
+  <h1>{{ community.name }}</h1>
+  {% if community.description %}<p class="intro">{{ community.description }}</p>{% endif %}
 </header>
+<div class="community-toolbar">
+  <details class="dialog-disclosure" data-dialog{% if invite_form.errors %} open{% endif %}>
+    <summary class="button">{% include 'components/icon.html' with name='share' %}Inviter des membres</summary>
+    <section class="dialog-content" data-dialog-content aria-labelledby="invitation-heading">
+      <header class="dialog-heading">
+        <h2 id="invitation-heading" data-dialog-title>Invitation partageable</h2>
+        <button type="button" class="secondary dialog-close" data-dialog-close hidden><span aria-hidden="true">×</span><span class="visually-hidden">Fermer</span></button>
+      </header>
+      <p>Ce lien donne accès à cette communauté privée après vérification de l’e-mail et confirmation. Ne le publiez pas.</p>
+      {% if invitation %}
+        <p>{% if invitation.expires_at %}Expiration : {{ invitation.expires_at|date:'d/m/Y H:i' }} UTC{% else %}Lien permanent · sans expiration{% endif %}</p>
+        {% if invitation_link %}
+          <div class="invitation-copy">
+            <label for="invitation-link">Lien à copier et partager</label>
+            <textarea id="invitation-link" readonly rows="3">{{ invitation_link }}</textarea>
+            <button type="button" class="secondary" data-copy-invitation hidden>Copier le lien</button>
+            <p data-copy-status role="status" aria-live="polite">Vous pouvez aussi sélectionner et copier le lien manuellement.</p>
+          </div>
+        {% else %}
+          <p role="status">Ce lien ne peut plus être affiché. Un lien déjà partagé reste valable jusqu’à révocation ou expiration. Demandez à un administrateur de le remplacer.</p>
+        {% endif %}
+      {% else %}
+        <p>Aucun lien actif. Demandez à un administrateur d’en générer un.</p>
+      {% endif %}
+      {% if admin %}
+        <details class="invitation-settings"{% if invite_form.errors %} open{% endif %}>
+          <summary class="icon-button" aria-label="Paramètres du lien d’invitation" title="Paramètres du lien d’invitation">{% include 'components/icon.html' with name='settings' %}</summary>
+          <div class="disclosure-content">
+            <h3>Paramètres du lien d’invitation</h3>
+            {% if invitation %}
+              <details class="action-confirmation">
+                <summary>Révoquer ce lien</summary>
+                <p>Le lien courant deviendra inutilisable. Les membres déjà inscrits restent membres.</p>
+                <form method="post" action="{% url 'communities:revoke' community.pk invitation.pk %}">{% csrf_token %}<button class="secondary" type="submit">Confirmer la révocation</button></form>
+              </details>
+            {% endif %}
+            <details class="action-confirmation"{% if not invitation or invite_form.errors %} open{% endif %}>
+              <summary>{% if invitation %}Régénérer le lien{% else %}Générer un lien{% endif %}</summary>
+              <p>Cette action invalide tous les anciens liens de cette communauté, même ceux encore valides. Un lien déjà copié ne peut pas être repris : régénérez-le si nécessaire après un retrait.</p>
+              <form method="post">{% csrf_token %}
+                <input type="hidden" name="action" value="invite">
+                {% if invite_form.errors %}<p role="alert">Vérifiez la durée de l’invitation.</p>{% endif %}
+                {{ invite_form.as_div }}
+                <button type="submit">{% if invitation %}Confirmer la régénération{% else %}Créer un lien d’invitation{% endif %}</button>
+              </form>
+            </details>
+          </div>
+        </details>
+      {% endif %}
+    </section>
+  </details>
+  {% if admin %}
+    <details class="dialog-disclosure" data-dialog{% if form.errors %} open{% endif %}>
+      <summary class="button secondary">{% include 'components/icon.html' with name='settings' %}Modifier les paramètres</summary>
+      <section class="dialog-content" data-dialog-content aria-labelledby="community-settings-heading">
+        <header class="dialog-heading">
+          <h2 id="community-settings-heading" data-dialog-title>Paramètres de la communauté</h2>
+          <button type="button" class="secondary dialog-close" data-dialog-close hidden><span aria-hidden="true">×</span><span class="visually-hidden">Fermer</span></button>
+        </header>
+        <form method="post">{% csrf_token %}
+          {% if form.errors %}<p role="alert">Vérifiez les paramètres.</p>{% endif %}
+          {{ form.as_div }}
+          <button type="submit">Enregistrer les paramètres</button>
+        </form>
+      </section>
+    </details>
+  {% endif %}
+</div>
 <h2>Membres</h2>
-<ul class="cards">{% for member in members %}<li>
-<strong>{{ member.user.display_name }}</strong> · {{ member.get_role_display }}{% if admin and member.user_id != user.pk %}<details>
-<summary>Gérer ce membre</summary>
-<form method="post" action="{% url 'communities:remove' community.pk member.user_id %}">{% csrf_token %}<p>Le retrait révoque ses accès à cette communauté.</p>
-<button class="secondary" type="submit">Confirmer le retrait</button>
-</form>
-<form method="post" action="{% url 'communities:transfer' community.pk member.user_id %}">{% csrf_token %}<p>Vous redeviendrez membre et cette personne administrera la communauté.</p>
-<button class="secondary" type="submit">Transférer l'administration</button>
-</form>
-</details>{% endif %}</li>{% endfor %}</ul>
-{% if admin %}<section class="account">
-<h2>Paramètres</h2>
-<form method="post">{% csrf_token %}{% if form.errors %}<p role="alert">Vérifiez les paramètres.</p>{% endif %}{{ form.as_div }}<button type="submit">Enregistrer les paramètres</button>
-</form>
-</section>{% endif %}
-<section class="account" aria-labelledby="invitation-heading"><h2 id="invitation-heading">Invitation partageable</h2>
-<p>Ce lien donne accès à cette communauté privée après vérification de l'e-mail et confirmation. Ne le publiez pas.</p>
-{% if invitation %}<p>{% if invitation.expires_at %}Expiration : {{ invitation.expires_at|date:'d/m/Y H:i' }} UTC{% else %}Lien permanent · sans expiration{% endif %}</p>
-{% if invitation_link %}<label for="invitation-link">Lien à copier et partager</label>
-<textarea id="invitation-link" readonly rows="3">{{ invitation_link }}</textarea>
-<button type="button" class="secondary" data-copy-invitation hidden>Copier le lien</button>
-<p data-copy-status role="status" aria-live="polite">Vous pouvez aussi sélectionner et copier le lien manuellement.</p>
-{% else %}<p role="status">Ce lien ne peut plus être affiché. Un lien déjà partagé reste valable jusqu'à révocation ou expiration. Demandez à un administrateur de le remplacer.</p>{% endif %}
-{% if admin %}<details><summary>Révoquer ce lien</summary><p>Le lien courant deviendra inutilisable. Les membres déjà inscrits restent membres.</p>
-<form method="post" action="{% url 'communities:revoke' community.pk invitation.pk %}">{% csrf_token %}<button class="secondary" type="submit">Confirmer la révocation</button></form></details>{% endif %}
-{% else %}<p>Aucun lien actif. Demandez à un administrateur d'en générer un.</p>{% endif %}
-{% if admin %}<details{% if not invitation or invite_form.errors %} open{% endif %}><summary>{% if invitation %}Régénérer le lien{% else %}Générer un lien{% endif %}</summary>
-<p>Cette action invalide tous les anciens liens de cette communauté, même ceux encore valides. Un lien déjà copié ne peut pas être repris : régénérez-le si nécessaire après un retrait.</p>
-<form method="post">{% csrf_token %}<input type="hidden" name="action" value="invite">
-{% if invite_form.errors %}<p role="alert">Vérifiez la durée de l’invitation.</p>{% endif %}{{ invite_form.as_div }}
-<button type="submit">{% if invitation %}Confirmer la régénération{% else %}Créer un lien d'invitation{% endif %}</button></form></details>{% endif %}</section>
-<details>
-<summary>Quitter cette communauté</summary>
-<p>Votre accès cessera. Un administrateur doit d'abord transférer son rôle s'il est le dernier.</p>
-<form method="post" action="{% url 'communities:remove' community.pk user.pk %}">{% csrf_token %}<button class="secondary" type="submit">Confirmer mon départ</button>
-</form>
-</details>{% endblock %}
+<ul class="cards member-list">
+  {% for member in members %}
+    <li class="member-card">
+      <div><strong>{{ member.user.display_name }}</strong><p class="muted">{{ member.get_role_display }}</p></div>
+      {% if admin and member.user_id != user.pk %}
+        <details class="dialog-disclosure member-actions" data-dialog>
+          <summary class="icon-button" aria-label="Modifier le membre {{ member.user.display_name }}" title="Modifier ce membre">{% include 'components/icon.html' with name='edit' %}</summary>
+          <section class="dialog-content" data-dialog-content aria-labelledby="member-heading-{{ member.user_id }}">
+            <header class="dialog-heading">
+              <h2 id="member-heading-{{ member.user_id }}" data-dialog-title>Gérer {{ member.user.display_name }}</h2>
+              <button type="button" class="secondary dialog-close" data-dialog-close hidden><span aria-hidden="true">×</span><span class="visually-hidden">Fermer</span></button>
+            </header>
+            <details class="action-confirmation">
+              <summary>Retirer ce membre</summary>
+              <p>Le retrait révoque ses accès à cette communauté. Ses prêts déjà acceptés restent clôturables.</p>
+              <form method="post" action="{% url 'communities:remove' community.pk member.user_id %}">{% csrf_token %}<button class="secondary" type="submit">Confirmer le retrait</button></form>
+            </details>
+            <details class="action-confirmation">
+              <summary>Transférer l’administration</summary>
+              <p>Vous redeviendrez membre et cette personne administrera la communauté.</p>
+              <form method="post" action="{% url 'communities:transfer' community.pk member.user_id %}">{% csrf_token %}<button class="secondary" type="submit">Transférer l’administration</button></form>
+            </details>
+          </section>
+        </details>
+      {% endif %}
+    </li>
+  {% endfor %}
+</ul>
+<details class="community-leave">
+  <summary>Quitter cette communauté</summary>
+  <p>Votre accès cessera. Un administrateur doit d’abord transférer son rôle s’il est le dernier.</p>
+  <form method="post" action="{% url 'communities:remove' community.pk user.pk %}">{% csrf_token %}<button class="secondary" type="submit">Confirmer mon départ</button></form>
+</details>
+{% endblock %}

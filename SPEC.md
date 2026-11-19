@@ -36,6 +36,8 @@ Deux personnes appartenant à une même communauté peuvent : créer leur compte
 - Invitation par **lien partageable**, multiusage, permanent par défaut, aléatoire et difficile à deviner, révocable. L'absence d'expiration doit être explicite ; une expiration facultative peut être conservée. Un compte ne peut adhérer qu'une fois.
 - **Tous les membres actifs et vérifiés** peuvent consulter et copier le lien courant de leur communauté. Seuls ses administrateurs peuvent le révoquer et le régénérer. Une régénération révoque **tous les anciens liens encore actifs** de manière atomique ; les membres accèdent ensuite au nouveau. Après révocation seule, l'écran explique l'absence de lien actif. Aucune création/régénération sur GET.
 - L'invité voit le nom de la communauté et confirme son adhésion après connexion **et vérification de son e-mail** ; jamais d'adhésion silencieuse. Sans compte, conserver le parcours pendant inscription/vérification/connexion, puis **revérifier** validité, éventuelle expiration et révocation à la confirmation. Un lien périmé doit proposer de demander un nouveau lien aux membres.
+- Depuis une invitation, l’inscription est proposée directement dans le contenu de la page de connexion, y compris sur téléphone. La confirmation d’adhésion propose aussi « Annuler » : effacer l’intention du compte et de sa session sans modifier ses appartenances ni révoquer le lien partagé.
+- Les paramètres de communauté, l’invitation et les actions de gestion des membres sont accessibles par des commandes explicites. L’invitation s’affiche dans une fenêtre ; sa révocation/régénération est regroupée derrière les paramètres du lien. Les contrôles serveur restent identiques et un parcours dépliable reste disponible sans JavaScript.
 - Les anciens liens expirés/révoqués ne sont jamais réactivés par migration. Chaque lien historique conserve son échéance ; le **lien courant** est le plus récent encore valide, et les autres liens historiques restent utilisables jusqu'à leur expiration ou révocation. La rotation admin les révoque tous. Aucun lien n'est créé implicitement sur GET.
 - Les administrateurs gèrent paramètres et membres (dont retrait). Interdire de laisser une communauté sans administrateur ; conserver le transfert et la reprise opérateur tracée.
 - Le lien n'accorde l'accès qu'à la communauté ciblée ; chaque lecture/écriture contrôle les droits serveur. Un ancien membre ou un membre d'une autre communauté ne peut consulter le lien, même par URL directe.
@@ -55,6 +57,14 @@ Une fiche **validée** exige un titre principal, un type de jeu et, si applicabl
 Titres alternatifs, illustration et informations de licence, joueurs min/max, durée, année, éditeur, description et identifiants externes restent **facultatifs**. Ne pas rendre l'illustration nécessaire à la validation : un visuel local de remplacement suffit. Conserver les bornes de champs, validations serveur et cohérence min/max. Les identifiants externes ne sont pas une source obligatoire de données.
 
 ### Ajout et propositions
+Le parcours « Ajouter un jeu » sépare le choix/proposition de la fiche et les
+informations de l’exemplaire sur deux écrans. Continuer ou revenir au choix ne
+crée aucune fiche ni aucun exemplaire ; les notes et partages préparés sont
+conservés au retour. La validation finale recontrôle les données, droits et
+doublons, puis crée la fiche éventuelle et l’exemplaire dans la même transaction.
+La gestion d’un exemplaire existant (notes, partages, retrait et archivage)
+dispose de sa page dédiée, réservée au propriétaire.
+
 1. Un compte actif et vérifié, même sans communauté, recherche une fiche du catalogue, puis la réutilise pour son exemplaire.
 2. En l'absence de fiche pertinente, il **propose** une fiche : seul le titre est obligatoire ; le type « Je ne sais pas » est autorisé jusqu'à validation administrative. La proposition n'est pas publiée automatiquement comme fiche validée.
 3. Un administrateur **de plateforme**, distinct d'un administrateur de communauté, vérifie les doublons, complète type/base si nécessaire puis valide, demande une correction ou rejette avec motif. Aucune publication par simple réutilisation d'une proposition.
