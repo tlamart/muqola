@@ -1,1 +1,13 @@
-{% extends 'base.html' %}{% block content %}<section class="account"><h1>Rejoindre {{ community.name }}</h1><p>{{ community.description }}</p><p>Votre adhésion n'est pas automatique. Confirmez pour devenir membre de cette communauté privée.</p><form method="post">{% csrf_token %}<button type="submit">Confirmer mon adhésion</button></form></section>{% endblock %}
+{% extends 'base.html' %}
+{% block title %}Rejoindre {{ community.name }} — Muqola{% endblock %}
+{% block content %}
+<section class="account">
+  <h1>Rejoindre {{ community.name }}</h1>
+  {% if community.description %}<p>{{ community.description }}</p>{% endif %}
+  <p>Votre adhésion n’est pas automatique. Confirmez pour devenir membre de cette communauté privée.</p>
+  <form method="post" class="actions">{% csrf_token %}
+    <button type="submit">Confirmer mon adhésion</button>
+    <button class="secondary" type="submit" name="action" value="cancel">Annuler</button>
+  </form>
+</section>
+{% endblock %}

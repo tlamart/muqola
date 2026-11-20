@@ -111,6 +111,18 @@ def available(query: QuerySet[OwnedGame]) -> QuerySet[OwnedGame]:
     )
 
 
+def reusable_game(user: User, game_id: UUID | None) -> Game:
+    verified(user)
+    game = get_object_or_404(Game, pk=game_id, hidden=False, merged_into__isnull=True)
+    if game.moderation_status != Game.Status.APPROVED and not (
+        game.moderation_status == Game.Status.PENDING and game.created_by_id == user.pk
+    ):
+        from django.http import Http404
+
+        raise Http404
+    return game
+
+
 def write_copy(
     user: User,
     game_id: UUID,
@@ -121,13 +133,7 @@ def write_copy(
 ) -> OwnedGame:
     with domain_write(user):
         if copy_id is None:
-            game = get_object_or_404(Game, pk=game_id, hidden=False, merged_into__isnull=True)
-            if game.moderation_status != Game.Status.APPROVED and not (
-                game.moderation_status == Game.Status.PENDING and game.created_by_id == user.pk
-            ):
-                from django.http import Http404
-
-                raise Http404
+            game = reusable_game(user, game_id)
             item = OwnedGame(game=game, owner=user)
         else:
             item = get_object_or_404(

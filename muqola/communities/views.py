@@ -121,6 +121,11 @@ def pending_digest(request: HttpRequest) -> str:
 
 @require_http_methods(["GET", "POST"])
 def join(request: HttpRequest) -> HttpResponse:
+    if request.method == "POST" and request.POST.get("action") == "cancel":
+        services.cancel_join(actor(request))
+        request.session.pop("community_invite", None)
+        messages.info(request, "Invitation annulée. Vous pouvez continuer à utiliser Muqola.")
+        return redirect("identity:dashboard")
     digest = pending_digest(request)
     item = services.valid_invite(digest)
     if item is None:

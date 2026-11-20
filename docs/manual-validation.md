@@ -44,10 +44,14 @@ annoncé (inscription : 10 tentatives/heure/IP). Ne pas les désactiver pour val
 
 ## 2. Communautés privées
 
-1. Alice crée A dans Mes communautés, génère un lien d'invitation.
+1. Alice crée A dans Mes communautés. Ouvrir « Inviter des membres », puis la roue
+   dentée pour générer le lien. Les paramètres de communauté s’ouvrent séparément.
 2. Dans le profil Bob, ouvrir ce lien, créer `bob-demo@example.test`, confirmer
    via Mailpit (possible dans une autre fenêtre), se connecter puis **confirmer
    l'adhésion**. Pas d'entrée silencieuse. Bob voit Alice et A.
+   L’inscription doit être visible dans la page de connexion sur téléphone.
+   Essayer d’abord « Annuler », puis rouvrir le lien pour confirmer : aucune
+   appartenance n’est créée par l’annulation, le lien reste utilisable.
 3. Clara `clara-demo@example.test` s'inscrit sans lien : URL directe de A refusée.
    Alice révoque un lien ; essayer ce lien côté Clara : erreur sans contenu privé.
 4. Pour les scénarios suivants, inviter Clara dans A via un nouveau lien.
@@ -58,9 +62,15 @@ annoncé (inscription : 10 tentatives/heure/IP). Ne pas les désactiver pour val
 
 ## 3. Fiche générique et exemplaires physiques
 
-1. Alice : Ajouter un jeu → rechercher avant création → créer une fiche fictive
-   (titre, joueurs, durée). Le formulaire avertit que ces métadonnées sont partagées.
-2. Ajouter son exemplaire, commentaire « boîte Alice », visibilité **A seulement**.
+1. Alice : Ajouter un jeu → rechercher avant création → sélectionner une fiche
+   ou proposer un titre fictif absent → Continuer vers mon exemplaire. Vérifier
+   que l’écran de choix ne contient plus les réglages de partage.
+2. Renseigner le commentaire « boîte Alice », visibilité **A seulement**, puis
+   valider l’ajout. Tester « Changer de jeu » : notes et partages sont conservés.
+   Annuler avant la validation finale ne doit créer aucune fiche ni exemplaire.
+   Une proposition reste hors catalogue général ; son exemplaire partagé est
+   empruntable avant validation. Faire valider la fiche par l’outil opérateur local
+   avant le test de réemploi de Bob ci-dessous.
 3. Bob recherche le même titre, réutilise la fiche et crée « boîte Bob » sans
    communauté : Alice ne voit pas cet exemplaire, même par URL directe.
 4. Bob édite sa copie et choisit A et B : les membres autorisés la voient une seule
@@ -69,6 +79,9 @@ annoncé (inscription : 10 tentatives/heure/IP). Ne pas les désactiver pour val
    résultat vide, retrait du prêt, et deuxième exemplaire de la même fiche.
 6. Alice ne peut plus réécrire sa fiche après réemploi par Bob : signaler/corriger
    par maintenance ; chacun conserve l'édition de sa propre copie.
+7. Sur téléphone, ouvrir une copie pending privée appartenant au compte : le titre
+   et le panneau doivent rester lisibles, sans colonne écrasée. Les réglages et
+   l’archivage sont sur la page « Modifier mon exemplaire et son partage ».
 
 ## 4. Prêt et confidentialité
 

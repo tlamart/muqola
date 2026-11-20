@@ -14,7 +14,7 @@ from pathlib import Path
 from urllib.request import urlopen
 from zoneinfo import ZoneInfo
 
-from browser_checks import expected_search_abort
+from browser_checks import expected_search_abort, open_community_settings, open_invitation
 from catalogue_fixture import approve_proposal
 from playwright.sync_api import Browser, Page, Request, expect, sync_playwright
 
@@ -32,6 +32,14 @@ output = Path("work/ui-redesign/screenshots")
 output.mkdir(parents=True, exist_ok=True)
 (output.parent / "result.json").unlink(missing_ok=True)
 widths = (360, 390, 768, 1200, 1280)
+captures: list[str] = []
+
+
+def capture(page: Page, name: str) -> None:
+    page.screenshot(
+        path=str(output / name), full_page=True, mask=page.locator("#invitation-link").all()
+    )
+    captures.append(name)
 
 
 def check(condition: bool, message: str) -> None:
@@ -88,6 +96,39 @@ def geometry(page: Page) -> None:
         not page.evaluate("document.documentElement.scrollWidth > innerWidth"),
         "Débordement horizontal sur " + page.url.split("?")[0],
     )
+
+
+def vertical_gap(page: Page, before: str, after: str) -> float:
+    first = page.locator(before).bounding_box()
+    second = page.locator(after).bounding_box()
+    if first is None or second is None:
+        raise RuntimeError("Élément absent du contrôle d’espacement")
+    return second["y"] - first["y"] - first["height"]
+
+
+def account_spacing(page: Page) -> None:
+    check(
+        vertical_gap(page, ".account form button[type=submit]", ".account form + p") >= 12,
+        "Lien de suivi collé au bouton du formulaire",
+    )
+    geometry(page)
+
+
+def community_spacing(page: Page) -> None:
+    for before, after in ((".badge", "h2"), ("h2", "p")):
+        check(
+            vertical_gap(page, f".community-card {before}", f".community-card {after}") >= 12,
+            "Badge, titre ou compteur de communauté trop rapprochés",
+        )
+    check(
+        page.locator(".community-card > div").evaluate(
+            "e => Math.min(parseFloat(getComputedStyle(e).paddingLeft), "
+            "parseFloat(getComputedStyle(e).paddingRight))"
+        )
+        >= 16,
+        "Contenu de carte sans marge intérieure suffisante",
+    )
+    geometry(page)
 
 
 def no_validation_errors(page: Page) -> None:
@@ -186,21 +227,103 @@ with sync_playwright() as playwright:
     for page in (alice, bob):
         page.on("pageerror", lambda error: failures.append(str(error)))
         page.on("requestfailed", request_failed)
+    for width in (360, 1200):
+        alice.set_viewport_size({"width": width, "height": 900})
+        for name in ("login", "signup"):
+            alice.goto(args.url + f"/accounts/{name}/")
+            account_spacing(alice)
+            if name == "login":
+                expect(alice.locator('main a[href="/accounts/signup/"]')).to_be_visible()
+            icon = alice.locator('link[rel="icon"]').get_attribute("href")
+            check(bool(icon), "Favicon absent du document")
+            response = alice.request.get(args.url + str(icon))
+            check(response.status == 200, "Favicon local introuvable")
+            check("image/svg+xml" in response.headers["content-type"], "Type de favicon incorrect")
+            capture(alice, f"{name}-spacing-{width}.png")
+    alice.set_viewport_size({"width": 390, "height": 844})
     register(browser, alice, "Alice")
+    alice.goto(args.url + "/communities/")
+    expect(alice.get_by_role("heading", name="Aucune communauté pour le moment")).to_be_visible()
+    check(
+        alice.locator(".community-cards > li").evaluate(
+            "e => parseFloat(getComputedStyle(e).paddingLeft)"
+        )
+        >= 16,
+        "État vide des communautés sans marge intérieure",
+    )
+    for width in (360, 1200):
+        alice.set_viewport_size({"width": width, "height": 900})
+        geometry(alice)
+        capture(alice, f"communities-empty-{width}.png")
+    alice.set_viewport_size({"width": 390, "height": 844})
     alice.goto(args.url + "/communities/new/")
     community_name = "Amis · Démo " + secrets.token_hex(2)
     alice.get_by_label("Nom de la communauté").fill(community_name)
     alice.get_by_role("button", name="Créer ma communauté", exact=True).click()
     community_url = alice.url
-    alice.get_by_role("button", name="Créer un lien d'invitation", exact=True).click()
+    expect(alice.get_by_label("Nom de la communauté")).to_be_hidden()
+    open_community_settings(alice)
+    settings_dialog = alice.get_by_role("dialog", name="Paramètres de la communauté", exact=True)
+    expect(settings_dialog).to_be_visible()
+    for width in (360, 1200):
+        alice.set_viewport_size({"width": width, "height": 900})
+        geometry(alice)
+        capture(alice, f"community-settings-{width}.png")
+    alice.keyboard.press("Escape")
+    expect(settings_dialog).to_be_hidden()
+    expect(alice.get_by_text("Modifier les paramètres", exact=True)).to_be_focused()
+    alice.set_viewport_size({"width": 390, "height": 844})
+    open_community_settings(alice)
+    alice.get_by_label("Nom de la communauté").fill("")
+    settings_dialog.locator("form").evaluate("form => { form.noValidate = true; }")
+    settings_dialog.get_by_role("button", name="Enregistrer les paramètres", exact=True).click()
+    expect(settings_dialog).to_be_visible()
+    expect(settings_dialog.locator(".errorlist")).to_be_visible()
+    alice.get_by_label("Nom de la communauté").fill(community_name)
+    settings_dialog.get_by_role("button", name="Enregistrer les paramètres", exact=True).click()
+    expect(settings_dialog).to_be_hidden()
+    open_invitation(alice, settings=True)
+    alice.get_by_label("Expiration facultative (jours)").fill("0")
+    alice.locator(".modal[open] form").last.evaluate("form => { form.noValidate = true; }")
+    alice.get_by_role("button", name="Créer un lien d’invitation", exact=True).click()
+    expect(alice.get_by_role("dialog", name="Invitation partageable", exact=True)).to_be_visible()
+    expect(alice.locator(".modal[open] .errorlist")).to_be_visible()
+    alice.get_by_label("Expiration facultative (jours)").fill("")
+    alice.get_by_role("button", name="Créer un lien d’invitation", exact=True).click()
+    open_invitation(alice)
     invitation = alice.locator("textarea[readonly]").first.input_value()
     bob.goto(invitation)
     bob_email, bob_password = register(browser, bob, "Bob")
     bob.goto(invitation)
+    bob.get_by_role("button", name="Annuler", exact=True).click()
+    bob.wait_for_url("**/accounts/dashboard/")
+    bob.goto(args.url + "/communities/")
+    expect(bob.get_by_role("heading", name="Aucune communauté pour le moment")).to_be_visible()
+    bob.goto(invitation)
     bob.get_by_role("button", name="Confirmer mon adhésion", exact=True).click()
     # PR C : lecture membre, copie refusée avec solution manuelle et carte clavier.
+    open_invitation(bob)
+    invite_dialog = bob.get_by_role("dialog", name="Invitation partageable", exact=True)
+    expect(invite_dialog).to_be_visible()
+    expect(bob.get_by_label("Paramètres du lien d’invitation", exact=True)).to_have_count(0)
     expect(bob.locator("#invitation-link")).to_have_value(invitation)
     expect(bob.get_by_text("Lien permanent · sans expiration", exact=True)).to_be_visible()
+    for width in (360, 1200):
+        bob.set_viewport_size({"width": width, "height": 900})
+        check(
+            vertical_gap(bob, "#invitation-link", "[data-copy-invitation]") >= 12,
+            "Bouton de copie collé au lien d’invitation",
+        )
+        check(
+            vertical_gap(bob, "[data-copy-invitation]", "[data-copy-status]") >= 12,
+            "Message de copie collé au bouton",
+        )
+        capture(bob, f"invitation-dialog-{width}.png")
+    bob.keyboard.press("Tab")
+    check(
+        bob.locator(":focus").evaluate("e => Boolean(e.closest('dialog[open]'))"),
+        "Le focus clavier quitte le dialogue",
+    )
     bob_context.grant_permissions(["clipboard-read", "clipboard-write"])
     bob.get_by_role("button", name="Copier le lien", exact=True).click()
     expect(bob.locator("[data-copy-status]")).to_have_text("Lien copié.")
@@ -211,12 +334,20 @@ with sync_playwright() as playwright:
     )
     bob.get_by_role("button", name="Copier le lien", exact=True).click()
     expect(bob.locator("[data-copy-status]")).to_contain_text("Copie automatique indisponible")
+    invite_dialog.get_by_role("button", name="Fermer", exact=True).click()
+    expect(invite_dialog).to_be_hidden()
+    expect(bob.get_by_text("Inviter des membres", exact=True)).to_be_focused()
     bob.goto(args.url + "/communities/")
     card = bob.locator(".community-card")
     expect(card).to_have_count(1)
     expect(card).to_contain_text("2 membres")
     expect(card).to_contain_text("Privée")
-    bob.screenshot(path=str(output / "communities-390.png"), full_page=True)
+    for width in (360, 1200):
+        bob.set_viewport_size({"width": width, "height": 900})
+        community_spacing(bob)
+        capture(bob, f"communities-spacing-{width}.png")
+    bob.set_viewport_size({"width": 390, "height": 844})
+    capture(bob, "communities-390.png")
     card.focus()
     bob.keyboard.press("Enter")
     expect(bob).to_have_url(community_url)
@@ -230,6 +361,7 @@ with sync_playwright() as playwright:
     )
     manual = manual_context.new_page()
     manual.goto(community_url)
+    open_invitation(manual)
     expect(manual.locator("#invitation-link")).to_have_value(invitation)
     geometry(manual)
     manual_context.close()
@@ -274,7 +406,7 @@ with sync_playwright() as playwright:
             check(
                 "mailto:" not in page.locator("main").inner_html(), "Contact privé dans une fiche"
             )
-            page.screenshot(path=str(output / f"{name}-{width}.png"), full_page=True)
+            capture(page, f"{name}-{width}.png")
             navigation(page, width)
         print(
             f"PASS UI {width}px : trois écrans, navigation clavier/tactile, menu et compte",
@@ -338,6 +470,26 @@ with sync_playwright() as playwright:
     expect(nojs.locator(".game-card")).to_have_count(1)
     geometry(nojs)
     nojs_context.close()
+    # Copie pending privée du propriétaire : le panneau doit garder sa largeur sur mobile.
+    alice.goto(args.url + "/games/?manual=1")
+    private_title = "Les Dés privés synthétiques " + secrets.token_hex(3)
+    alice.get_by_label("Titre du jeu").fill(private_title)
+    alice.get_by_role("button", name="Continuer vers mon exemplaire", exact=True).click()
+    expect(alice.get_by_role("heading", name="Votre exemplaire", exact=True)).to_be_visible()
+    alice.get_by_role(
+        "button", name="Proposer ce jeu et ajouter mon exemplaire", exact=True
+    ).click()
+    private_copy_url = alice.url
+    for width in widths:
+        alice.set_viewport_size({"width": width, "height": 900})
+        geometry(alice)
+        panel = alice.locator(".copy-detail-panel").bounding_box()
+        check(panel is not None and panel["width"] >= 260, "Exemplaire écrasé dans une colonne")
+        expect(alice.get_by_role("heading", level=1)).to_have_text(private_title)
+        expect(alice.get_by_label("État et commentaires de mon exemplaire")).to_have_count(0)
+        capture(alice, f"own-pending-copy-{width}.png")
+    response = bob.goto(private_copy_url)
+    check(response is not None and response.status == 404, "Exemplaire privé révélé")
     # Données longues saisies par les formulaires, après les captures de référence.
     # Validated metadata is operator-only. Long user content is tested on a private proposal.
     alice.goto(args.url + "/games/new/")
@@ -358,8 +510,10 @@ with sync_playwright() as playwright:
     alice.get_by_label("État et commentaires de mon exemplaire").fill(long_notes)
     reject_if_requested(alice, "copy", "notes", 501)
     submit_long_content(alice, "Enregistrer", copy_urls["Régicide"])
-    expect(alice.locator(".game-description")).to_have_text(long_notes)
+    alice.get_by_role("link", name="Modifier mon exemplaire et son partage", exact=True).click()
+    expect(alice.get_by_label("État et commentaires de mon exemplaire")).to_have_value(long_notes)
     alice.goto(community_url)
+    open_community_settings(alice)
     long_community = "Communauté" * 10
     alice.get_by_label("Nom de la communauté").fill(long_community)
     reject_if_requested(alice, "community", "name", 101)
@@ -388,7 +542,12 @@ with sync_playwright() as playwright:
             {
                 "widths": widths,
                 "screens": list(routes),
-                "screenshots": 15,
+                "screenshots": len(captures),
+                "management_dialogs": "passed",
+                "own_pending_copy": "passed",
+                "cancel_invitation": "passed",
+                "favicon": "passed",
+                "spacing": "passed",
                 "navigation": "passed",
                 "filters": "passed",
                 "without_js": "passed",

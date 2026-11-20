@@ -528,3 +528,45 @@ Les cases V1–V4 attestent l'implémentation et les tests synthétiques, **pas 
 installation sur VPS** ; toutes les actions manuelles ci-dessus restent à faire.
 À la livraison de PR 1, V5–V13 restaient ouverts ; les bilans suivants ci-dessus
 actualisent leur état. Une CI verte ne lève pas une dépendance d'accord ou de validation réelle. Aucune suppression de volume ni opération de production.
+
+## Correctif UI — espacements des communautés et formulaires
+
+Signalement du 18 novembre 2026 sur téléphone et ordinateur, depuis `main`
+`27ec280`. [Périmètre et vérification](docs/ui-espacements.md).
+
+- [x] Séparer badge, titre et compteur de communauté avec un rythme explicite,
+  conserver la marge intérieure et le lien de carte accessible ; rétablir le
+  padding de l’état vide, sans changer les données ni les droits.
+- [x] Espacer les actions et liens des panneaux de formulaire, dont la copie
+  d’invitation ; réutiliser les variables CSS communes.
+- [x] Vérifier les espacements réels à 360 et 1 200 px ; conserver les parcours
+  navigateur, contenus longs et repli sans JS aux cinq largeurs existantes.
+- [x] Exécuter Ruff/format, mypy, Django/migrations/statiques, les 552 tests
+  PostgreSQL et le build Docker ; documenter les preuves et limites.
+
+La livraison sur le staging et la vérification sur Firefox Android physique
+restent distinctes de cette correction locale.
+
+### Complément UI — retours du 19 novembre 2026
+
+Même branche/PR #37, depuis la première passe ci-dessus. [Bilan détaillé](docs/ui-retours-staging.md).
+
+- [x] Regrouper les paramètres de communauté et l’invitation dans des fenêtres
+  nommées, avec fermeture/Échap, restitution du focus et repli `details` sans JS.
+- [x] Masquer les mutations du lien derrière une roue dentée et les actions de
+  membre derrière un crayon, en conservant contrôles serveur et confirmations.
+- [x] Proposer l’inscription directement dans la page de connexion ; ajouter une
+  annulation d’adhésion qui nettoie seulement l’intention du compte/session.
+- [x] Séparer choix du jeu et préparation d’exemplaire, conserver le brouillon au
+  retour et ne créer les données qu’à la validation finale du parcours.
+- [x] Déplacer la gestion/archivage d’un exemplaire sur sa page propriétaire et
+  corriger la grille du détail mobile, notamment pour une copie pending privée.
+- [x] Ajouter un favicon SVG local aux pages normales et d’erreur.
+- [x] Vérifier permissions, CSRF, annulation sans adhésion, préparation sans
+  création, revalidation et compatibilité des POST historiques ; 566 tests réussis.
+- [x] Vérifier les parcours navigateur produit, recherche, UI et ajout avec/sans JS,
+  ainsi que les fenêtres et la copie pending aux cinq largeurs existantes.
+
+Restent à faire après livraison autorisée : relecture sur Firefox Android réel
+et validation visuelle du propriétaire. Aucun déploiement effectué, aucune
+migration ajoutée ; les portes d’exploitation du lot 6 restent distinctes.

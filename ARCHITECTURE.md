@@ -152,3 +152,18 @@ avant migration unique, readiness et HTTPS, historique puis pointeur actif.
 Pas de recréation DB/capture, build, restore ou downgrade implicite. Une tentative
 interrompue impose inspection/nouveau plan, les migrations encore actives bloquent
 la reprise. Rollback limité aux versions CD avec schéma identique, sans migration.
+
+## Gestion UI et préparation d’exemplaire
+
+Les fenêtres sont une amélioration de sections HTML `details` autorisées côté
+serveur : JavaScript local et `dialog` natif, sans chargement externe ni nouvelle
+API privée. Les formulaires gardent leurs routes POST, CSRF et services existants.
+Annuler une invitation efface seulement `PendingJoin` du compte et le digest de
+sa session, via le verrou métier ; aucune appartenance ou invitation n’est supprimée.
+
+Le parcours d’ajout prépare deux écrans sur l’endpoint existant. Les valeurs
+du brouillon transitent comme champs de formulaire échappés, sans état métier
+intermédiaire en base. Ces champs restent des entrées non fiables : l’éligibilité
+du jeu est centralisée dans `reusable_game`, et la création finale conserve
+validation, protection contre les doublons et transaction de `add_to_collection`.
+Les POST historiques restent compatibles. Aucun changement de modèle ou migration.

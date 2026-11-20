@@ -59,3 +59,21 @@ et prêt. Le partage peut être choisi dès l’ajout manuel, sans case désacti
 ni attente de validation administrative. Sans communauté choisie, copie privée.
 Un rejet affiche l’interdiction des nouvelles demandes ; les participants d’un
 prêt accepté conservent ses actions de remise/retour et son historique privé.
+
+## Retours du staging — 19 novembre 2026
+
+- Détail de communauté : actions « Inviter des membres » et « Modifier les
+  paramètres », contenu de gestion fermé au départ. Invitation en fenêtre avec
+  copie et message ; roue dentée pour la révocation/régénération, crayon nommé
+  par membre pour ses actions. Chaque mutation garde sa confirmation.
+- Fenêtres natives avec titre accessible, fermeture explicite/Échap, focus
+  contenu puis rendu au déclencheur. Sans JavaScript, les mêmes contenus sont
+  des sections dépliables ; aucune fonction essentielle ne dépend d’une fenêtre.
+- Connexion : inscription visible dans le contenu, avec cible tactile adaptée.
+  Adhésion : confirmer ou annuler explicitement, sans adhésion automatique.
+- Ajout : choix/proposition du jeu puis écran « Votre exemplaire », avec retour
+  au choix conservant les données préparées et annulation sans création.
+  Exemplaire existant : gestion sur sa page dédiée ; résumé, statut et action
+  restent lisibles sur mobile, sans étirer un panneau dans la colonne du visuel.
+- Cartes et états vides conservent leurs marges intérieures. Favicon SVG local
+  reprenant le M et le point orange de la marque provisoire.

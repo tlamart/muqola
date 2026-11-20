@@ -126,6 +126,11 @@ def join(user: User, digest: str) -> Community:
         return item.community
 
 
+def cancel_join(user: User) -> None:
+    with domain_write(user):
+        PendingJoin.objects.filter(user=user).delete()
+
+
 def remove(user: User, community_id: UUID, target_id: int) -> None:
     with domain_write(user):
         actor = membership(user, community_id, admin=target_id != user.pk)

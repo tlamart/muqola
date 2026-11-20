@@ -3,10 +3,10 @@
 <p class="eyebrow">Vos cercles de jeu</p><h1>Mes communautés</h1>
 <p class="intro">Un espace privé pour chaque groupe. Invitez vos proches et partagez à votre rythme.</p>
 <a class="button" href="{% url 'communities:create' %}">Créer une communauté</a></header>
-<ul class="cards community-cards">{% for member in memberships %}<li>
+<ul class="cards community-cards">{% for member in memberships %}<li class="community-card-item">
 <a class="community-card" href="{% url 'communities:detail' member.community_id %}">
 <img src="{% static member.community.illustration_path %}" alt="" width="320" height="160">
-<div><span class="badge">Privée</span><h2>{{ member.community.name }}</h2>
+<div class="community-card__content"><span class="badge">Privée</span><h2>{{ member.community.name }}</h2>
 <p>{{ member.member_count }} membre{{ member.member_count|pluralize }} · {{ member.get_role_display }}</p></div></a>
 </li>{% empty %}<li><h2>Aucune communauté pour le moment</h2>
 <p>Créez la vôtre ou ouvrez un lien d'invitation reçu d'un proche.</p></li>{% endfor %}</ul>{% endblock %}

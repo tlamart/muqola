@@ -8,7 +8,6 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
-from muqola.catalogue.models import Game
 from muqola.core.http import actor
 from muqola.core.search import bounded_search
 from muqola.inventory import services
@@ -78,19 +77,7 @@ def edit(
         if copy_id
         else None
     )
-    game = (
-        item.game
-        if item
-        else get_object_or_404(
-            Game.objects.filter(
-                Q(moderation_status=Game.Status.APPROVED)
-                | Q(moderation_status=Game.Status.PENDING, created_by=actor(request))
-            ),
-            pk=game_id,
-            hidden=False,
-            merged_into__isnull=True,
-        )
-    )
+    game = item.game if item else services.reusable_game(actor(request), game_id)
     initial = (
         {
             "notes": item.notes,
@@ -122,9 +109,10 @@ def edit(
             return redirect("inventory:detail", copy_id=saved.pk)
     return render(
         request,
-        "domain_form.html",
+        "inventory/edit.html" if item else "domain_form.html",
         {
             "form": form,
+            "copy": item,
             "title": f"Mon exemplaire de {game.title}",
             "notice": "Sans communauté sélectionnée, cet exemplaire reste privé. "
             "Plusieurs exemplaires d'une même fiche sont possibles.",

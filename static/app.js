@@ -60,6 +60,7 @@ if (navigation && menuButton) {
   });
   document.addEventListener('keydown', event => {
     if (event.key !== 'Escape') return;
+    if (document.querySelector('dialog[open]')) return;
     const accountMenu = navigation.querySelector('details[open]');
     if (accountMenu) {
       accountMenu.open = false;
