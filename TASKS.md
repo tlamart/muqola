@@ -21,7 +21,14 @@ Lot indépendant de la correction UI, depuis `main` `27ec280`.
   déclenchements, provenance, transfert d’artefact par identifiant et barrières
   de livraison conservés.
 
-La CI GitHub du commit final reste à vérifier. Aucun workflow CD déclenché,
+- [x] Corriger l’échec du run 44599753813 : déclarer explicitement le sous-réseau
+  alloué par Docker dans les deux smokes avant l’attachement de Caddy à IP fixe.
+  Seul le réseau synthétique encore vide est recréé ; réseaux existants et
+  volumes conservés. Build et smoke production réels réussis après correction
+  (TLS/CSRF, rôles, backup/restauration chiffrés, six états de prêt) ; les
+  134 tests de publication/CD restent réussis (3,95 s).
+
+La CI GitHub du nouveau commit et son smoke staging/CD restent à vérifier. Aucun workflow CD déclenché,
 aucune fusion, aucune modification du VPS, du runtime applicatif ou des données.
 
 ## Lot 0 — Décision technique et socle
