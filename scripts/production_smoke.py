@@ -43,6 +43,22 @@ def free_port():
         return sock.getsockname()[1]
 
 
+def create_proxy_network(name):
+    """Let Docker choose a free subnet, then declare it for static-IP support."""
+    assert name.startswith(("muqola-lot6-synthetic-", "muqola-stage-synthetic-"))
+    run(["docker", "network", "create", name])
+    try:
+        info = json.loads(run(["docker", "network", "inspect", name]).stdout)[0]
+        subnet = ipaddress.ip_network(info["IPAM"]["Config"][0]["Subnet"])
+    finally:
+        # This newly created network has no containers; no volume is touched.
+        run(["docker", "network", "rm", name])
+    # An automatically allocated IPAM pool does not qualify as a user-configured
+    # subnet for fixed container addresses on all Docker Engine versions.
+    run(["docker", "network", "create", "--subnet", str(subnet), name])
+    return str(subnet.network_address + 10)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--image", default="muqola:local")
@@ -103,10 +119,7 @@ def main():
         for service in ("web", "worker", "migrate"):
             config["services"][service]["environment"]["APP_BASE_URL"] = f"https://{domain}:{port}"
         network = project + "-proxy"
-        run(["docker", "network", "create", network])
-        info = json.loads(run(["docker", "network", "inspect", network]).stdout)[0]
-        subnet = ipaddress.ip_network(info["IPAM"]["Config"][0]["Subnet"])
-        caddy_ip = str(subnet.network_address + 10)
+        caddy_ip = create_proxy_network(network)
         config["networks"]["proxy"]["name"] = network
         config["networks"]["private"]["name"] = project + "_private"
         for service in ("web", "worker", "migrate"):

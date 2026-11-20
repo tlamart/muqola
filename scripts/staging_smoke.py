@@ -7,7 +7,6 @@ Retains every volume. HTTPS uses an internal CA and explicit loopback resolution
 
 import argparse
 import hashlib
-import ipaddress
 import json
 import os
 import re
@@ -18,7 +17,7 @@ import threading
 import time
 from pathlib import Path
 
-from production_smoke import CADDY_IMAGE, ROOT, free_port, run
+from production_smoke import CADDY_IMAGE, ROOT, create_proxy_network, free_port, run
 
 
 def model(profile, project, directory, image):
@@ -174,9 +173,7 @@ def main():
             "staging", prefix + "-stage", directory / "staging", args.image
         )
         network = prefix + "-proxy"
-        run(["docker", "network", "create", network])
-        net = json.loads(run(["docker", "network", "inspect", network]).stdout)[0]
-        peer = str(ipaddress.ip_network(net["IPAM"]["Config"][0]["Subnet"]).network_address + 10)
+        peer = create_proxy_network(network)
         port = free_port()
         stage_host, prod_host = "staging.muqola.tlam.art", "muqola.example.test"
         for document, host in ((production, prod_host), (staging, stage_host)):
