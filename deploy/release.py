@@ -187,13 +187,7 @@ def make_plan(
         raise OperationError("migration_container_still_running")
     runtime, document = configuration(config, payload, root)
     if config["environment"] == "staging":
-        stage_config = dict(
-            runtime,
-            compose_file=str(
-                root / "incoming" / payload["publication"]["commit"] / "compose.staging.yaml"
-            ),
-        )
-        stage = preflight(stage_config)
+        stage = preflight(runtime)
         if stage["issues"]:
             raise OperationError("staging_admission_failed")
         if not private_access_blocked("https://staging.muqola.tlam.art/health/ready/"):

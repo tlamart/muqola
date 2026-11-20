@@ -73,3 +73,16 @@ fenêtre de paramètres desktop ont été inspectés.
 La validation Chromium ne remplace pas la relecture sur Firefox Android physique
 après livraison autorisée. Aucune modification du VPS, aucun déploiement, aucune
 migration ni donnée réelle dans ce lot. La CI GitHub du commit final reste à vérifier.
+
+## Correction après revue
+
+La conservation par champs cachés couvrait le retour immédiat et les résultats
+asynchrones, mais perdait le brouillon lors d'une nouvelle recherche GET ou du
+passage à la proposition manuelle. Notes et partages sont désormais mémorisés en
+session après « Changer de jeu » ; aucune copie n'est créée avant l'enregistrement.
+Les champs et droits restent revalidés au dernier POST, y compris après retrait
+d'une communauté. Le succès ou « Annuler l’ajout » efface le brouillon.
+
+Les tests serveur couvrent recherche, pagination, navigation manuelle, échappement,
+annulation et partage devenu inéligible. Le parcours navigateur recherche vérifie
+aussi ces navigations, avec JavaScript et sans JavaScript à 360/1280 px.

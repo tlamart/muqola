@@ -396,6 +396,11 @@ def test_positive_transport_uses_explicit_assets_and_strict_ssh_only(
         if args[0] == "ssh" and args[-1].startswith("cd "):
             requests.append(json.loads(kwargs["stdin"].read()))
             return json.dumps(result).encode()
+        if args[0] == "scp":
+            local = Path(args[-2])
+            expected_mode = 0o755 if local.suffix == ".sh" else 0o644
+            assert local.stat().st_mode & 0o777 == expected_mode
+            assert "-p" in args
         return b""
 
     monkeypatch.setattr(delivery, "run", transport)

@@ -490,8 +490,17 @@ python3 -m deploy.staging stop --config /etc/muqola/staging/operator.json
 ```
 
 Start vérifie les migrations déjà appliquées puis `staging_readiness` (notamment
-les droits runtime, adultes, comptes fictifs et documents légaux), démarre web/
-worker sans build et exige un smoke HTTPS authentifié. Un échec est enregistré ;
+les droits runtime, comptes fictifs et documents légaux), démarre web/
+worker sans build et exige un smoke HTTPS authentifié. Les attestations 18+
+restent contrôlées par compte, sans bloquer la disponibilité globale.
+Après une livraison CD, start/stop/status résolvent automatiquement le modèle
+`cd/active/compose.json` voisin du fichier d'état du cycle de vie. Le chemin privé,
+le projet, le digest des trois services applicatifs et le journal CD sont vérifiés.
+Un modèle absent/incohérent ou une livraison inachevée refuse le redémarrage,
+sans réutiliser le digest du fichier `.env`. Avant la première livraison CD,
+le profil source reste utilisable pour l'initialisation revue séparément.
+Ces opérations partagent les verrous CD hôte/environnement.
+Un échec est enregistré ;
 il n'y a ni rollback de schéma ni restauration automatique. DB/Mailpit ou des
 services déjà démarrés peuvent rester actifs après un échec : diagnostiquer puis
 stopper explicitement le staging. Un verrou interdit deux opérations concurrentes

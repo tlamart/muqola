@@ -186,10 +186,11 @@ def deliver(args: argparse.Namespace) -> dict[str, Any]:
             local = directory / name
             local.parent.mkdir(parents=True, exist_ok=True)
             local.write_bytes(content)
+            local.chmod(0o755 if local.suffix == ".sh" else 0o644)
             import hashlib
 
             manifest[name] = hashlib.sha256(content).hexdigest()
-            run(["scp", "-B", *options, str(local), destination + ":" + remote + "/" + name])
+            run(["scp", "-p", "-B", *options, str(local), destination + ":" + remote + "/" + name])
         payload = {
             "protocol": 1,
             "publication": publication,

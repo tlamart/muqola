@@ -37,20 +37,28 @@ def _copy_setup(request: HttpRequest, form: QuickAddForm, status: int = 200) -> 
 @require_http_methods(["GET", "POST"])
 @bounded_search
 def index(request: HttpRequest) -> HttpResponse:
+    step = request.POST.get("step", "") if request.method == "POST" else ""
+    if step == "cancel":
+        request.session.pop("copy_draft", None)
+        return redirect("inventory:mine")
     title = request.GET.get("title", "")[:120]
     manual = request.GET.get("manual") == "1"
     matches = services.search(actor(request), title)
     form = QuickAddForm(
         request.POST if request.method == "POST" else None,
         user=actor(request),
-        initial={"title": title} if manual else None,
+        initial={**request.session.get("copy_draft", {}), **({"title": title} if manual else {})},
     )
     if request.method == "POST" and request.FILES:
         form.add_error(None, "Les fichiers et photos utilisateur ne sont pas acceptés.")
-    step = request.POST.get("step", "") if request.method == "POST" else ""
     if step in {"copy", "save", "choose"}:
         manual = bool(request.POST.get("title"))
     valid = request.method == "POST" and form.is_valid()
+    if valid and step == "choose":
+        request.session["copy_draft"] = {
+            "notes": form.cleaned_data["notes"],
+            "communities": form.cleaned_data["communities"],
+        }
     if step == "copy" and valid:
         return _copy_setup(request, form)
     if valid and step != "choose":
@@ -66,6 +74,7 @@ def index(request: HttpRequest) -> HttpResponse:
         except ValidationError as error:
             form.add_error(None, " ".join(error.messages))
         else:
+            request.session.pop("copy_draft", None)
             messages.success(request, "Jeu ajouté à votre collection.")
             return redirect("inventory:detail", copy_id=saved.pk)
     if step == "save" or (

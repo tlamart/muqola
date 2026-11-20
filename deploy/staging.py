@@ -4,11 +4,13 @@ import argparse
 import fcntl
 import json
 import os
+import re
 import shutil
+from contextlib import ExitStack
 from pathlib import Path
 from typing import Any
 
-from deploy.check_config import validate
+from deploy.check_config import IMAGE, validate
 from deploy.common import OperationError, atomic_json, compose, config_file, run, utcnow
 from deploy.probe import load_credentials, private_access_blocked, protected_probe
 from deploy.staging_config import isolation_issues
@@ -81,12 +83,43 @@ def rendered(config: dict[str, Any]) -> dict[str, Any]:
     return json.loads(run([*compose(config), "--profile", "*", "config", "--format", "json"]))  # type: ignore[no-any-return]
 
 
+def lifecycle_config(config: dict[str, Any], *, starting: bool) -> dict[str, Any]:
+    """Prefer the private CD model; never silently fall back after a release."""
+    if config.get("environment") != "staging" or config.get("project") != "muqola-staging":
+        raise OperationError("explicit_staging_target_required")
+    if config.get("state_file"):
+        root = Path(config["state_file"]).resolve().parent / "cd"
+        active = root / "active"
+        journal = root / "state.json"
+        if journal.exists() or active.exists() or active.is_symlink():
+            try:
+                state = config_file(journal)
+                current = state["current"]
+                model = (active / "compose.json").resolve(strict=True)
+                if (
+                    model.parent.parent != (root / "models").resolve()
+                    or not re.fullmatch(r"[0-9a-f]{64}", model.parent.name)
+                    or Path(current["compose_file"]).resolve(strict=True) != model
+                    or not IMAGE.fullmatch(current["image"])
+                    or (starting and state.get("phase") != "succeeded")
+                ):
+                    raise OperationError("active_staging_release_requires_review")
+                document = config_file(model)
+                if validate(document, "muqola-staging", environment="staging") or any(
+                    document["services"][name]["image"] != current["image"]
+                    for name in ("web", "worker", "migrate")
+                ):
+                    raise OperationError("active_staging_model_mismatch")
+            except (OSError, ValueError, KeyError, TypeError) as error:
+                raise OperationError("active_staging_release_unavailable") from error
+            return dict(config, compose_file=str(model))
+    if Path(config["compose_file"]).name != "compose.staging.yaml":
+        raise OperationError("explicit_staging_target_required")
+    return config
+
+
 def preflight(config: dict[str, Any]) -> dict[str, Any]:
-    if (
-        config.get("environment") != "staging"
-        or config.get("project") != "muqola-staging"
-        or Path(config["compose_file"]).name != "compose.staging.yaml"
-    ):
+    if config.get("environment") != "staging" or config.get("project") != "muqola-staging":
         raise OperationError("explicit_staging_target_required")
     if config.get("app_url") != "https://staging.muqola.tlam.art":
         raise OperationError("staging_probe_origin_required")
@@ -118,12 +151,7 @@ def preflight(config: dict[str, Any]) -> dict[str, Any]:
 
 def operate(config: dict[str, Any], action: str) -> dict[str, Any]:
     # Stop/status remain usable when review is pending or production secrets unavailable.
-    if (
-        config.get("environment") != "staging"
-        or config.get("project") != "muqola-staging"
-        or Path(config["compose_file"]).name != "compose.staging.yaml"
-    ):
-        raise OperationError("explicit_staging_target_required")
+    config = lifecycle_config(config, starting=action in {"start", "check"})
     require_local_docker()
     command = compose(config)
     if action == "stop":
@@ -190,12 +218,21 @@ def main() -> int:
         ):
             raise OperationError("staging_state_path_required")
         state.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-        descriptor = os.open(state.with_suffix(".lock"), os.O_CREAT | os.O_RDWR, 0o600)
-        with os.fdopen(descriptor, "a") as lock:
-            try:
-                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except BlockingIOError as error:
-                raise OperationError("staging_operation_in_progress") from error
+        root = state.parent / "cd"
+        root.mkdir(parents=True, exist_ok=True, mode=0o700)
+        with ExitStack() as locks:
+            # Same order as CD: do not read/change the active model during apply.
+            for path in (
+                root.parent.parent / "cd.lock",
+                root / "release.lock",
+                state.with_suffix(".lock"),
+            ):
+                descriptor = os.open(path, os.O_CREAT | os.O_RDWR, 0o600)
+                lock = locks.enter_context(os.fdopen(descriptor, "a"))
+                try:
+                    fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                except BlockingIOError as error:
+                    raise OperationError("staging_operation_in_progress") from error
             can_record = True
             result = operate(config, args.action)
             if args.action in {"start", "stop"}:

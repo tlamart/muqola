@@ -235,9 +235,19 @@ with sync_playwright() as playwright:
     input.press("Enter")
     page.wait_for_url("**/games/?title=Quete*")
     expect(page.locator("input[type=radio][name=game_id]")).to_have_count(10)
+    expect(page.locator("input[type=hidden][name=notes]")).to_have_value("Notes conservées")
+    expect(page.locator("input[type=hidden][name=communities]")).to_have_value(shared)
+    page.get_by_role("link", name="Mon jeu n’est pas dans la liste", exact=True).click()
+    expect(page.locator("input[type=hidden][name=notes]")).to_have_value("Notes conservées")
+    expect(page.locator("input[type=hidden][name=communities]")).to_have_value(shared)
+    page.get_by_role("link", name="Choisir un jeu existant", exact=True).click()
     # Actual selection can still be posted after fragment replacements.
     page.locator("input[type=radio][name=game_id]").first.check()
     continue_copy(page)
+    expect(page.get_by_label("État et commentaires de mon exemplaire")).to_have_value(
+        "Notes conservées"
+    )
+    expect(page.get_by_label(f"Groupe {prefix}", exact=True)).to_be_checked()
     page.get_by_role("button", name="Ajouter à ma collection", exact=True).click()
     page.wait_for_url("**/copies/*/")
     page.goto(args.url + "/copies/?title=" + prefix)
@@ -276,6 +286,29 @@ with sync_playwright() as playwright:
             not page.evaluate("document.documentElement.scrollWidth > innerWidth"),
             "No horizontal overflow without JavaScript",
         )
+        page.goto(args.url + "/games/?title=" + prefix)
+        page.locator("input[type=radio][name=game_id]").first.check()
+        continue_copy(page)
+        page.get_by_label("État et commentaires de mon exemplaire").fill("Brouillon sans JS")
+        page.get_by_label(f"Groupe {prefix}", exact=True).check()
+        page.get_by_role("button", name="Changer de jeu", exact=True).click()
+        page.get_by_label("Rechercher un jeu par titre").fill("Couronne " + prefix)
+        page.get_by_label("Rechercher un jeu par titre").press("Enter")
+        page.locator(".pagination").get_by_role("link", name="Page suivante").click()
+        page.get_by_role("link", name="Mon jeu n’est pas dans la liste", exact=True).click()
+        expect(page.locator("input[type=hidden][name=notes]")).to_have_value("Brouillon sans JS")
+        expect(page.locator("input[type=hidden][name=communities]")).to_have_value(shared)
+        page.get_by_role("link", name="Choisir un jeu existant", exact=True).click()
+        page.locator("input[type=radio][name=game_id]").first.check()
+        continue_copy(page)
+        expect(page.get_by_label("État et commentaires de mon exemplaire")).to_have_value(
+            "Brouillon sans JS"
+        )
+        expect(page.get_by_label(f"Groupe {prefix}", exact=True)).to_be_checked()
+        page.get_by_role("button", name="Annuler l’ajout", exact=True).click()
+        page.wait_for_url("**/copies/mine/")
+        page.goto(args.url + "/games/?title=" + prefix)
+        expect(page.locator("input[type=hidden][name=notes]")).to_have_value("")
         nojs.close()
     browser.close()
 print(

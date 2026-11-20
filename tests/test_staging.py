@@ -1,6 +1,7 @@
 """Staging guards: no production credentials/data/SMTP and safe lifecycle admission."""
 
 import copy
+import fcntl
 import json
 import shutil
 import subprocess
@@ -15,7 +16,7 @@ from django.test import Client, override_settings
 
 from deploy import staging as lifecycle
 from deploy.check_config import validate
-from deploy.common import OperationError
+from deploy.common import OperationError, atomic_json
 from deploy.staging_config import isolation_issues
 from muqola.identity.forms import SignupForm
 from muqola.identity.models import User
@@ -199,6 +200,115 @@ def test_stop_targets_only_staging_and_retains_volumes(monkeypatch: pytest.Monke
         )
 
 
+@pytest.fixture
+def deployed_staging(
+    profiles: tuple[dict[str, Any], dict[str, Any]], tmp_path: Path
+) -> dict[str, Any]:
+    _, document = profiles
+    root = tmp_path / "staging" / "cd"
+    model = root / "models" / ("b" * 64) / "compose.json"
+    image = "ghcr.io/tlamart/muqola@sha256:" + "b" * 64
+    for name in ("web", "worker", "migrate"):
+        document["services"][name]["image"] = image
+    atomic_json(model, document)
+    (root / "active").symlink_to(model.parent, target_is_directory=True)
+    atomic_json(
+        root / "state.json",
+        {"phase": "succeeded", "current": {"image": image, "compose_file": str(model)}},
+    )
+    return {
+        "project": "muqola-staging",
+        "environment": "staging",
+        "compose_file": "compose.staging.yaml",  # Source still references image a.
+        "state_file": str(root.parent / "state.json"),
+        "app_url": "https://staging.muqola.tlam.art",
+    }
+
+
+@pytest.mark.parametrize("action", ["start", "stop", "status"])
+@pytest.mark.parametrize("explicit_active", [False, True])
+def test_staging_lifecycle_keeps_cd_image_after_stop_start(
+    deployed_staging: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+    action: str,
+    explicit_active: bool,
+) -> None:
+    config = deployed_staging
+    root = Path(config["state_file"]).parent / "cd"
+    model = (root / "active" / "compose.json").resolve()
+    if explicit_active:
+        config["compose_file"] = str(root / "active" / "compose.json")
+    monkeypatch.setattr(lifecycle, "require_local_docker", lambda: None)
+    monkeypatch.setattr(lifecycle, "preflight", lambda _: {"issues": []})
+    monkeypatch.setattr(lifecycle, "private_access_blocked", lambda _: True)
+    monkeypatch.setattr(lifecycle, "protected_probe", lambda *args: True)
+    monkeypatch.setattr(
+        lifecycle, "compose", lambda c: ["docker", "compose", "-f", c["compose_file"]]
+    )
+    config["probe_credentials_file"] = "synthetic.json"
+    seen: list[list[str]] = []
+
+    def command(args: list[str]) -> bytes:
+        seen.append(args)
+        return b"[]" if "ps" in args else b""
+
+    monkeypatch.setattr(lifecycle, "run", command)
+    lifecycle.operate(config, action)
+    assert seen and all(cmd[3] == str(model) for cmd in seen)
+    assert {
+        json.loads(model.read_text())["services"][name]["image"]
+        for name in ("web", "worker", "migrate")
+    } == {"ghcr.io/tlamart/muqola@sha256:" + "b" * 64}
+
+
+@pytest.mark.parametrize(
+    "fault",
+    [
+        "missing_model",
+        "wrong_image",
+        "wrong_project",
+        "outside_root",
+        "missing_state",
+        "incomplete_release",
+    ],
+)
+def test_invalid_active_staging_never_falls_back_to_old_image(
+    deployed_staging: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+    fault: str,
+) -> None:
+    config = deployed_staging
+    root = Path(config["state_file"]).parent / "cd"
+    model = (root / "active" / "compose.json").resolve()
+    document = json.loads(model.read_text())
+    if fault == "missing_model":
+        model.unlink()
+    elif fault in {"wrong_image", "wrong_project"}:
+        if fault == "wrong_image":
+            document["services"]["web"]["image"] = "ghcr.io/tlamart/muqola@sha256:" + "a" * 64
+        else:
+            document["name"] = "muqola-prod"
+        atomic_json(model, document)
+    elif fault == "outside_root":
+        (root / "active").unlink()
+        outside = root.parent / "other"
+        atomic_json(outside / "compose.json", document)
+        (root / "active").symlink_to(outside, target_is_directory=True)
+    elif fault == "missing_state":
+        (root / "state.json").unlink()
+    else:
+        state = json.loads((root / "state.json").read_text())
+        atomic_json(root / "state.json", state | {"phase": "failed"})
+    monkeypatch.setattr(lifecycle, "require_local_docker", lambda: None)
+    monkeypatch.setattr(lifecycle, "preflight", lambda _: {"issues": []})
+    monkeypatch.setattr(lifecycle, "compose", lambda _: ["synthetic"])
+    calls: list[list[str]] = []
+    monkeypatch.setattr(lifecycle, "run", lambda args: calls.append(args))
+    with pytest.raises(OperationError):
+        lifecycle.operate(config, "start")
+    assert not calls
+
+
 def test_start_refuses_public_access_before_starting_any_service(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -358,6 +468,29 @@ def test_invalid_state_path_cannot_overwrite_another_environment(
     monkeypatch.setattr(sys, "argv", ["staging", "start", "--config", "synthetic.json"])
     assert lifecycle.main() == 1
     assert state.read_text() == "preserve-existing-synthetic-state"
+
+
+@pytest.mark.parametrize("shared", [True, False])
+def test_lifecycle_refuses_concurrent_cd_without_changing_state(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, shared: bool
+) -> None:
+    import sys
+
+    root = tmp_path / "staging" / "cd"
+    root.mkdir(parents=True)
+    state = root.parent / "state.json"
+    atomic_json(state, {"action": "stopped"})
+    before = state.read_bytes()
+    operator = tmp_path / "operator.json"
+    atomic_json(operator, {"state_file": str(state)})
+    lock_path = root.parent.parent / "cd.lock" if shared else root / "release.lock"
+    calls: list[str] = []
+    monkeypatch.setattr(lifecycle, "operate", lambda config, action: calls.append(action))
+    monkeypatch.setattr(sys, "argv", ["staging", "start", "--config", str(operator)])
+    with lock_path.open("a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        assert lifecycle.main() == 1
+    assert not calls and state.read_bytes() == before
 
 
 def test_capacity_measurement_refuses_remote_docker(

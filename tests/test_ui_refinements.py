@@ -117,6 +117,52 @@ def test_copy_wizard_preserves_draft_across_choice_and_revalidates_sharing(clien
     assert copy.visibilities.get().community == community
 
 
+@pytest.mark.parametrize("manual", [False, True])
+def test_copy_draft_survives_search_pagination_and_manual_navigation(
+    client: Client, manual: bool
+) -> None:
+    owner = member()
+    community = communities.create(owner, "Partage synthétique")
+    game = approved_game(owner, {"title": "Jeu synthétique"})
+    client.force_login(owner)
+    url = reverse("catalogue:index")
+    draft = {"notes": "Brouillon privé <test>", "communities": [str(community.pk)]}
+    client.post(url, draft | {"step": "choose", "game_id": str(game.pk)})
+    for query in ({"title": "Jeu"}, {"title": "Jeu", "page": "2"}, {"manual": "1"}):
+        response = client.get(url, query)
+        assert response.context["form"]["notes"].value() == draft["notes"]
+        assert response.context["form"]["communities"].value() == draft["communities"]
+        assert "Brouillon privé &lt;test&gt;" in response.content.decode()
+    # Live results must not clear the session draft either.
+    client.get(url, {"title": "Jeu"}, HTTP_X_REQUESTED_WITH="live-search")
+    response = client.get(url, {"manual": "1"} if manual else {})
+    choice = {"title": "Autre titre synthétique"} if manual else {"game_id": str(game.pk)}
+    response = client.post(url, draft | choice | {"step": "save"})
+    assert response.status_code == 302
+    item = OwnedGame.objects.get()
+    assert item.notes == draft["notes"] and item.visibilities.get().community == community
+    assert not client.get(url).context["form"]["notes"].value()
+
+
+def test_copy_draft_is_discarded_on_cancel_and_never_grants_stale_sharing(client: Client) -> None:
+    owner, other = member(), member("Bob")
+    community = communities.create(other, "Partage temporaire")
+    invitation = communities.invite(other, community.pk)
+    communities.join(owner, invitation.digest)
+    game = approved_game(owner, {"title": "Jeu synthétique"})
+    client.force_login(owner)
+    url = reverse("catalogue:index")
+    draft = {"notes": "À effacer", "communities": [str(community.pk)]}
+    client.post(url, draft | {"step": "choose", "game_id": str(game.pk)})
+    communities.remove(owner, community.pk, owner.pk)
+    assert client.post(url, draft | {"step": "save", "game_id": str(game.pk)}).status_code == 400
+    assert not OwnedGame.objects.exists()
+    response = client.post(url, {"step": "cancel"})
+    assert response.status_code == 302 and response["Location"] == reverse("inventory:mine")
+    form = client.get(url).context["form"]
+    assert not form["notes"].value() and not form["communities"].value()
+
+
 @pytest.mark.parametrize(
     "state", ["approved", "own_pending", "foreign_pending", "rejected", "hidden"]
 )
