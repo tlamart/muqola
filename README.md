@@ -204,6 +204,20 @@ export POSTGRES_HOST=127.0.0.1 POSTGRES_PORT=55432 EMAIL_PORT=11025 PYTHONPATH="
 
 Le rôle de base local/CI peut créer la base de tests éphémère `test_muqola` ;
 ce rôle est réservé au développement, pas à la production.
+Les workflows CI, publication GHCR et CD manuel utilisent explicitement
+`ubuntu-24.04`, afin de dissocier une migration d’Ubuntu des mises à jour de
+`ubuntu-latest`. Leurs actions JavaScript utilisent Node.js 24 et sont fixées
+par SHA de commit, avec la version lisible en commentaire. Pour les mettre à
+jour, relire les notes de version, vérifier le runtime et les entrées/sorties,
+puis valider les deux workflows avec `actionlint` et la CI. Le Node.js des
+actions est indépendant du runtime Python de l’application et du VPS.
+
+Les tests Docker de production et de staging demandent un sous-réseau libre à
+Docker, puis le déclarent explicitement avant d’y attacher Caddy avec son IP
+fixe. Seul le réseau vide créé par le test est recréé ; aucun réseau existant
+ni volume n’est modifié. Cette déclaration est nécessaire sur les moteurs
+Docker qui refusent les IP fixes avec un pool IPAM alloué implicitement.
+
 `check.sh` exécute réellement : Ruff lint/format, mypy, contrôles Django,
 détection de migration manquante, migration, collecte des statiques et pytest
 avec PostgreSQL. Il s'arrête à la première erreur. Les tests ne remplacent
