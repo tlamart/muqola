@@ -36,7 +36,7 @@ mode = {'operator': existing.email} if existing else {'bootstrap': True}
 call_command('promote_operator', email=email, confirm_email=email,
     reason='Fixture de test navigateur locale', stdout=StringIO(), **mode)
 game = write_game(user, {'title': 'Proposition admin ' + secrets.token_hex(4)})
-print(json.dumps({'email': email, 'password': password, 'game': str(game.pk)}))
+print(json.dumps({'email': email, 'password': password, 'game': str(game.pk), 'title': game.title}))
 """
 docker = shutil.which("docker")
 if docker is None:
@@ -84,8 +84,9 @@ with sync_playwright() as playwright:
         page.screenshot(path=str(output / f"review-{width}.png"), full_page=True)
     page.goto(args.url + "/operator/")
     page.get_by_label("Statut", exact=True).select_option("approved")
+    page.get_by_label("Titre ou alias", exact=True).fill(account["title"])
     page.get_by_role("button", name="Filtrer", exact=True).click()
-    expect(page.get_by_role("link", name="Proposition admin", exact=False)).to_be_visible()
+    expect(page.get_by_role("link", name=account["title"], exact=True)).to_be_visible()
     assert not failures  # noqa: S101
     browser.close()
 print(

@@ -632,6 +632,6 @@ Complément à B.6 (moteur et CLI déjà livrés), sans réimplémenter la modé
 - [x] File paginée, filtres, détail, doublons/similaires et historique ; approbation/rejet/corrections via services métier.
 - [x] CSRF, rate limit, formulaire périmé signé, audit/rollback ; préserver exemplaires, partages et prêts.
 - [x] Suite complète (611 tests), lint/types/migrations et smoke navigateur local à 360/768/1280 px.
-- [ ] CI de la tête finale de PR (résultat consigné dans la description de PR).
+Résultat de la CI de la tête finale : consigné dans la description de PR.
 - [x] Runbook premier opérateur et documentation du schéma/retour compatible.
 - [ ] Validation sur staging après déploiement explicitement autorisé par l’exploitant ; aucune intervention production dans cette PR.
