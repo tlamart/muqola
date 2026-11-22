@@ -37,6 +37,7 @@
 <span class="avatar" aria-hidden="true">{{ user.display_name|first|upper }}</span>Compte</summary>
               <div class="account-menu__panel">
                 <p class="muted">{{ user.display_name }}</p>
+                {% if user.is_superuser and user.is_staff %}<a href="{% url 'catalogue_admin:index' %}">Modérer le catalogue</a>{% endif %}
                 <a href="{% url 'identity:profile' %}"{% if current == 'identity:profile' %} aria-current="page"{% endif %}>Mon compte</a>
                 <form method="post" action="{% url 'identity:logout' %}">{% csrf_token %}<button class="secondary" type="submit">Se déconnecter</button>
 </form>

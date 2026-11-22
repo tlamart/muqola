@@ -1,0 +1,9 @@
+{% extends 'base.html' %}{% block title %}Modération du catalogue — Muqola{% endblock %}
+{% block content %}<header class="page-heading"><p class="eyebrow">Opérateur de plateforme</p><h1>Modération du catalogue</h1>
+<p>Revue des fiches et décisions motivées. Les exemplaires et les prêts restent gérés par leurs participants.</p></header>
+<form method="get" class="filters"><label for="review-status">Statut</label><select name="status" id="review-status"><option value="review">À examiner (attente et héritage)</option>{% for value, label in statuses %}<option value="{{ value }}"{% if selected_status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+<label for="review-query">Titre ou alias</label><input id="review-query" name="q" maxlength="120" value="{{ q }}"><button type="submit">Filtrer</button></form>
+<ul class="cards">{% for game in page %}<li><h2><a href="{% url 'catalogue_admin:review' game.pk %}">{{ game.title }}</a></h2><p>{{ game.get_moderation_status_display }} · {{ game.get_kind_display }}{% if game.hidden %} · Masquée{% endif %}</p></li>{% empty %}<li>Aucune fiche dans cette file.</li>{% endfor %}</ul>
+{% if page.has_previous %}<a href="?status={{ selected_status|urlencode }}&amp;q={{ q|urlencode }}&amp;page={{ page.previous_page_number }}">Page précédente</a>{% endif %}
+<p>Page {{ page.number }} sur {{ page.paginator.num_pages }}</p>
+{% if page.has_next %}<a href="?status={{ selected_status|urlencode }}&amp;q={{ q|urlencode }}&amp;page={{ page.next_page_number }}">Page suivante</a>{% endif %}{% endblock %}

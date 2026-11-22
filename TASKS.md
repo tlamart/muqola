@@ -622,3 +622,16 @@ Même branche/PR #37, depuis la première passe ci-dessus. [Bilan détaillé](do
 Restent à faire après livraison autorisée : relecture sur Firefox Android réel
 et validation visuelle du propriétaire. Aucun déploiement effectué, aucune
 migration ajoutée ; les portes d’exploitation du lot 6 restent distinctes.
+
+## Administration web minimale du catalogue — périmètre validé le 22 novembre 2026
+
+Complément à B.6 (moteur et CLI déjà livrés), sans réimplémenter la modération.
+
+- [x] Amorçage/promotion explicite d’un compte existant vérifié/adulte, accès OS de confiance, audit atomique et garde premier superuser.
+- [x] AdminSite dédié, connexion applicative existante, droits staff/superuser actifs/vérifiés/adultes revérifiés ; aucun CRUD générique.
+- [x] File paginée, filtres, détail, doublons/similaires et historique ; approbation/rejet/corrections via services métier.
+- [x] CSRF, rate limit, formulaire périmé signé, audit/rollback ; préserver exemplaires, partages et prêts.
+- [x] Suite complète (611 tests), lint/types/migrations et smoke navigateur local à 360/768/1280 px.
+- [ ] CI de la tête finale de PR (résultat consigné dans la description de PR).
+- [x] Runbook premier opérateur et documentation du schéma/retour compatible.
+- [ ] Validation sur staging après déploiement explicitement autorisé par l’exploitant ; aucune intervention production dans cette PR.

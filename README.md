@@ -614,3 +614,9 @@ son badge de disponibilité couvre tous les exemplaires accessibles.
 ```sh
 uv run --frozen pytest tests/test_inventory_sql.py -q -s
 ```
+
+## Administration du catalogue
+
+Le site opérateur `/operator/` permet la revue et les décisions via les services
+métier existants, avec accès superuser/staff actif, vérifié et adulte.
+[Premier opérateur, permissions, migrations et tests](docs/catalogue-admin.md).
