@@ -3,7 +3,8 @@
 <h1>Mon compte</h1>
 <p>{{ user.display_name }} · {{ user.email }}</p>
 <p>Adresse vérifiée. Le changement d'adresse e-mail n'est pas disponible.</p>
+{% if user.deletion_restricted_at %}<p role="status">Votre compte est en cours de clôture. Les nouveaux partages et prêts sont bloqués. Vous pouvez consulter et clôturer vos prêts existants depuis <a href="{% url 'loans:index' %}">Mes prêts</a>, ou contacter le support.</p>{% endif %}
 <h2>Demander la suppression</h2>
-<p>La clôture doit préserver la résolution des prêts actifs. Une demande n'efface donc pas immédiatement le compte.</p>{% if active_loans %}<p role="status">Vous avez un prêt actif à clôturer avant la suppression définitive.</p>{% endif %}{% if deletion %}<p role="status">Demande enregistrée le {{ deletion.created_at|date:'d/m/Y' }}. Traitement en attente.</p>{% endif %}<form method="post">{% csrf_token %}{% if form.errors %}<p role="alert">Confirmez votre demande et vérifiez les champs.</p>{% endif %}{{ form.as_div }}<button class="secondary" type="submit">Enregistrer ma demande de suppression</button>
+<p>La clôture doit préserver la résolution des prêts actifs. Une demande n'efface donc pas immédiatement le compte.</p>{% if active_loans %}<p role="status">Vous avez un prêt actif à clôturer avant la suppression définitive.</p>{% endif %}{% if deletion %}<p role="status">Demande enregistrée le {{ deletion.created_at|date:'d/m/Y' }}. {% if user.deletion_restricted_at %}Traitement en cours : clôture des prêts ou exception à résoudre.{% else %}Traitement en attente.{% endif %}</p>{% endif %}<form method="post">{% csrf_token %}{% if form.errors %}<p role="alert">Confirmez votre demande et vérifiez les champs.</p>{% endif %}{{ form.as_div }}<button class="secondary" type="submit">Enregistrer ma demande de suppression</button>
 </form>
 </section>{% endblock %}

@@ -77,3 +77,10 @@ prêt accepté conservent ses actions de remise/retour et son historique privé.
   restent lisibles sur mobile, sans étirer un panneau dans la colonne du visuel.
 - Cartes et états vides conservent leurs marges intérieures. Favicon SVG local
   reprenant le M et le point orange de la marque provisoire.
+
+## Compte en cours de clôture
+
+Afficher l'état de restriction dans Mon compte avec un accès direct à Mes prêts
+et le contact de support. Bloquer les nouvelles activités côté serveur et garder
+la consultation/remise/retour selon le rôle existant. Ne pas annoncer un effacement
+immédiat lorsqu'une demande est seulement enregistrée ou qu'un prêt reste actif.

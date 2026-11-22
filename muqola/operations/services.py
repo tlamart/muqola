@@ -96,7 +96,7 @@ def moderate_game(
 
 def request_deletion(user: User, reason: str = "") -> None:
     # Exercising privacy rights must not require an adult attestation.
-    with domain_write(user, require_adult=False):
+    with domain_write(user, require_adult=False, allow_restricted=True):
         entry, _ = DeletionRequest.objects.get_or_create(user=user)
         entry.reason = reason.strip()
         entry.full_clean()

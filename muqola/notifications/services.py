@@ -126,6 +126,17 @@ def send_due(limit: int = 20) -> int:
                         pk=item.recipient_id, is_active=True, email_verified_at__isnull=False
                     ).exists()
                 )
+            if item.token_id and token.purpose == AccountToken.Purpose.INACTIVITY:
+                from muqola.operations.privacy import inactive
+
+                invalid = (
+                    invalid
+                    or not inactive(token.user, now)
+                    or (
+                        token.user.last_login is not None
+                        and token.user.last_login > token.created_at
+                    )
+                )
             if invalid:
                 discard(item, "recipient_or_token_ineligible")
             else:
@@ -152,6 +163,18 @@ def send_due(limit: int = 20) -> int:
                     else:
                         logger.warning("notification_retry")
                 else:
+                    if item.token_id and token.purpose == AccountToken.Purpose.INACTIVITY:
+                        from muqola.operations.models import InactivityNotice
+
+                        InactivityNotice.objects.update_or_create(
+                            user=token.user,
+                            defaults={
+                                "sent_at": timezone.now(),
+                                "last_login_at_notice": token.user.last_login,
+                            },
+                        )
+                        token.consumed_at = timezone.now()
+                        token.save(update_fields=["consumed_at"])
                     item.status, item.encrypted_payload = EmailOutbox.Status.SENT, ""
                     item.last_error_code, item.completed_at = "", now
             item.save()

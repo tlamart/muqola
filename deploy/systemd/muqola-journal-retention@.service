@@ -1,0 +1,11 @@
+[Unit]
+Description=Rotate and expire the isolated Muqola %i journal
+Requires=systemd-journald@muqola-%i.service
+After=systemd-journald@muqola-%i.service
+
+[Service]
+Type=oneshot
+ExecCondition=/usr/bin/python3 -c "import sys; sys.exit(0 if sys.argv[1] in ('staging', 'production') else 1)" %i
+ExecStart=/usr/bin/journalctl --namespace=muqola-%i --rotate
+ExecStart=/usr/bin/journalctl --namespace=muqola-%i --vacuum-time=6days
+NoNewPrivileges=true

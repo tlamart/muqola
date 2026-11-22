@@ -48,6 +48,16 @@ class VerifiedAccountMiddleware:
             return redirect("identity:login")
         if not request.user.is_active or not request.user.email_verified_at:
             return render(request, "identity/unverified.html", status=403)
+        if request.user.deletion_restricted_at is not None:
+            permitted = match is not None and (
+                match.view_name in {"loans:index", "loans:detail", "identity:profile"}
+                or (
+                    match.view_name == "loans:action"
+                    and view_kwargs.get("action") in {"cancel", "decline", "handover", "return"}
+                )
+            )
+            if not permitted:
+                return redirect("identity:profile")
         if request.user.adult_confirmed_at is None:
             # Existing loans can still be read/closed without a false attestation.
             legacy_loan = match is not None and (

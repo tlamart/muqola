@@ -62,24 +62,36 @@ def inspect(config: dict[str, Any]) -> list[str]:
             issues.append("backup_failed_or_stale")
     except (OSError, KeyError, ValueError, TypeError):
         issues.append("backup_missing")
-    logs = run(
-        [
-            *compose(config),
-            "logs",
-            "--no-color",
-            "--no-log-prefix",
-            "--since",
-            "10m",
-            "--tail",
-            "500",
-            "web",
-            "worker",
-        ]
-    )
+    journal = "journal_namespace" in config
+    if journal:
+        from deploy.journal import error_log_command
+
+        logs = run(error_log_command(config))
+    else:
+        logs = run(
+            [
+                *compose(config),
+                "logs",
+                "--no-color",
+                "--no-log-prefix",
+                "--since",
+                "10m",
+                "--tail",
+                "500",
+                "web",
+                "worker",
+            ]
+        )
     for line in logs.decode(errors="replace").splitlines():
         try:
             record = json.loads(line)
-        except ValueError:
+            if not isinstance(record, dict):
+                continue
+            if journal:
+                record = json.loads(record.get("MESSAGE", ""))
+            if not isinstance(record, dict):
+                continue
+        except (ValueError, TypeError):
             continue
         if record.get("level") in {"ERROR", "CRITICAL"}:
             issues.append("application_errors")

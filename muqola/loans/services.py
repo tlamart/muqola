@@ -21,7 +21,7 @@ def today() -> date:
 
 
 def participant_loans(user: User) -> QuerySet[Loan]:
-    verified(user, require_adult=False)
+    verified(user, require_adult=False, allow_restricted=True)
     return Loan.objects.filter(Q(owner=user) | Q(borrower=user)).select_related(
         "owned_game__game", "owner", "borrower"
     )
@@ -35,6 +35,7 @@ def eligible(borrower: User, item: OwnedGame) -> bool:
         is_active=True,
         email_verified_at__isnull=False,
         adult_confirmed_at__isnull=False,
+        deletion_restricted_at__isnull=True,
     ).exists():
         return False
     if not User.objects.filter(
@@ -42,6 +43,7 @@ def eligible(borrower: User, item: OwnedGame) -> bool:
         is_active=True,
         email_verified_at__isnull=False,
         adult_confirmed_at__isnull=False,
+        deletion_restricted_at__isnull=True,
     ).exists():
         return False
     owners_communities = Membership.objects.filter(user_id=item.owner_id, active=True).values(
@@ -137,7 +139,7 @@ def close_ineligible_requests(
 
 
 def transition(user: User, loan_id: UUID, action: str) -> Loan:
-    with domain_write(user, require_adult=action == "accept"):
+    with domain_write(user, require_adult=action == "accept", allow_restricted=action != "accept"):
         loan = get_object_or_404(
             participant_loans(user).select_for_update(of=("self",)), pk=loan_id
         )

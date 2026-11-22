@@ -45,6 +45,10 @@ def register(
         raise ValidationError("La bêta est réservée aux adultes de 18 ans et plus.")
     # Même travail cryptographique et même réponse pour une adresse déjà inscrite.
     password_hash = make_password(password)
+    from muqola.identity.models import ERASURE_PLACEHOLDER_EMAIL
+
+    if email.strip().lower() == ERASURE_PLACEHOLDER_EMAIL:
+        return
     try:
         with transaction.atomic():
             user = User.objects.create(
@@ -92,8 +96,12 @@ def consume_token(digest: str, purpose: str, password: str | None = None) -> boo
         return False
     with transaction.atomic():
         # Ordre commun à émission et consommation : utilisateur puis jeton.
-        user = User.objects.select_for_update().get(pk=candidate.user_id)
-        token = AccountToken.objects.select_for_update().get(pk=candidate.pk)
+        user = User.objects.select_for_update().filter(pk=candidate.user_id).first()
+        if user is None:
+            return False
+        token = AccountToken.objects.select_for_update().filter(pk=candidate.pk).first()
+        if token is None:
+            return False
         now = timezone.now()
         if not user.is_active or token.consumed_at is not None or token.expires_at <= now:
             return False

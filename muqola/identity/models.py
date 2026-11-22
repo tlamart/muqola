@@ -9,6 +9,8 @@ from django.db import models
 from django.db.models.functions import Lower, Trim
 from django.utils import timezone
 
+ERASURE_PLACEHOLDER_EMAIL = "deleted-accounts@example.test"
+
 
 class UserManager(BaseUserManager["User"]):
     def create_user(self, email: str, password: str | None = None, **extra: Any) -> "User":
@@ -35,6 +37,7 @@ class User(AbstractUser):
     display_name = models.CharField(max_length=80)
     email_verified_at = models.DateTimeField(null=True, blank=True)
     adult_confirmed_at = models.DateTimeField(null=True, blank=True, editable=False)
+    deletion_restricted_at = models.DateTimeField(null=True, blank=True, editable=False)
     updated_at = models.DateTimeField(auto_now=True)
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["display_name"]
@@ -57,6 +60,7 @@ class AccountToken(models.Model):
     class Purpose(models.TextChoices):
         VERIFY = "verify", "Vérification"
         RESET = "reset", "Réinitialisation"
+        INACTIVITY = "inactive", "Préavis d’inactivité"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="account_tokens")
@@ -73,7 +77,8 @@ class AccountToken(models.Model):
                 name="identity_token_future_expiry",
             ),
             models.CheckConstraint(
-                condition=models.Q(purpose__in=["verify", "reset"]), name="identity_token_purpose"
+                condition=models.Q(purpose__in=["verify", "reset", "inactive"]),
+                name="identity_token_purpose",
             ),
         ]
 

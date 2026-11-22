@@ -59,3 +59,7 @@ rclone.conf
 **/probe.json
 **/.netrc
 **/*.netrc
+
+# Private privacy-rights ledgers must not enter Git or build contexts.
+**/privacy-ledger*.json
+**/ledger-export*.json

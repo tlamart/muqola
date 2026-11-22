@@ -1,0 +1,11 @@
+[Unit]
+Description=Hourly retention of isolated Muqola %i logs
+
+[Timer]
+OnBootSec=1min
+OnUnitInactiveSec=1h
+AccuracySec=1min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
