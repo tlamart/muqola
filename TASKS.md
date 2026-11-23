@@ -757,3 +757,15 @@ explicitement par une fixture. Ansible-lint profil production, syntaxe du
 playbook et actionlint réussis. Build Docker réussi ; contrôles sans réseau des
 quatre nouvelles options dans l'image et de l'absence d'Ansible/inventaire.
 Aucun accès SSH ni aucune promotion réelle sur le VPS n'ont été effectués.
+
+## Réconciliation de la recette staging — 23 novembre 2026
+
+[Bilan sourcé et protocole de recette](docs/recette-staging-2026-11-23.md).
+
+- [x] Vérifier les runs de publication, plan/apply et versions effectivement livrées : staging 45153646180 et production 45064624690, tous deux réussis.
+- [x] Relier les contrôles du contrôleur aux preuves et réconcilier les cases strictement attestées de LAUNCH_CHECKLIST ; distinguer livraison, recette cible et synthétique.
+- [x] Documenter le décalage d’image staging par rapport au complément Ansible et les prérequis d’accès privé, sans demander/utiliser de credentials VPS.
+- [ ] Recette sur le staging cible : accès depuis cet environnement bloqué au proxy ; aucun compte créé/promu ni parcours cible effectué dans ce lot.
+- [ ] Pièces d’exploitation et validation humaine restantes : ne pas cocher les cases composites sur la seule base de la CI.
+
+Aucun déploiement, changement de configuration distante, accès SSH ou effacement exécuté. Deux cases préexistantes de LAUNCH_CHECKLIST sont cochées sur preuves (digest/provenance/Compose sans build et procédures documentées) ; les autres conservent leurs réserves.
