@@ -1,0 +1,9 @@
+---
+# Copier dans private/promotion.yml (hors Git) et adapter avant toute exécution.
+muqola_operator_environment: staging
+muqola_operator_email: personne@example.test
+muqola_operator_confirm_email: personne@example.test
+muqola_operator_reason: Habilitation initiale explicitement revue par l'exploitant
+muqola_operator_bootstrap: true
+# Après le premier opérateur, mettre bootstrap à false et renseigner l'acteur :
+# muqola_operator_actor: operateur-existant@example.test

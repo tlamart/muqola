@@ -1,0 +1,48 @@
+---
+# Liste fermée : aucune récursion dans les secrets, volumes ou états de livraison.
+muqola_host_directories:
+  - {path: /etc/muqola, mode: "0700"}
+  - {path: /etc/muqola/secrets, mode: "0700"}
+  - {path: /etc/muqola/staging, mode: "0700"}
+  - {path: /etc/muqola/staging/secrets, mode: "0700"}
+  - {path: /var/lib/muqola, mode: "0700"}
+  - {path: /var/lib/muqola/production, mode: "0700"}
+  - {path: /var/lib/muqola/production/cd, mode: "0700"}
+  - {path: /var/lib/muqola/staging, mode: "0700"}
+  - {path: /var/lib/muqola/staging/cd, mode: "0700"}
+muqola_host_ancestors:
+  - /etc
+  - /opt
+  - /var
+  - /var/lib
+muqola_host_observed_paths:
+  - /etc/muqola/production.env
+  - /etc/muqola/staging/staging.env
+  - /etc/muqola/release.json
+  - /etc/muqola/staging/release.json
+  - /etc/muqola/backup.json
+  - /etc/muqola/staging/backup.json
+  - /etc/muqola/monitor.json
+  - /var/lib/muqola/cd.lock
+  - /var/lib/muqola/production/cd/state.json
+  - /var/lib/muqola/production/cd/active/compose.json
+  - /var/lib/muqola/staging/cd/state.json
+  - /var/lib/muqola/staging/cd/active/compose.json
+  - /opt/muqola-controller
+  - /opt/muqola-controller/deploy
+  - /opt/muqola-controller/deploy/release.py
+  - /opt/muqola-controller/deploy/backup.py
+  - /opt/muqola-controller/deploy/restore.py
+  - /opt/muqola-controller/deploy/monitor.py
+  - /opt/caddy/compose.yaml
+  - /opt/caddy/Caddyfile
+muqola_host_packages:
+  - python3
+  - age
+  - rclone
+  - util-linux
+  - ca-certificates
+muqola_host_units:
+  - muqola-production-backup.timer
+  - muqola-production-monitor.timer
+  - muqola-staging-backup.timer

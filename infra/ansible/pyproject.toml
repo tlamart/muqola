@@ -1,0 +1,12 @@
+[project]
+name = "muqola-operations"
+version = "0.1.0"
+description = "Administration Ansible du VPS Muqola, séparée du runtime Django"
+requires-python = ">=3.12,<3.13"
+dependencies = ["ansible-core>=2.21.6,<2.22"]
+
+[dependency-groups]
+dev = ["ansible-lint>=26.11,<27"]
+
+[tool.uv]
+package = false

@@ -1,0 +1,167 @@
+---
+- name: Vérifier la cible et l'autorisation explicites
+  ansible.builtin.assert:
+    that:
+      - groups['muqola_vps'] | length == 1
+      - muqola_operator_environment in ['staging', 'production']
+      - muqola_operator_apply is boolean
+      - muqola_operator_approved is boolean
+      - muqola_operator_bootstrap is boolean
+      - muqola_operator_actor is string
+      - >-
+        (muqola_operator_bootstrap and muqola_operator_actor == '') or
+        (not muqola_operator_bootstrap and muqola_operator_actor | length > 0)
+      - >-
+        not muqola_operator_apply or ansible_check_mode or muqola_operator_approved
+      - >-
+        muqola_operator_fixture_root == '' or
+        (ansible_connection | default('ssh') == 'local' and
+         muqola_operator_fixture_root is match('^/tmp/muqola-ansible-test-[a-z0-9_-]+$') and
+         not (ansible_become | default(true) | bool))
+      - >-
+        muqola_operator_fixture_root != '' or
+        (ansible_connection | default('ssh') == 'ssh' and ansible_user is defined and
+         ansible_user != 'muqola-deploy')
+    fail_msg: >-
+      Cible ou autorisation absente. Choisir un seul VPS, staging/production,
+      bootstrap OU acteur existant. L'application exige une approbation explicite.
+
+- name: Vérifier les paramètres personnels sans les afficher
+  ansible.builtin.assert:
+    that:
+      - muqola_operator_email is string
+      - muqola_operator_confirm_email is string
+      - muqola_operator_reason is string
+      - muqola_operator_email | trim | length > 0
+      - muqola_operator_email | trim | lower == muqola_operator_confirm_email | trim | lower
+      - muqola_operator_reason | trim | length > 0
+      - muqola_operator_reason | length <= 500
+  no_log: true
+
+- name: Vérifier la racine synthétique sans suivre de lien
+  ansible.builtin.stat:
+    path: "{{ muqola_operator_fixture_root }}"
+    follow: false
+    get_checksum: false
+    get_mime: false
+    get_attributes: false
+  register: muqola_operator_fixture_stat
+  when: muqola_operator_fixture_root != ''
+
+- name: Refuser une racine synthétique redirigée
+  ansible.builtin.assert:
+    that:
+      - muqola_operator_fixture_stat.stat.isdir | default(false)
+      - not (muqola_operator_fixture_stat.stat.islnk | default(false))
+  when: muqola_operator_fixture_root != ''
+
+- name: Vérifier les parents des verrous sans suivre de lien
+  ansible.builtin.stat:
+    path: "{{ muqola_operator_fixture_root }}{{ item }}"
+    follow: false
+    get_checksum: false
+    get_mime: false
+    get_attributes: false
+  loop:
+    - /var
+    - /var/lib
+    - /var/lib/muqola
+    - "/var/lib/muqola/{{ muqola_operator_environment }}"
+    - "/var/lib/muqola/{{ muqola_operator_environment }}/cd"
+  register: muqola_operator_parent_stats
+
+- name: Refuser des parents de verrous absents ou redirigés
+  ansible.builtin.assert:
+    that:
+      - item.stat.isdir | default(false)
+      - not (item.stat.islnk | default(false))
+  loop: "{{ muqola_operator_parent_stats.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Vérifier les verrous CD préexistants
+  ansible.builtin.stat:
+    path: "{{ muqola_operator_fixture_root }}{{ item }}"
+    follow: false
+    get_checksum: false
+    get_mime: false
+    get_attributes: false
+  loop:
+    - /var/lib/muqola/cd.lock
+    - "{{ muqola_operator_targets[muqola_operator_environment].release_lock }}"
+  register: muqola_operator_lock_stats
+
+- name: Refuser une installation CD absente ou un verrou redirigé
+  ansible.builtin.assert:
+    that:
+      - item.stat.isreg | default(false)
+      - not (item.stat.islnk | default(false))
+      - not (item.stat.wgrp | default(true))
+      - not (item.stat.woth | default(true))
+  loop: "{{ muqola_operator_lock_stats.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Exécuter le contrôle ou la promotion sous les verrous CD
+  ansible.builtin.command:
+    expand_argument_vars: false
+    argv: >-
+      {{ ['/usr/bin/flock', '--exclusive', '--nonblock', '--conflict-exit-code', '75',
+          muqola_operator_fixture_root + '/var/lib/muqola/cd.lock',
+          '/usr/bin/flock', '--exclusive', '--nonblock', '--conflict-exit-code', '75',
+          muqola_operator_fixture_root +
+          muqola_operator_targets[muqola_operator_environment].release_lock,
+          (muqola_operator_fixture_root + '/bin/docker')
+          if muqola_operator_fixture_root != '' else '/usr/bin/docker',
+          '--host', 'unix:///var/run/docker.sock', 'exec',
+          muqola_operator_targets[muqola_operator_environment].container,
+          'python', 'manage.py', 'promote_operator',
+          '--deployment-env', muqola_operator_environment,
+          '--email', muqola_operator_email, '--confirm-email', muqola_operator_confirm_email,
+          '--reason', muqola_operator_reason, '--if-needed', '--json']
+         + (['--bootstrap'] if muqola_operator_bootstrap
+            else ['--operator', muqola_operator_actor])
+         + (['--dry-run'] if (ansible_check_mode or not muqola_operator_apply) else []) }}
+  environment:
+    DOCKER_CONTEXT: ""
+    DOCKER_HOST: unix:///var/run/docker.sock
+  register: muqola_operator_execution
+  changed_when: >-
+    muqola_operator_execution.rc == 0 and
+    (muqola_operator_execution.stdout | from_json).status == 'promoted'
+  failed_when: false
+  # Le flag --dry-run de Django rend la lecture sûre, même dans --check.
+  check_mode: false
+  no_log: true
+  diff: false
+
+- name: Signaler un refus sans publier les arguments ou la sortie privée
+  ansible.builtin.assert:
+    that:
+      - muqola_operator_execution.rc == 0
+    fail_msg: >-
+      Promotion/contrôle refusé (code {{ muqola_operator_execution.rc }}).
+      Code 75 : opération CD/sauvegarde en cours. Vérifier sinon version déployée,
+      état du conteneur et conditions de promotion avec la procédure opérateur.
+
+- name: Valider le résultat structuré sans données personnelles
+  ansible.builtin.assert:
+    that:
+      - >-
+        (muqola_operator_execution.stdout | from_json).environment ==
+        muqola_operator_environment
+      - >-
+        (muqola_operator_execution.stdout | from_json).dry_run ==
+        (ansible_check_mode or not muqola_operator_apply)
+      - >-
+        (muqola_operator_execution.stdout | from_json).status in
+        (['would_promote', 'unchanged'] if (ansible_check_mode or not muqola_operator_apply)
+         else ['promoted', 'unchanged'])
+  no_log: true
+
+- name: Afficher seulement le bilan de l'opération
+  ansible.builtin.debug:
+    msg:
+      environment: "{{ muqola_operator_environment }}"
+      status: "{{ (muqola_operator_execution.stdout | from_json).status }}"
+      dry_run: "{{ ansible_check_mode or not muqola_operator_apply }}"

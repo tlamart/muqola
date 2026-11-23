@@ -1,0 +1,12 @@
+---
+# Aucune cible ou identité implicite. Prévisualisation par défaut.
+muqola_operator_environment: ""
+muqola_operator_email: ""
+muqola_operator_confirm_email: ""
+muqola_operator_reason: ""
+muqola_operator_bootstrap: false
+muqola_operator_actor: ""
+muqola_operator_apply: false
+muqola_operator_approved: false
+# Réservé aux tests locaux sans sudo ; interdit dans l'inventaire VPS.
+muqola_operator_fixture_root: ""

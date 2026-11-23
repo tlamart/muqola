@@ -1,0 +1,9 @@
+---
+- name: Adopter les permissions de l'installation existante
+  hosts: muqola_vps
+  gather_facts: false
+  become: true
+  any_errors_fatal: true
+  roles:
+    - role: muqola_host
+      muqola_host_apply: true

@@ -63,3 +63,10 @@ rclone.conf
 # Private privacy-rights ledgers must not enter Git or build contexts.
 **/privacy-ledger*.json
 **/ledger-export*.json
+
+# Inventaire et variables privées Ansible : ne jamais les publier.
+infra/ansible/inventory.local.*
+infra/ansible/private/
+infra/ansible/.cache/
+**/.ansible/
+**/.vault-password*

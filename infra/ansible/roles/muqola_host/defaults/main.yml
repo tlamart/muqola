@@ -1,0 +1,7 @@
+---
+muqola_host_apply: false
+muqola_host_approved: false
+muqola_host_manage_packages: false
+muqola_host_deploy_user: muqola-deploy
+# Réservé au banc synthétique local, jamais à un inventaire VPS.
+muqola_host_fixture_root: ""

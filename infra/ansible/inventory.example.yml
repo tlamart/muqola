@@ -1,0 +1,13 @@
+---
+# Une seule machine physique : elle héberge staging ET production.
+# Copier en inventory.local.yml (ignoré par Git), puis adapter localement.
+all:
+  children:
+    muqola_vps:
+      hosts:
+        muqola:
+          ansible_host: vps.example.invalid
+          ansible_user: administration_example
+          ansible_python_interpreter: /usr/bin/python3
+          muqola_host_deploy_user: muqola-deploy
+          # Pas de mot de passe, de secret applicatif ni de clé dans cet inventaire.
