@@ -4,8 +4,10 @@ import time
 from pathlib import Path
 from typing import Any
 
+from django.contrib.sessions.models import Session
 from django.core.management.base import BaseCommand, CommandParser
 from django.db import close_old_connections
+from django.utils import timezone
 
 from muqola.identity.services import purge_ephemeral_data
 from muqola.notifications.services import enqueue_pending_events, purge_notifications, send_due
@@ -24,6 +26,7 @@ class Command(BaseCommand):
             signal.signal(signal.SIGTERM, lambda *_: stop.set())
             signal.signal(signal.SIGINT, lambda *_: stop.set())
         last_purge = 0.0
+        last_session_purge = None
         while not stop.is_set():
             close_old_connections()
             enqueue_pending_events()
@@ -32,6 +35,9 @@ class Command(BaseCommand):
                 purge_ephemeral_data()
                 purge_notifications()
                 last_purge = time.monotonic()
+            if last_session_purge != timezone.now().date():
+                Session.objects.filter(expire_date__lt=timezone.now()).delete()
+                last_session_purge = timezone.now().date()
             if options["heartbeat_file"] is not None:
                 options["heartbeat_file"].touch(mode=0o600, exist_ok=True)
             if options["once"]:

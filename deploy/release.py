@@ -125,6 +125,10 @@ def configuration(
     document = json.loads(run([*compose(runtime), "--profile", "*", "config", "--format", "json"]))
     for service in ("web", "worker", "migrate"):
         document["services"][service]["image"] = record["image"]
+    if "journal_namespace" in config:
+        from deploy.journal import apply_logging
+
+        apply_logging(document, config)
     issues = validate(document, config["project"], environment=config["environment"])
     domain = "staging.muqola.tlam.art" if config["environment"] == "staging" else "muqola.tlam.art"
     for name in ("web", "worker", "migrate"):

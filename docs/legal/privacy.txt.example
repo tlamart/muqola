@@ -1,35 +1,204 @@
-MODÈLE À COMPLÉTER ET FAIRE VALIDER — NE PAS PUBLIER EN L’ÉTAT
+MODÈLE PRODUCTION À COMPLÉTER ET FAIRE REVOIR — NE PAS PUBLIER EN L’ÉTAT
+POLITIQUE DE CONFIDENTIALITÉ — MUQOLA
+Version : [À RENSEIGNER : date de publication après installation et revue]
+Service : [À RENSEIGNER : origine HTTPS de production]
 
-Responsable de traitement et exercice des droits
-[À RENSEIGNER : identité, contact, juridiction et autorité de contrôle compétente]
+1. Responsable et contact
 
-Données et usages
-Compte : e-mail, mot de passe haché, nom d’affichage, vérification d’e-mail,
-horodatage de l’attestation 18+ et dates. Pas de date de naissance ni document d’identité.
-Communautés privées : appartenances, rôles, invitations et choix de partage.
-Exemplaires et prêts : fiche générique, notes, participants, états, échéances,
-messages et historique. Les quantités et noms hors du périmètre autorisé ne sont
-pas publics. Les contacts e-mail des prêts ne sont pas publiés avant acceptation.
-Cookies techniques de session et CSRF, aucun traceur facultatif fourni par l’application.
-Images Commons : le navigateur peut contacter Wikimedia, sans référent privé.
-Les invitations récupérables et les charges d’outbox sont chiffrées côté serveur.
-[À RENSEIGNER : bases légales, finalités détaillées et destinataires/sous-traitants réels]
-[À RENSEIGNER : pays de traitement, éventuels transferts et garanties applicables]
+Le responsable du traitement est [À RENSEIGNER : identité de l’exploitant],
+personne physique établie en France. Contact : [À RENSEIGNER : adresse de contact].
+Muqola permet aux adultes de 18 ans et plus de partager leurs exemplaires de
+jeux et d’organiser des prêts au sein de communautés privées.
 
-Conservation et sauvegardes
-Règles techniques actuelles : sessions 7 jours ; purge périodique des jetons expirés
-avec une marge d’un jour ; notifications en attente au plus 7 jours, payloads d’échec
-effacés après 7 jours et états terminés purgés après 30 jours. Les invitations sans
-échéance persistent jusqu’à révocation ; leurs secrets nécessitent une politique adaptée.
-[À RENSEIGNER : durées et bases de conservation des comptes, prêts, journaux de modération,
-notes, invitations et demandes de suppression ; vérifier qu’elles sont effectivement appliquées]
-[À RENSEIGNER : lieu, chiffrement et rétention effectivement configurée des sauvegardes externes]
-Les copies de sauvegarde doivent expirer selon cette rétention ; une restauration
-ne doit pas réactiver des comptes précédemment clôturés sans réconciliation.
+2. Données, finalités et bases légales
 
-Accès, rectification, effacement et réclamation
-Une demande de suppression peut être enregistrée depuis Mon compte. Sa clôture
-doit résoudre les prêts actifs, transférer les rôles administrateur et limiter les
-références conservées. Une désactivation seule ne vaut pas effacement complet.
-[À RENSEIGNER : procédure effective, contact, délais réellement tenables et justification
-des éventuelles conservations ; validation juridique indispensable]
+Pour le compte : adresse électronique, nom d’affichage, mot de passe haché,
+vérification de l’adresse, dates techniques, dernière connexion et attestation
+de majorité horodatée. Aucune date de naissance ni pièce d’identité n’est
+collectée à l’inscription.
+
+Pour les communautés et les prêts : noms et descriptions, appartenances,
+rôles, invitations, fiches de jeux, exemplaires, choix de partage, participants,
+notes, messages, états, échéances et historique des opérations.
+Pour la modération et l’assistance : propositions, signalements, motifs,
+décisions, échanges de support et demandes d’exercice des droits.
+Des informations techniques, dont l’adresse IP lors des échanges réseau,
+sont traitées pour les connexions, la sécurité et la limitation des abus.
+
+La fourniture des fonctions et notifications nécessaires au service repose
+sur l’exécution des conditions d’utilisation (article 6.1.b du RGPD).
+La sécurité, la prévention des abus et la modération reposent sur l’intérêt
+légitime à protéger le service et ses utilisateurs (article 6.1.f).
+Les obligations légales applicables au traitement des demandes d’exercice
+des droits relèvent de l’article 6.1.c.
+Les bases et garanties des éventuelles conservations exceptionnelles sont
+examinées et documentées pour chaque situation.
+
+L’absence des données obligatoires peut empêcher l’utilisation des fonctions
+correspondantes. Les champs facultatifs ne doivent pas contenir de données
+sensibles ou de renseignements inutiles sur d’autres personnes.
+
+3. Visibilité et destinataires
+
+Les communautés et exemplaires sont accessibles selon les appartenances et
+les partages autorisés. Le catalogue général contient les fiches de jeux
+validées ; il ne publie pas les collections privées ni les prêts. Les fiches
+en attente de validation sont exclues de ce catalogue général.
+
+Les adresses de contact sont accessibles aux deux participants uniquement
+pendant un prêt accepté ou remis. Une adresse déjà communiquée ne peut pas
+être reprise. Les accès nécessaires à la clôture d’un prêt accepté peuvent
+subsister après un retrait de communauté ou une restriction du compte.
+Les administrateurs de communauté disposent des accès nécessaires à leur rôle.
+L’exploitant accède aux seules données nécessaires à la maintenance, la sécurité,
+la modération, l’assistance et au traitement des droits.
+
+4. Hébergement, messagerie, sauvegardes et transferts
+
+[À RENSEIGNER : raison sociale et références de l’offre OVHcloud souscrite].
+Le serveur applicatif et sa base sont hébergés en Allemagne.
+
+Brevo assure les courriels de vérification, de réinitialisation, de notification
+et les préavis d’inactivité. Il traite les adresses des destinataires, le
+contenu des messages et les informations techniques de livraison.
+[À RENSEIGNER : entité contractuelle, lieux de traitement, rétention des traces
+de livraison et lien vers les garanties applicables à l’offre Brevo utilisée].
+
+Les messages de support sont redirigés par OVHcloud vers la boîte Outlook.com
+de l’exploitant, hébergée par Microsoft. Il ne s’agit pas d’une boîte Zimbra ni
+d’une boîte OVH à nettoyer séparément.
+[À RENSEIGNER : conditions applicables à cette utilisation d’Outlook.com, pays,
+rétention technique et garanties de transfert effectivement vérifiés].
+
+Backblaze B2 conserve les sauvegardes chiffrées dans un bucket privé de la région
+EU Central, à Amsterdam, aux Pays-Bas. Backblaze est établi aux États-Unis ;
+la clé privée de déchiffrement ne lui est pas transmise.
+[À RENSEIGNER : entité contractuelle, documents DPA/confidentialité et garanties
+applicables aux transferts de l’offre B2 réellement souscrite].
+
+Les illustrations Wikimedia Commons peuvent conduire le navigateur à contacter
+Wikimedia, qui reçoit les informations techniques nécessaires, notamment l’IP.
+Les URL d’illustrations ne contiennent pas de données privées des communautés.
+[À RENSEIGNER : référence de confidentialité Wikimedia et traitements applicables].
+
+La localisation du stockage ne décrit pas tous les traitements, notamment
+l’assistance. Pour les transferts éventuels hors EEE, préciser les pays,
+l’existence ou l’absence d’une décision d’adéquation et, le cas échéant, les
+garanties effectivement utilisées ainsi que le moyen d’en obtenir une copie.
+Aucune garantie contractuelle ne doit être supposée du seul fait d’un stockage UE.
+
+5. Cookies et données temporaires
+
+Seuls les cookies techniques de session et de protection CSRF sont fournis
+par l’application : session sept jours, CSRF 364 jours ; le renouvellement
+dépend de l’utilisation. Aucun cookie publicitaire ou de mesure d’audience
+facultative n’est fourni par l’application.
+Les sessions expirées sont nettoyées quotidiennement par le worker, sans
+supprimer les sessions encore valides. Les sessions d’un compte traité en
+suppression sont révoquées ; une reconnexion limitée peut rester possible
+pour clôturer les prêts actifs.
+
+Les liens de vérification sont valables 24 heures, les liens de réinitialisation
+une heure. Les jetons utilisés ou expirés sont purgés avec une marge d’un jour.
+Les compteurs de limitation sont purgés après expiration. Les messages de
+préavis d’inactivité non remis deviennent inéligibles après sept jours.
+Les notifications en attente et leurs contenus d’échec sont limités à sept jours ;
+les états terminés sont purgés trente jours après achèvement. Les intentions
+d’adhésion sont purgées après trente jours. Ces nettoyages dépendent du worker.
+Une invitation permanente reste valide jusqu’à révocation ; l’archivage d’une
+communauté invalide ses liens. La révocation empêche les nouvelles adhésions.
+
+6. Conservation, suppression et inactivité
+
+Les données de compte nécessaires sont conservées pendant l’utilisation du
+service, sous réserve de l’exercice des droits et des règles d’inactivité.
+Une demande vérifiée est traitée dès que possible, avec un objectif interne
+de sept jours. Cet objectif n’est pas une période d’attente systématique.
+Le traitement est assisté par un outil opérateur et contrôlé par l’exploitant ;
+une simple demande ou désactivation ne vaut pas effacement complet.
+
+En présence de prêts actifs, les partages et nouvelles activités sont bloqués,
+les données devenues inutiles sont effacées et les données strictement nécessaires
+à la clôture sont temporairement conservées. La personne reçoit une explication
+des éléments maintenus et de la suite du traitement. Après clôture et en l’absence
+d’autre motif justifié, l’exploitant finalise l’effacement.
+Les fiches génériques de jeux et les données légitimes des autres membres sont
+préservées. L’administration d’une communauté est transférée avec accord ou
+la communauté est archivée, sans nomination silencieuse d’un autre membre.
+
+Les prêts terminés font l’objet d’un nettoyage au seuil de trois mois calendaires
+après leur clôture. Les messages, événements et notifications associés sont
+retirés. Les données peuvent être effacées plus tôt sur demande lorsque les
+conditions sont remplies. L’exploitant organise le suivi et les nettoyages
+nécessaires pour respecter cette durée ; ils ne sont pas déclenchés au démarrage.
+
+Après douze mois sans connexion, ou depuis la création si aucune connexion
+n’a eu lieu, une revue mensuelle peut conduire à l’envoi d’un préavis. Trente jours
+après l’envoi effectivement confirmé, sans nouvelle connexion, l’exploitant peut
+engager la clôture avec les mêmes protections pour les prêts. Un envoi échoué
+ne déclenche pas ce délai. Une nouvelle connexion annule cette éligibilité.
+
+Les preuves de traitement des droits sont limitées à un identifiant technique,
+un type d’action et une date, conservés six mois. Elles ne contiennent pas de
+copie complète du profil ni de motif libre. Les demandes encore en traitement
+et les seules informations nécessaires restent suivies jusqu’à leur résolution.
+Une conservation exceptionnelle pour un litige ou une obligation doit être
+ciblée, motivée, accessible aux seules personnes nécessaires et assortie d’une
+date de réexamen. Un pseudonyme ne suffit pas à rendre les données anonymes.
+
+7. Support, diagnostics et journaux
+
+Les courriels de support sont supprimés manuellement de la boîte Outlook de
+destination, éléments supprimés inclus, au plus tard un mois après résolution.
+Ce délai porte sur les copies accessibles à l’exploitant ; les éventuelles copies
+techniques du prestataire sont décrites dans les références de la section 4.
+Les archives de diagnostic et copies manuelles de configuration ou de documents
+sont nettoyées au plus tard trente jours après la fin de l’intervention.
+
+[À RENSEIGNER APRÈS VÉRIFICATION HÔTE : les journaux concernés, le mécanisme de
+rétention et la recette attestant le plafond de sept jours ; inclure anciennes
+copies, journaux Docker/DB, unités hôte et traces du Caddy partagé].
+Ne pas annoncer ce plafond sur la seule base d’une rotation limitée en volume.
+
+8. Sauvegardes et restauration
+
+Les sauvegardes de la base sont chiffrées avec age avant transfert vers Backblaze
+B2. Une copie de secours de la clé privée est conservée hors VPS par l’exploitant.
+La rétention retire les copies de plus de sept jours en gardant au moins les deux
+plus récentes. Ces deux copies peuvent dépasser sept jours si les sauvegardes
+cessent. Les sauvegardes automatiques OVH du VPS sont distinctes, rétention sept jours.
+
+Les données effacées de la base active peuvent subsister dans ces copies jusqu’à
+leur expiration. Les preuves nécessaires au rejeu des effacements sont conservées
+séparément et protégées. Avant réouverture après restauration, les décisions
+postérieures à la sauvegarde doivent être réappliquées et les états des prêts
+réconciliés. Sans preuve suffisante, la restauration ne permet pas la réouverture.
+
+9. Sécurité
+
+HTTPS, mots de passe hachés, contrôles d’accès serveur, droits limités et secrets
+protégés réduisent les risques sans garantir l’absence de tout incident.
+Les secrets d’invitation récupérables et les contenus d’outbox sont chiffrés.
+Les opérations d’effacement sont réservées à l’opérateur de confiance, sous rôle
+de maintenance, avec simulation et confirmation préalable.
+
+10. Vos droits
+
+Vous pouvez demander accès, rectification, effacement et limitation, ainsi que
+portabilité lorsque ses conditions sont remplies, et vous opposer aux traitements
+fondés sur l’intérêt légitime dans les conditions du RGPD.
+Écrivez au contact de la section 1. Mon compte permet aussi d’enregistrer une
+demande de suppression. Une vérification d’identité proportionnée peut être
+nécessaire en cas de doute raisonnable, sans collecte systématique de justificatif.
+
+Le délai légal de réponse est normalement d’un mois à compter de la demande.
+Une prolongation de deux mois peut être nécessaire dans les conditions légales ;
+la personne est informée des motifs dans le premier mois. Ce délai commence
+même si un prêt doit encore être clôturé. Les raisons et limites d’un éventuel
+maintien de données sont expliquées.
+Réclamation possible auprès de la CNIL : https://www.cnil.fr.
+
+11. Mise à jour
+
+La politique est actualisée lorsque le service et ses traitements évoluent ; les
+changements importants sont portés à la connaissance des utilisateurs par un moyen adapté.

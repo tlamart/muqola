@@ -40,6 +40,7 @@ def test_existing_accounts_remain_unattested_and_references_are_preserved() -> N
         CurrentUser = executor.loader.project_state(latest).apps.get_model("identity", "User")
         current = CurrentUser.objects.values().get(pk=user.pk)
         assert current.pop("adult_confirmed_at") is None
+        assert current.pop("deletion_restricted_at") is None
         assert current == before[0]
     finally:
         with connection.cursor() as cursor:

@@ -85,3 +85,19 @@ ni SMTP réel, ni ouverture publique. Les conditions précédentes restent requi
 - [ ] Plan lu, hash approuvé, application staging puis promotion du même digest, reprise/rollback autorisés éprouvés sur cible.
 
 Les tests synthétiques du contrôleur et la CI ne cochent pas ces validations.
+
+## Conservation — décisions du 22 novembre 2026, activation encore requise
+
+La recette fonctionnelle de l'image `89b58e42339c8eabf6fc11738d59c3bb0d85e002b528fc27fe7321d5809a7687`
+a été confirmée par l'exploitant après la livraison [45064624690](https://github.com/tlamart/muqola/actions/runs/45064624690).
+Les trois passages automatiques de supervision des 22 novembre 20:40, 20:46 et
+20:51 UTC sont réussis. Cela ne valide pas le code de conservation ajouté ensuite.
+
+- [ ] Déployer la préparation de [conservation](docs/confidentialite-conservation.md)
+  après tests, revue/migrations additives et sauvegarde autorisées séparément.
+- [ ] Éprouver restriction/effacement et clôture des prêts sur comptes synthétiques,
+  y compris exception temporaire, préavis non remis, reconnexion et restauration.
+- [ ] Installer/vérifier la rétention hôte sept jours et les anciennes copies, sans
+  modifier les autres sites Caddy ni le journal global sans décision distincte.
+- [ ] Vérifier les routines manuelles et contrats ; publier les documents privés
+  actualisés seulement après revue. Ne pas traiter le modèle comme un document signé.

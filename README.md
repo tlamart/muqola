@@ -615,6 +615,22 @@ son badge de disponibilité couvre tous les exemplaires accessibles.
 uv run --frozen pytest tests/test_inventory_sql.py -q -s
 ```
 
+## Conservation et demandes de suppression
+
+Les [arbitrages validés et la procédure opérateur](docs/confidentialite-conservation.md)
+prévoient une simulation puis confirmation : `python manage.py privacy --help`.
+La commande requiert un opérateur vérifié et le rôle de maintenance en production.
+Elle traite les demandes et préavis arrivés à échéance, protège les prêts actifs,
+préserve les fiches partagées et effectue l'effacement final des comptes éligibles.
+Le worker envoie les préavis d'inactivité par l'outbox et purge quotidiennement les
+sessions expirées ; il ne supprime jamais automatiquement comptes ou historique.
+
+Historique clos trois mois, inactivité douze mois/préavis trente jours, preuves
+minimales six mois ; support un mois et diagnostics trente jours sous procédure
+manuelle. Rétention des journaux sept jours : **installation hôte et validation
+séparées**, rotation en volume seule insuffisante. Le modèle légal est à compléter
+et revoir, sans publication ni effacement de production par cette PR.
+
 ## Administration du catalogue
 
 Le site opérateur `/operator/` permet la revue et les décisions via les services

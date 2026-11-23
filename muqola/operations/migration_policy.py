@@ -20,4 +20,12 @@ REVIEWED: dict[str, str] = {
     "notifications/0001_initial": "c64af9255596637c86c50d12b0c760960a130cb1f7b543c19903eeceb36242c9",
     "notifications/0002_remove_emailoutbox_outbox_status_valid_and_more": "cd13767bda9e0e4783467e52256b7068414a65894179d7204a09e6c909712d24",
     "operations/0001_initial": "178a8293d7e349dd5b1cc0a5c8d76d2b1408f167e6ca0d25e5b6c7a1cecc6ac1",
+    "communities/0003_community_archived_at": "42a8b5533564762325371f0b6e55059273b4aff3087abb82059de841f8f93cd0",
+    "identity/0004_user_deletion_restricted_at": "79d8b6227264841da0952c92c294a6136a356eaa464239497bce943134ecfed7",
+    "operations/0002_privacyreceipt_inactivitynotice": "037794b7ca10f0b6a7b7be6a3a4f10dace7df38a8cd8c49c61dab9944cbaf1f7",
+    "operations/0003_privacyhold": "a78a10f4185f1c2426e902b0ac8e351ac3e43b4b0b29daa63c842c90d5a359a7",
+    "identity/0005_remove_accounttoken_identity_token_purpose_and_more": "68555a014068137b692f1230521986ab3deead2c4f719311015c31b7538e3244",
+    "admin/0001_initial": "f4716989d9815b6231f0d7291754835e008c96818447fe57984bbf8985883335",
+    "admin/0002_logentry_remove_auto_add": "2c127e659a2236edea0ed57eccd38786ae84e365790a80b96b758c617f50be43",
+    "admin/0003_logentry_add_action_flag_choices": "02700a827190720e5c417495a395071b6baa28a34e74bc8f90824afaafc01841",
 }

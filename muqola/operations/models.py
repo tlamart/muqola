@@ -15,3 +15,28 @@ class DeletionRequest(models.Model):
     reason = models.CharField(max_length=500, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     processed_at = models.DateTimeField(null=True, blank=True)
+
+
+class PrivacyReceipt(models.Model):
+    """Restricted six-month evidence; no profile, email, request text or foreign key."""
+
+    subject_id = models.PositiveBigIntegerField(db_index=True)
+    action = models.CharField(
+        max_length=16, choices=[("restrict", "Restriction"), ("erase", "Effacement")]
+    )
+    created_at = models.DateTimeField()
+
+
+class InactivityNotice(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    # Record ONLY after the operator has actually sent the notice.
+    sent_at = models.DateTimeField()
+    last_login_at_notice = models.DateTimeField(null=True)
+
+
+class PrivacyHold(models.Model):
+    loan = models.OneToOneField("loans.Loan", on_delete=models.CASCADE, related_name="privacy_hold")
+    until = models.DateTimeField()
+    code = models.CharField(
+        max_length=8, choices=[("dispute", "Litige"), ("legal", "Obligation légale")]
+    )

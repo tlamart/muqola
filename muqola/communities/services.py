@@ -25,7 +25,7 @@ from muqola.identity.services import token_digest
 def membership(user: User, community_id: UUID, admin: bool = False) -> Membership:
     verified(user)
     query = Membership.objects.select_related("community").filter(
-        user=user, active=True, community_id=community_id
+        user=user, active=True, community_id=community_id, community__archived_at__isnull=True
     )
     if admin:
         query = query.filter(role=Membership.Role.ADMIN)
@@ -95,6 +95,7 @@ def valid_invite(digest: str) -> CommunityInvite | None:
             Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now()),
             digest=digest,
             revoked_at__isnull=True,
+            community__archived_at__isnull=True,
         )
         .first()
     )

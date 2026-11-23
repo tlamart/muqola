@@ -133,3 +133,47 @@ def test_staging_monitor_uses_private_probe_and_checks_capture(
         }
     )
     assert issues == ["mailpit_unhealthy"] and called == [credentials]
+
+
+def test_namespaced_json_error_is_detected_without_printing_content(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    status = tmp_path / "backup.json"
+    atomic_json(status, {"ok": True, "last_success": utcnow().isoformat()})
+    monkeypatch.setattr(monitor, "compose", lambda _: ["synthetic-compose"])
+    monkeypatch.setattr(
+        monitor, "urlopen", lambda *_args, **_kwargs: nullcontext(SimpleNamespace(status=200))
+    )
+    monkeypatch.setattr(
+        shutil, "disk_usage", lambda _: SimpleNamespace(free=10**10, used=10**9, total=11 * 10**9)
+    )
+    calls = []
+
+    def command(arguments: list[str]) -> bytes:
+        calls.append(arguments)
+        if "ps" in arguments:
+            return json.dumps(
+                [
+                    {"Service": name, "State": "running", "Health": "healthy"}
+                    for name in ("web", "worker", "db")
+                ]
+            ).encode()
+        if "check_operations" in arguments:
+            return b'{"database": true}'
+        return json.dumps(
+            {"MESSAGE": json.dumps({"level": "ERROR", "event": "private-synthetic-data"})}
+        ).encode()
+
+    monkeypatch.setattr(monitor, "run", command)
+    issues = monitor.inspect(
+        {
+            "app_url": "https://synthetic.example.test",
+            "data_path": str(tmp_path),
+            "backup_status_file": str(status),
+            "project": "muqola-prod",
+            "journal_namespace": "muqola-production",
+        }
+    )
+    assert issues == ["application_errors"]
+    assert any(command[0] == "journalctl" for command in calls)
+    assert not any("logs" in command for command in calls)

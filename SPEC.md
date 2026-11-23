@@ -148,3 +148,25 @@ Une nouvelle proposition de l’auteur ne peut pas reprendre exactement le titre
 ou un alias normalisé de sa propre fiche rejetée pour rétablir le prêt. La garde
 existante des doublons propres en attente s’étend aux propres rejets, sans exposer
 les propositions privées d’un tiers ni imposer une unicité globale des titres.
+
+## 12. Vie privée — arbitrages validés le 22 novembre 2026
+
+Le [runbook de conservation](docs/confidentialite-conservation.md) fixe le traitement
+manuel assisté, simulation puis confirmation, objectif sept jours et réponse
+normalement sous un mois à compter de la demande. Retirer les partages et nouvelles
+activités lors du traitement ; conserver les seuls accès nécessaires à la clôture
+des prêts acceptés/remis. Effacement final ensuite, avec préservation du catalogue
+et des autres comptes ; transfert consenti ou archivage du dernier administrateur.
+L'effacement retire effectivement le compte et les références personnelles pouvant
+l'être ; une désactivation ou un pseudonyme ne valent pas anonymisation complète.
+
+Historique clos : trois mois calendaires, nettoyage plus tôt possible sur demande,
+exceptions ciblées/temporaires pour litige ou obligation. Inactivité : douze mois,
+revue mensuelle, préavis par l'outbox réellement envoyé puis trente jours ; une
+connexion annule l'éligibilité. Aucune suppression automatique des comptes par le worker.
+Sessions expirées nettoyées quotidiennement. Journaux : plafond sept jours à valider
+sur hôte ; support un mois après résolution, diagnostics trente jours, preuves de
+droits minimales six mois. Sauvegardes sept jours avec minimum deux copies,
+réconciliation obligatoire avant réouverture après restauration.
+Ces délais sont des engagements à appliquer ; les tests synthétiques ne valident
+ni la configuration hôte, ni les contrats des prestataires, ni les documents privés.

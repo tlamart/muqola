@@ -623,6 +623,57 @@ Restent à faire après livraison autorisée : relecture sur Firefox Android ré
 et validation visuelle du propriétaire. Aucun déploiement effectué, aucune
 migration ajoutée ; les portes d’exploitation du lot 6 restent distinctes.
 
+## Vie privée — décisions du 22 novembre 2026
+
+Branche `feat/confidentialite-conservation`, depuis `origin/main` `ee13ea1`.
+Les choix du propriétaire remplacent toute hypothèse antérieure : historique clos
+trois mois, inactivité douze mois/préavis trente jours, journaux sept jours, support
+un mois, preuves six mois, diagnostics trente jours ; autres arbitrages 1/2/3/6/7/10
+validés. [Décisions, architecture et runbook](docs/confidentialite-conservation.md).
+
+- [x] Migrations additives de restriction, archivage, preuves, préavis et exceptions ;
+  aucun nettoyage à la migration, aucune modification des migrations historiques.
+- [x] Commande opérateur de simulation/application, hash d'état et revue humaine,
+  restriction puis effacement effectif ; rôle maintenance exigé en production,
+  droits runtime inchangés, atomicité et sérialisation avec les prêts.
+- [x] Préserver remise/retour et contacts nécessaires aux prêts actifs, interdire les
+  nouvelles activités ; transfert consenti ou archivage du dernier administrateur,
+  conservation du catalogue et des comptes/collections des autres membres.
+- [x] Préavis d'inactivité via l'outbox, sans jeton d'authentification ; trente jours
+  comptés seulement après confirmation SMTP, nouvelle connexion invalidant la clôture.
+- [x] Nettoyage quotidien des sessions expirées par le worker, sessions valides préservées.
+- [x] Rétention manuelle assistée de l'historique trois mois et preuves six mois,
+  exceptions justifiées bornées ; ledger signé privé et réconciliation sur restore,
+  sans clôture forcée des prêts réapparus. Export exclusivement vers un fichier privé.
+- [x] Préparer option de journal systemd isolé, Docker syslog Unix sans cache local,
+  monitor compatible, unités de rotation/purge ; aucune configuration globale changée.
+- [x] Actualiser SPEC/ARCHITECTURE/DESIGN/README et modèle légal sans identité réelle,
+  distinguer préparation et activation réelle, corriger les formulations du staging.
+- [ ] Installation/recette hôte : rétention effective de tous les journaux concernés
+  et anciennes copies (DB, unités et Caddy partagé inclus) ; jamais validée par
+  les seuls tests de transport ou une rotation limitée en volume.
+- [ ] Routines opérateur effectives : revue hebdomadaire des demandes/échéances,
+  revue mensuelle de l'inactivité, support un mois, diagnostics trente jours,
+  preuves/exports six mois ; vérifier sur staging avant interventions réelles.
+- [ ] Contrats/garanties des offres effectivement utilisées, adéquation Outlook.com,
+  documents privés complets/revus et date de publication ; aucune garantie inventée.
+- [ ] Déploiement et migrations autorisés séparément, nouvelle sauvegarde extérieure,
+  exercice de suppression/restauration sur données synthétiques et observation réelle.
+
+Les preuves synthétiques exactes et les limites restantes figurent dans la PR.
+Aucun effacement, migration ou déploiement de production n'est exécuté par ce lot.
+
+**Preuves locales finales (22 novembre) :** `scripts/check.sh` sur PostgreSQL
+synthétique dédié : **625 tests réussis en 132,88 s**, Ruff lint/format, mypy
+(131 sources), checks Django, migrations sans dérive et statiques. Audit runtime :
+aucune vulnérabilité connue. Build Docker réussi avec CA Cloud montée en secret,
+sans nouvelle dépendance. Chromium réel : connexion limitée, profil et prêt accepté
+à 360/1280 px sans débordement. Transport Docker syslog réel vers socket Unix avec
+cache local désactivé ; syntaxe des deux unités validée hors ligne avec dépendances
+de démarrage isolées. La rétention journald en fonctionnement et la recette VPS
+restent ouvertes. Une exécution de tests superposée a été écartée ; le résultat
+ci-dessus provient d'une exécution unique dans une base synthétique distincte.
+
 ## Administration web minimale du catalogue — périmètre validé le 22 novembre 2026
 
 Complément à B.6 (moteur et CLI déjà livrés), sans réimplémenter la modération.
@@ -635,3 +686,12 @@ Complément à B.6 (moteur et CLI déjà livrés), sans réimplémenter la modé
 Résultat de la CI de la tête finale : consigné dans la description de PR.
 - [x] Runbook premier opérateur et documentation du schéma/retour compatible.
 - [ ] Validation sur staging après déploiement explicitement autorisé par l’exploitant ; aucune intervention production dans cette PR.
+
+**Réconciliation avec #40, 23 novembre :** conserver les deux sections de
+README/ARCHITECTURE/TASKS et le site opérateur. Suite combinée : **651 tests
+réussis** (136,75 s), lint/format, mypy et migrations sans dérive. Les trois
+migrations standard `admin` de Django 5.2.19 ont été lues et leurs empreintes
+exactes ajoutées à la politique CD ; une base synthétique antérieure à l'admin
+et à la conservation vérifie que le plan reconnaît toutes les migrations et
+préserve les six états de prêt. Les 68 tests migration/CD concernés passent
+après ce complément. Aucune migration de production n'est exécutée.

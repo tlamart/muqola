@@ -1,0 +1,13 @@
+# Install separately as /etc/systemd/journald@muqola-production.conf
+# and, if staging is opted in, journald@muqola-staging.conf.
+# NEVER install as the host-wide /etc/systemd/journald.conf.
+[Journal]
+Storage=persistent
+Compress=yes
+ReadKMsg=no
+ForwardToSyslog=no
+SystemMaxUse=64M
+SystemMaxFileSize=8M
+# One-day safety margin for hourly rotations/vacuums; public ceiling: seven days.
+MaxRetentionSec=6day
+MaxFileSec=1h

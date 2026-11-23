@@ -171,6 +171,29 @@ du jeu est centralisée dans `reusable_game`, et la création finale conserve
 validation, protection contre les doublons et transaction de `add_to_collection`.
 Les POST historiques restent compatibles. Aucun changement de modèle ou migration.
 
+## Traitement de la vie privée — préparation du 22 novembre 2026
+
+`operations.privacy` applique les arbitrages validés sous le verrou métier commun.
+Migrations additives : restriction de User, archivage de Community, preuve minimale
+sans FK personnelle, préavis d'inactivité, exceptions de conservation bornées et
+nouveau type de jeton non authentifiant pour le préavis. Le worker réutilise l'outbox
+chiffrée et ne commence le délai qu'après confirmation SMTP ; nettoyage quotidien
+des sessions expirées. Aucun DELETE de compte/historique ajouté aux droits runtime.
+
+Les commandes de maintenance fonctionnent en simulation par défaut, avec hash liant
+l'état métier et la journée ; la suppression est transactionnelle et exige une revue
+humaine des champs libres. Les prêts actifs ou justifiés par une exception restent
+protégés. Un ledger signé, privé et à chiffrer pour transport permet une réconciliation
+sur restauration isolée, sans clôturer arbitrairement des prêts revenus dans le dump.
+Une exception/clé nouvelle inconnue provoque un refus et rollback de la transaction.
+
+La rétention hôte est opt-in : Docker syslog vers un namespace systemd-journald
+propre à l'environnement, cache Docker désactivé, rotation horaire/vacuum six jours
+avec marge sous le plafond sept jours. Le contrôleur lie le modèle et l'option au
+plan CD ; le monitor lit ce namespace. L'hôte/global/Caddy et les volumes ne sont
+jamais modifiés automatiquement. Installation séparée des scripts/units et recette
+sur VPS requises. [Procédure, décisions et limites](docs/confidentialite-conservation.md).
+
 ## Revue web du catalogue
 
 Le site `/operator/` est un AdminSite Django dédié, sans autodécouverte ni CRUD

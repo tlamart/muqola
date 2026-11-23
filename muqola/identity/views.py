@@ -3,6 +3,7 @@ import re
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
@@ -10,7 +11,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 
 from muqola.core.http import actor
 from muqola.identity.forms import AdultForm, EmailForm, LoginForm, PasswordForm, SignupForm
-from muqola.identity.models import AccountToken
+from muqola.identity.models import AccountToken, User
 from muqola.identity.ratelimit import LIMITS, allowed
 from muqola.identity.services import (
     consume_token,
@@ -79,12 +80,24 @@ def sign_in(request: HttpRequest) -> HttpResponse:
             request, username=form.cleaned_data["email"], password=form.cleaned_data["password"]
         )
         if user is not None:
-            login(request, user)
-            if not user.email_verified_at:
-                return redirect("identity:pending")
-            from muqola.communities.views import pending_digest
+            # Hash verification stays outside the lock. Recheck existence/status
+            # and hash before the login signal writes last_login: an erasure or
+            # password change may have committed during authentication.
+            with transaction.atomic():
+                current = (
+                    User.objects.select_for_update()
+                    .filter(pk=user.pk, is_active=True, password=user.password)
+                    .first()
+                )
+                if current is not None:
+                    login(request, current, backend=getattr(user, "backend", None))
+                    if not current.email_verified_at:
+                        return redirect("identity:pending")
+                    from muqola.communities.views import pending_digest
 
-            return redirect("communities:join" if pending_digest(request) else "identity:dashboard")
+                    return redirect(
+                        "communities:join" if pending_digest(request) else "identity:dashboard"
+                    )
         form.add_error(None, "Adresse ou mot de passe incorrect.")
     return render(
         request,
