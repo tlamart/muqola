@@ -170,3 +170,11 @@ Ces champs restent des entrées non fiables : l’éligibilité
 du jeu est centralisée dans `reusable_game`, et la création finale conserve
 validation, protection contre les doublons et transaction de `add_to_collection`.
 Les POST historiques restent compatibles. Aucun changement de modèle ou migration.
+
+## Revue web du catalogue
+
+Le site `/operator/` est un AdminSite Django dédié, sans autodécouverte ni CRUD
+générique. Connexion applicative existante et contrôle staff/superuser actif,
+vérifié/adulte ; décisions exclusivement via les services de modération et
+leur audit transactionnel. Le formulaire signé protège des revues périmées.
+[Amorçage audité, droits, migrations et tests](docs/catalogue-admin.md).

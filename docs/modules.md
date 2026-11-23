@@ -22,7 +22,7 @@ Les contraintes FK/ON DELETE et compromis sont détaillés dans les documents de
 [catalogue/copies](lot-3-catalogue.md), [prêts](lot-4-loans.md),
 [notifications/UX](lot-5-notifications.md).
 
-Aucune console admin web, aucun opérateur créé automatiquement, aucune donnée réelle.
+Revue web restreinte au catalogue via un AdminSite dédié ; [procédure opérateur](catalogue-admin.md). Aucun opérateur créé automatiquement, aucune donnée réelle.
 Plan autorisé : lots successifs 2 à 5, branche/PR dédiée et empilée pour chacun,
 sans fusion automatique. Arrêt au lot 5 pour validation. La préproduction, les
 engagements réels de suppression/anonymisation et la rétention des historiques

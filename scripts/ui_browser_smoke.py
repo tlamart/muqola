@@ -99,11 +99,20 @@ def geometry(page: Page) -> None:
 
 
 def vertical_gap(page: Page, before: str, after: str) -> float:
-    first = page.locator(before).bounding_box()
-    second = page.locator(after).bounding_box()
-    if first is None or second is None:
-        raise RuntimeError("Élément absent du contrôle d’espacement")
-    return second["y"] - first["y"] - first["height"]
+    # Lire les deux rectangles dans le même layout : deux appels CDP séparés
+    # peuvent encadrer une recomposition (police/redimensionnement). Arrondir
+    # au millième élimine les résidus flottants sans réduire le seuil de 12 px.
+    return float(
+        page.evaluate(
+            """([before, after]) => {
+        const first = document.querySelector(before)?.getBoundingClientRect();
+        const second = document.querySelector(after)?.getBoundingClientRect();
+        if (!first || !second) throw new Error('Élément absent du contrôle d’espacement');
+        return Math.round((second.top - first.bottom) * 1000) / 1000;
+    }""",
+            [before, after],
+        )
+    )
 
 
 def account_spacing(page: Page) -> None:

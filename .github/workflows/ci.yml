@@ -125,6 +125,8 @@ jobs:
           uv run --frozen --group browser python scripts/accounts_browser_smoke.py --browser "$(command -v google-chrome || command -v chromium)"
       - name: Instant search, controlled responses and no-JavaScript fallback
         run: uv run --frozen --group browser python scripts/search_browser_smoke.py --browser "$(command -v google-chrome || command -v chromium)"
+      - name: Catalogue moderation web journey
+        run: uv run --frozen --group browser python scripts/admin_browser_smoke.py --browser "$(command -v google-chrome || command -v chromium)"
       - name: Product journey
         run: uv run --frozen --group browser python scripts/product_browser_smoke.py --browser "$(command -v google-chrome || command -v chromium)"
       - name: Quick add with and without JavaScript

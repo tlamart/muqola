@@ -23,6 +23,9 @@ Les exemplaires d’une proposition peuvent rester privés ou être partagés/pr
 
 Les deux anciennes commandes CSV et leurs fonctions Python refusent l'import, y compris en simulation, avant lecture de fichier ou écriture. Les validations de format/Commons utiles et les commandes demeurent identifiables ; leurs anciens corps d'ingestion ont été retirés. Aucun catalogue réel n'est versionné. Les données déjà présentes, licences et illustrations #25 restent intactes.
 
+> Une [interface web de revue restreinte](catalogue-admin.md) complète désormais
+> cette console ; les descriptions et preuves historiques ci-dessous restent valables.
+
 ## Console opérateur
 
 La console existante exige accès OS de confiance **et** compte plateforme actif, vérifié et superutilisateur ; un administrateur de communauté n'obtient aucun droit de modération global. Le compte fictif `create_dev_operator` reste réservé au développement, sans mot de passe utilisable. Aucun compte opérateur créé automatiquement par migration/démarrage.
