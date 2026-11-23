@@ -1,0 +1,193 @@
+---
+- name: Refuser une portée ou un mode inattendu avant toute opération
+  ansible.builtin.assert:
+    that:
+      - groups['muqola_vps'] | length == 1
+      - muqola_host_apply is boolean
+      - muqola_host_approved is boolean
+      - muqola_host_manage_packages is boolean
+      - muqola_host_deploy_user is match('^[a-z_][a-z0-9_-]*$')
+      - muqola_host_deploy_user != 'root'
+      - >-
+        muqola_host_fixture_root == '' or
+        (ansible_connection | default('ssh') == 'local' and
+         muqola_host_fixture_root is match('^/tmp/muqola-ansible-test-[a-z0-9_-]+$') and
+         not (ansible_become | default(true) | bool))
+      - >-
+        muqola_host_fixture_root != '' or
+        ansible_connection | default('ssh') == 'ssh'
+      - >-
+        muqola_host_fixture_root != '' or
+        (ansible_user is defined and ansible_user != muqola_host_deploy_user)
+      - >-
+        not muqola_host_apply or ansible_check_mode or
+        muqola_host_approved
+    fail_msg: >-
+      Inventaire non conforme ou adoption non approuvée. Un seul VPS, SSH et
+      un compte de déploiement existant sont requis. Relire audit puis --check
+      avant de fournir muqola_host_approved comme booléen JSON true.
+      Le mode local est réservé aux tests.
+
+- name: Vérifier la racine synthétique sans suivre de lien
+  ansible.builtin.stat:
+    path: "{{ muqola_host_fixture_root }}"
+    follow: false
+    get_checksum: false
+    get_mime: false
+    get_attributes: false
+  register: muqola_host_fixture_stat
+  when: muqola_host_fixture_root != ''
+
+- name: Refuser une racine synthétique redirigée
+  ansible.builtin.assert:
+    that:
+      - muqola_host_fixture_stat.stat.isdir | default(false)
+      - not (muqola_host_fixture_stat.stat.islnk | default(false))
+    fail_msg: Racine synthétique absente ou redirigée.
+  when: muqola_host_fixture_root != ''
+
+- name: Vérifier le compte de déploiement existant
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ muqola_host_deploy_user }}"
+  # GECOS et autres attributs du compte n'ont pas à être publiés.
+  no_log: true
+
+- name: Relever la distribution sans collecter l'environnement du serveur
+  ansible.builtin.setup:
+    gather_subset: ["!all", "!min", distribution]
+    filter: [ansible_distribution, ansible_distribution_major_version]
+  when: muqola_host_fixture_root == ''
+
+- name: Limiter ce premier lot à Debian 13
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.distribution == 'Debian'
+      - ansible_facts.distribution_major_version == '13'
+    fail_msg: Le socle testé cible Debian 13 ; adapter et tester avant une autre cible.
+  when: muqola_host_fixture_root == ''
+
+- name: Relever les répertoires parents sans suivre leurs liens
+  ansible.builtin.stat:
+    path: "{{ muqola_host_fixture_root }}{{ item }}"
+    follow: false
+    get_checksum: false
+    get_mime: false
+    get_attributes: false
+  loop: "{{ muqola_host_ancestors }}"
+  register: muqola_host_parent_stats
+
+- name: Refuser un parent absent ou redirigé
+  ansible.builtin.assert:
+    that:
+      - item.stat.exists
+      - item.stat.isdir | default(false)
+      - not (item.stat.islnk | default(false))
+    fail_msg: Parent absent ou lien symbolique ; inspection manuelle requise.
+  loop: "{{ muqola_host_parent_stats.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Relever uniquement les métadonnées des répertoires à adopter
+  ansible.builtin.stat:
+    path: "{{ muqola_host_fixture_root }}{{ item.path }}"
+    follow: false
+    get_checksum: false
+    get_mime: false
+    get_attributes: false
+  loop: "{{ muqola_host_directories }}"
+  loop_control:
+    label: "{{ item.path }}"
+  register: muqola_host_directory_stats
+
+- name: Refuser une initialisation implicite ou un répertoire redirigé
+  ansible.builtin.assert:
+    that:
+      - item.stat.exists
+      - item.stat.isdir | default(false)
+      - not (item.stat.islnk | default(false))
+    fail_msg: Installation incomplète ou lien symbolique ; aucune adoption possible.
+  loop: "{{ muqola_host_directory_stats.results }}"
+  loop_control:
+    label: "{{ item.item.path }}"
+
+- name: Relever les métadonnées publiques de suivi sans ouvrir les configurations
+  ansible.builtin.stat:
+    path: "{{ muqola_host_fixture_root }}{{ item }}"
+    follow: false
+    get_checksum: false
+    get_mime: false
+    get_attributes: false
+  loop: "{{ muqola_host_observed_paths }}"
+  register: muqola_host_observed_stats
+
+- name: Résumer les points observés sans contenu de fichier ni secret
+  ansible.builtin.debug:
+    msg:
+      path: "{{ item.item }}"
+      exists: "{{ item.stat.exists }}"
+      mode: "{{ item.stat.mode | default('absent') }}"
+      owner: "{{ item.stat.pw_name | default('absent') }}"
+      symlink: "{{ item.stat.islnk | default(false) }}"
+  loop: "{{ muqola_host_observed_stats.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Relever les versions des seules dépendances prévues
+  ansible.builtin.command:
+    expand_argument_vars: false
+    argv: >-
+      {{ ['/usr/bin/dpkg-query', '--show', '--showformat=${binary:Package} ${Version}\n']
+         + muqola_host_packages }}
+  register: muqola_host_package_versions
+  changed_when: false
+  failed_when: muqola_host_package_versions.rc not in [0, 1]
+  check_mode: false  # Requête de lecture, exécutée aussi lors de --check.
+  when: muqola_host_fixture_root == ''
+
+- name: Afficher les versions installées
+  ansible.builtin.debug:
+    var: muqola_host_package_versions.stdout_lines
+  when: muqola_host_fixture_root == ''
+
+- name: Relever la planification existante sans démarrer de service
+  ansible.builtin.command:
+    argv: >-
+      {{ ['/usr/bin/systemctl', 'show', '--no-pager',
+          '--property=Id,LoadState,ActiveState,UnitFileState,NextElapseUSecRealtime']
+         + muqola_host_units }}
+  register: muqola_host_timer_status
+  changed_when: false
+  check_mode: false  # systemctl show est une lecture, jamais start/restart/enable.
+  when: muqola_host_fixture_root == ''
+
+- name: Afficher la planification à examiner
+  ansible.builtin.debug:
+    var: muqola_host_timer_status.stdout_lines
+  when: muqola_host_fixture_root == ''
+
+- name: Installer uniquement les outils manquants explicitement demandés
+  ansible.builtin.apt:
+    name: "{{ muqola_host_packages }}"
+    state: present
+    update_cache: false
+    policy_rc_d: 101
+    lock_timeout: 60
+  when:
+    - muqola_host_apply
+    - muqola_host_manage_packages
+    - muqola_host_fixture_root == ''
+
+- name: Adopter les seuls répertoires existants sans toucher à leurs contenus
+  ansible.builtin.file:
+    path: "{{ muqola_host_fixture_root }}{{ item.path }}"
+    state: directory
+    owner: "{{ muqola_host_deploy_user }}"
+    group: "{{ ansible_facts.getent_passwd[muqola_host_deploy_user][2] }}"
+    mode: "{{ item.mode }}"
+    recurse: false
+    follow: false
+  loop: "{{ muqola_host_directories }}"
+  loop_control:
+    label: "{{ item.path }}"
+  when: muqola_host_apply

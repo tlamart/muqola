@@ -201,3 +201,19 @@ générique. Connexion applicative existante et contrôle staff/superuser actif,
 vérifié/adulte ; décisions exclusivement via les services de modération et
 leur audit transactionnel. Le formulaire signé protège des revues périmées.
 [Amorçage audité, droits, migrations et tests](docs/catalogue-admin.md).
+
+## Administration hôte avec Ansible
+
+`infra/ansible` possède son environnement Python/uv indépendant ; aucune dépendance
+Ansible dans l'image applicative. Un inventaire privé désigne une seule machine
+physique pour staging et production. SSH avec clé d'hôte vérifiée et compte
+d'administration distinct du compte CD ; aucune clé VPS dans Codex Cloud ou la CI.
+
+Premier lot : audit en lecture seule et adoption opt-in des permissions de
+répertoires existants, sans récursion ; installation des seuls outils de sauvegarde
+manquants sur option supplémentaire. Les contenus privés, volumes, pointeurs et
+états CD, contrôleur, unités d'alerte et Caddy partagé restent sous leurs procédures
+existantes. Le rôle refuse une initialisation ou des répertoires redirigés et
+requiert une approbation explicite hors simulation. Les tests exécutent Ansible
+contre des fixtures locales synthétiques, jamais le VPS. La CD applicative garde
+la responsabilité des images/migrations/rollback. [Périmètre et procédure](infra/ansible/README.md).

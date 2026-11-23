@@ -695,3 +695,37 @@ exactes ajoutées à la politique CD ; une base synthétique antérieure à l'ad
 et à la conservation vérifie que le plan reconnaît toutes les migrations et
 préserve les six états de prêt. Les 68 tests migration/CD concernés passent
 après ce complément. Aucune migration de production n'est exécutée.
+
+## Ansible — adoption progressive du VPS (23 novembre 2026)
+
+Branche `feat/ansible-vps`, depuis `origin/main` `51c9995`.
+[Périmètre et commandes](infra/ansible/README.md).
+
+- [x] Environnement d'administration indépendant et verrouillé, inventaire d'exemple
+  avec un seul hôte physique, SSH strict et compte admin distinct du compte CD.
+- [x] Audit sans lecture des contenus privés : métadonnées des répertoires,
+  configurations et contrôleur, versions des outils, état des timers existants.
+- [x] Adoption des permissions des seuls répertoires existants, non récursive,
+  simulation/approbation et refus des liens ou d'une initialisation implicite ;
+  installation optionnelle des dépendances manquantes sans upgrade global.
+- [x] Exclure inventaire privé et matériel sensible de Git/contexte Docker ;
+  ne pas ajouter Ansible aux dépendances applicatives.
+- [x] Valider lint/syntaxe et vrais playbooks sur fixtures locales : audit/check sans
+  mutation, approbation, idempotence, préservation des secrets/CD/Caddy/unités/volume.
+- [ ] Première recette SSH/sudo et adoption réelle sur Debian 13 par l'exploitant.
+- [ ] Reprise sous Ansible du contrôleur sous verrou, des unités/alertes, de la
+  rétention des journaux et des configurations Caddy/SSH/pare-feu par lots revus.
+
+Ce lot n'est pas un provisionnement complet. Aucun accès VPS, déploiement,
+redémarrage, remplacement de secret ou modification de données n'est effectué.
+
+**Preuves locales :** ansible-lint profil production sans avertissement, syntaxe
+des deux playbooks et actionlint réussis. Neuf tests Ansible réels réussis en
+128,78 s, contrôle Python 3.12/cible 3.13 ; première passe de sept tests également
+réussie en cible 3.12. `scripts/check.sh` : **651 tests applicatifs réussis en
+196,84 s**, Ruff/format, mypy (134 sources), Django, migrations sans dérive et
+statiques. Build Docker réussi ; un conteneur sans réseau confirme l'absence
+d'Ansible et du répertoire d'administration dans l'image. Audit des dépendances
+d'administration : aucune vulnérabilité connue. L'installation APT effective et
+le transport SSH/sudo ne sont pas exercés ; la première adoption réelle reste
+ouverte. Le résultat CI du commit final est indiqué dans la PR.

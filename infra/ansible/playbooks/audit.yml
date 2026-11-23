@@ -1,0 +1,8 @@
+---
+- name: Auditer le VPS existant sans modifier sa configuration
+  hosts: muqola_vps
+  gather_facts: false
+  become: true
+  any_errors_fatal: true
+  roles:
+    - role: muqola_host

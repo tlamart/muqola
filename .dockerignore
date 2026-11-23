@@ -43,3 +43,6 @@ legal
 # Private privacy-rights ledgers must not enter Git or build contexts.
 **/privacy-ledger*.json
 **/ledger-export*.json
+
+# L'administration et ses éventuels inventaires privés restent hors image.
+infra/ansible

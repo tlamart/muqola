@@ -59,6 +59,16 @@ uv run --frozen python scripts/production_smoke.py --image muqola:local
 Il crée sa propre pile/volumes jetables, utilise une CA locale et ne contacte ni
 ACME ni SMTP externe. Voir le guide pour les limites et les preuves de validation.
 
+## Administration du VPS
+
+L'administration du VPS peut être reprise progressivement avec le
+[socle Ansible](infra/ansible/README.md) : audit sans modification, puis adoption
+explicite des permissions existantes depuis le poste de confiance de l'exploitant.
+Inventaire privé hors Git, dépendances d'administration séparées du runtime,
+tests locaux synthétiques sans accès VPS. Ce premier lot conserve le contrôleur,
+les unités/alertes personnalisées, les secrets et Caddy ; leur gestion suivra par
+lots revus. Les déploiements applicatifs restent dans le flux GitHub `plan/apply`.
+
 ## Images GHCR et promotion
 
 La CI construit et teste une seule image, puis la conserve par save/load avec
