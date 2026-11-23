@@ -53,3 +53,5 @@ Résultats locaux (22 novembre 2026) : `./scripts/check.sh` réussi — Ruff, fo
 Le smoke recherche sa fiche synthétique par titre exact avant de vérifier le filtre de statut : les autres scénarios CI peuvent avoir rempli plusieurs pages de catalogue. Le premier run CI a détecté cette hypothèse incorrecte du script, après réussite des trois décisions ; le comportement paginé de l’application était correct.
 
 Le contrôle responsive historique mesure maintenant les deux rectangles d’espacement dans le même layout et arrondit au millième pour éliminer les résidus flottants ; le seuil de 12 px reste inchangé, sans modification du CSS des communautés. Un second run CI avait échoué sur ce contrôle existant après réussite du parcours de modération et du prêt complet.
+
+Reprise du 23 novembre 2026 : parcours UI complet corrigé réussi à 360/390/768/1200/1280 px, navigation clavier/tactile, filtres, sans JavaScript et contenus longs, sans erreur JS/réseau. Ruff et formatage réussis ; main demeure ee13ea1. Le résultat Actions de la tête finale est suivi dans la PR, sans intervention sur les services distants.
