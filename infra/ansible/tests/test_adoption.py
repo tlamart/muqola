@@ -28,7 +28,7 @@ DIRECTORIES = (
 )
 
 
-class AdoptionTests(unittest.TestCase):
+class LocalAnsibleFixture(unittest.TestCase):
     def setUp(self) -> None:
         self.fixture = tempfile.TemporaryDirectory(prefix="muqola-ansible-test-")
         self.addCleanup(self.fixture.cleanup)
@@ -107,6 +107,7 @@ class AdoptionTests(unittest.TestCase):
         approved: bool = False,
         check: bool = False,
         expected_success: bool = True,
+        extra: dict[str, Any] | None = None,
     ) -> str:
         self.inventory.write_text(
             json.dumps({"muqola_vps": {"hosts": {"synthetic": self.variables}}})
@@ -119,7 +120,7 @@ class AdoptionTests(unittest.TestCase):
             str(self.inventory),
             str(ROOT / "playbooks" / f"{name}.yml"),
             "-e",
-            json.dumps({"muqola_host_approved": approved}),
+            json.dumps({"muqola_host_approved": approved, **(extra or {})}),
         ]
         if check:
             command.extend(["--check", "--diff"])
@@ -140,6 +141,8 @@ class AdoptionTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0, output)
         return output
 
+
+class AdoptionTests(LocalAnsibleFixture):
     def test_audit_and_check_are_read_only_then_adoption_is_idempotent(self) -> None:
         before = self.snapshot()
         audit = self.playbook("audit")

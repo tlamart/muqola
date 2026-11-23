@@ -1,6 +1,6 @@
 # Administration du VPS avec Ansible
 
-Premier lot : **audit en lecture seule et adoption des permissions existantes**.
+Premier lot : **audit, adoption des permissions existantes et promotion ponctuelle**.
 Ce dépôt décrit la configuration ; l'exploitant lance Ansible depuis son poste
 de confiance. Aucun identifiant VPS n'est fourni à Codex Cloud ni à la CI.
 
@@ -16,6 +16,7 @@ et états CD distincts.
 | Auditer les versions des outils de sauvegarde et l'état des timers connus | Tester les alertes et superviser réellement le service |
 | Fixer propriétaire/groupe et mode `0700` de neuf répertoires privés existants, sans récursion | Créer une nouvelle installation, des comptes ou des secrets |
 | Sur option explicite, installer les paquets de sauvegarde manquants | Installer/mettre à jour Docker, SSH, le pare-feu ou redémarrer le serveur |
+| Via un playbook ponctuel distinct, simuler/appliquer une promotion de compte auditée | Déployer d'abord l'image applicative compatible et vérifier réellement le compte |
 
 Le rôle **n'installe ni ne remplace le contrôleur**, les fichiers de configuration,
 les unités systemd ou leurs scripts d'alerte. Leur reprise demandera des lots
@@ -23,9 +24,12 @@ suivants revus, notamment une coordination avec le verrou CD pour le contrôleur
 Les unités locales personnalisées et leur canal Brevo sont préservés.
 
 Le déploiement applicatif reste dans GitHub Actions : `plan → revue → apply`.
-Ansible ne lance pas Docker, ne change pas d'image, ne migre/restaure/efface aucune
-base, ne touche pas aux volumes, au verrou, aux états et liens actifs CD, ni au
-Caddy partagé. La présence d'un fichier ne prouve pas que son contenu est valide.
+Les playbooks d'audit/adoption ne lancent pas Docker et ne modifient aucun fichier
+applicatif. Le playbook de promotion utilise seulement `docker exec` sous les
+verrous CD existants pour contrôler ou accorder les droits du compte choisi.
+Aucun de ces playbooks ne change d'image, ne migre/restaure/efface de base, ne
+modifie volumes, états/liens CD ou Caddy. La présence d'un fichier ne prouve pas
+que son contenu est valide.
 
 ## Préparer le poste de confiance
 
@@ -135,6 +139,77 @@ Vérifier le site, les timers et la CD avec les procédures existantes. Le rôle
 ne masque pas un échec partiel : corriger sa cause, relire `--check`, puis reprendre.
 Il ne restaure/désinstalle rien automatiquement.
 
+## Promotion ponctuelle d'un compte Muqola
+
+Ce playbook est indépendant d'`audit.yml` et `adopt.yml` ; une adoption normale
+ne promeut aucun compte. Il accorde les droits opérateur **dans Muqola** et ne
+change aucun droit Linux. La commande reste protégée par l'accès SSH/OS de
+confiance ; l'adresse d'acteur sert aux permissions métier et à l'audit, pas à
+authentifier la session SSH.
+
+Prérequis : déployer d'abord par la CD une image contenant les options
+`--dry-run`, `--if-needed`, `--json` et `--deployment-env` de `promote_operator`.
+Une ancienne image refuse les options ; aucun contournement SQL n'est prévu.
+Les migrations de la version doivent avoir été appliquées par le déploiement.
+Le compte cible doit déjà exister, être actif, non restreint, avoir confirmé son
+adresse et son attestation adulte, et posséder un mot de passe utilisable.
+L'automatisation ne crée pas de compte et ne fabrique aucune confirmation.
+
+Depuis `infra/ansible`, préparer les paramètres **sur le poste de confiance** :
+
+```sh
+umask 077
+mkdir -p private
+chmod 700 private
+cp operator.example.yml private/promotion.yml
+chmod 600 private/promotion.yml
+```
+
+Adapter le fichier privé : environnement explicite (`staging` ou `production`),
+adresse et confirmation identiques, motif non sensible de 1–500 caractères.
+L'exemple vise uniquement un compte fictif en staging. Les adresses de test du
+staging restent en `@example.test`. Pour le **tout premier** opérateur, garder
+`muqola_operator_bootstrap: true` sans acteur. Pour les suivants, mettre bootstrap
+à `false` et renseigner `muqola_operator_actor` avec l'adresse d'un opérateur
+existant, actif, vérifié, adulte et non restreint.
+
+Prévisualiser avec les mêmes contrôles transactionnels que l'application :
+
+```sh
+uv run --frozen ansible-playbook -i inventory.local.yml playbooks/promote-operator.yml \
+  -e @private/promotion.yml --check --ask-become-pass
+```
+
+Même sans `--check`, le comportement par défaut est une **simulation**. Le bilan
+affiche seulement l'environnement et `would_promote` ou `unchanged` ; aucune
+écriture de compte/audit. Les adresses, motifs et sorties privées sont masqués
+dans les tâches, y compris en cas d'erreur. Ne pas ajouter ces données à des noms
+de tâches ou des commandes de journalisation.
+
+Après revue du compte et de l'environnement, application explicitement autorisée :
+
+```sh
+uv run --frozen ansible-playbook -i inventory.local.yml playbooks/promote-operator.yml \
+  -e @private/promotion.yml --ask-become-pass \
+  -e '{"muqola_operator_apply": true, "muqola_operator_approved": true}'
+```
+
+Une application réussie rend `promoted` et crée l'audit métier dans la même
+transaction que les droits. Une relance rend `unchanged` sans nouvelle écriture
+ni audit, après recontrôle des permissions. Le bootstrap reste refusé si **un
+autre** superuser existe, même inactif : après l'amorçage, utiliser le mode acteur.
+Un premier opérateur historique sans `is_staff` suit la procédure manuelle
+documentée dans [le guide catalogue](../../docs/catalogue-admin.md), sans bootstrap
+forcé. Une erreur d'audit annule la promotion.
+
+Le playbook utilise les noms de conteneur existants `muqola-staging-web-1` et
+`muqola-prod-web-1`, le socket Docker local explicitement fixé, et vérifie le
+contexte applicatif **dans** le conteneur avant de rechercher le compte. Il ne
+démarre/recrée aucun service. Les verrous préexistants global puis environnement
+sont pris dans l'ordre de la CD, sans attente : code 75 si occupés ; attendre la
+fin de l'opération en cours, puis refaire la simulation. Un verrou manquant ou
+redirigé est refusé, aucun nouveau verrou n'est initialisé par le playbook.
+
 ## Vérification locale et CI
 
 Sans inventaire privé ni connexion VPS :
@@ -143,6 +218,7 @@ Sans inventaire privé ni connexion VPS :
 uv run --frozen ansible-lint --offline
 uv run --frozen ansible-playbook -i inventory.example.yml playbooks/audit.yml --syntax-check
 uv run --frozen ansible-playbook -i inventory.example.yml playbooks/adopt.yml --syntax-check
+uv run --frozen ansible-playbook -i inventory.example.yml playbooks/promote-operator.yml --syntax-check
 uv run --frozen python -m unittest discover -s tests -v
 ```
 
@@ -162,10 +238,25 @@ Les tests ne couvrent pas une installation APT réelle ou le transport
 SSH/sudo : ces vérifications et la première adoption sur Debian 13 restent à faire
 par l'exploitant après revue. La CI applicative existante reste indépendante.
 
-Validation locale du 23 novembre 2026 : neuf tests réussis avec cible Python 3.13,
+Les tests de promotion Ansible remplacent **uniquement Docker** par un exécutable
+local qui enregistre les arguments et retourne des réponses préparées ; il ne
+simule pas la base ni les droits. Ils vérifient sélection staging/production,
+simulation par défaut et dans `--check`, approbation, verrou occupé, absence
+d'interprétation shell et confidentialité des erreurs. Les tests PostgreSQL
+`tests/test_operator_promotion.py` et `tests/test_catalogue_admin.py` exécutent la
+vraie commande et vérifient permissions, idempotence, absence d'écriture en
+simulation, audit et rollback. Aucun compte réel n'est utilisé par ces tests.
+
+Validation locale initiale du 23 novembre 2026 : neuf tests réussis avec cible Python 3.13,
 lint production/syntaxe/actionlint réussis ; 651 tests applicatifs et build Docker
 réussis. Un conteneur sans réseau vérifie l'absence d'Ansible et des inventaires
 dans l'image. Ces résultats ne valent pas recette sur le VPS.
+
+Complément promotion du même jour : **18 tests Ansible réussis**, dont neuf pour
+le transport ponctuel, et **675 tests applicatifs réussis** sur PostgreSQL.
+Lint/types/migrations/build réussis ; les quatre nouvelles options sont présentes
+dans l'image construite, Ansible et ses inventaires en restent absents. Aucun
+compte réel n'est promu ; première recette sur staging toujours à effectuer.
 
 ## Lots suivants proposés
 

@@ -217,3 +217,12 @@ existantes. Le rôle refuse une initialisation ou des répertoires redirigés et
 requiert une approbation explicite hors simulation. Les tests exécutent Ansible
 contre des fixtures locales synthétiques, jamais le VPS. La CD applicative garde
 la responsabilité des images/migrations/rollback. [Périmètre et procédure](infra/ansible/README.md).
+
+Le playbook ponctuel `promote-operator.yml` utilise le socket Docker local et les
+noms de conteneurs fixes staging/production, sous les mêmes verrous global puis
+environnement que la CD. La commande Django vérifie son contexte avant recherche
+de compte ; simulation sans écriture, relance idempotente opt-in et audit atomique
+à l'attribution. Cible/acteur actifs, vérifiés, adultes et non restreints toujours
+recontrôlés sous le verrou métier. Aucun changement de droits Linux ni rôle de
+déploiement ; l'exécutable Docker est remplacé seulement dans les tests locaux,
+la logique de promotion étant testée séparément sur PostgreSQL réel.

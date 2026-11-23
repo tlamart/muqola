@@ -20,11 +20,15 @@ def operator(user: User) -> None:
         raise PermissionDenied
 
 
-def audit(user: User, action: str, target: str, reason: str) -> None:
+def audit_reason(reason: str) -> str:
     if not reason.strip() or len(reason) > 500:
         raise ValidationError("Motif non sensible de 1 à 500 caractères obligatoire.")
+    return reason.strip()
+
+
+def audit(user: User, action: str, target: str, reason: str) -> None:
     OperatorAction.objects.create(
-        operator=user, action=action, target=target, reason=reason.strip()
+        operator=user, action=action, target=target, reason=audit_reason(reason)
     )
 
 

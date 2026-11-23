@@ -1,0 +1,8 @@
+---
+muqola_operator_targets:
+  production:
+    container: muqola-prod-web-1
+    release_lock: /var/lib/muqola/production/cd/release.lock
+  staging:
+    container: muqola-staging-web-1
+    release_lock: /var/lib/muqola/staging/cd/release.lock

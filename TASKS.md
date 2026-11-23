@@ -729,3 +729,31 @@ d'Ansible et du répertoire d'administration dans l'image. Audit des dépendance
 d'administration : aucune vulnérabilité connue. L'installation APT effective et
 le transport SSH/sudo ne sont pas exercés ; la première adoption réelle reste
 ouverte. Le résultat CI du commit final est indiqué dans la PR.
+
+### Complément — promotion ponctuelle d'un compte, accord du 23 novembre
+
+- [x] Playbook dédié, jamais appelé par audit/adopt, environnement/cible/confirmation
+  explicites, bootstrap ou acteur existant, simulation par défaut et dans --check,
+  double option d'application/approbation, paramètres personnels masqués.
+- [x] Appel argv sans shell au socket Docker local et aux noms de conteneurs fixes,
+  sous les verrous CD préexistants global/environnement ; refus sans création de
+  verrou si absent ou redirigé, arrêt immédiat si une opération est en cours.
+- [x] Étendre promote_operator : dry-run sans compte/audit écrit, if-needed sans
+  nouvelle écriture mais contrôles conservés, JSON minimal et contexte applicatif
+  vérifié avant recherche du compte. Préserver audit atomique et garde bootstrap.
+- [x] Valider les tests PostgreSQL de simulation/idempotence/permissions/rollback,
+  vrais playbooks locaux avec transport Docker remplacé, lint/types/migrations/build.
+- [x] Documenter commande et variables privées, prérequis d'image déployée et limites
+  de la simulation ; ne pas placer d'identité réelle dans l'inventaire versionné.
+- [ ] Recette sur staging après déploiement autorisé d'une image compatible ; aucune
+  habilitation réelle ou intervention VPS réalisée par cette PR.
+
+**Preuves finales du complément :** `scripts/check.sh` réussi, **675 tests
+applicatifs en 218,16 s**, dont bootstrap idempotent concurrent (une seule
+attribution/trace), Ruff/format, mypy (135 sources), Django, migrations sans
+dérive et statiques. **18 tests Ansible réussis en 204,70 s**, contrôle Python
+3.12/cible 3.13, dont neuf cas de transport de promotion avec Docker remplacé
+explicitement par une fixture. Ansible-lint profil production, syntaxe du
+playbook et actionlint réussis. Build Docker réussi ; contrôles sans réseau des
+quatre nouvelles options dans l'image et de l'absence d'Ansible/inventaire.
+Aucun accès SSH ni aucune promotion réelle sur le VPS n'ont été effectués.

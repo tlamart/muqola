@@ -7,6 +7,7 @@ on:
       - .github/workflows/ansible.yml
       - .gitignore
       - .dockerignore
+      - muqola/operations/management/commands/promote_operator.py
   push:
     branches: [main]
     paths:
@@ -14,6 +15,7 @@ on:
       - .github/workflows/ansible.yml
       - .gitignore
       - .dockerignore
+      - muqola/operations/management/commands/promote_operator.py
 permissions:
   contents: read
 concurrency:
@@ -52,6 +54,7 @@ jobs:
         run: |
           uv run --frozen ansible-playbook -i inventory.example.yml playbooks/audit.yml --syntax-check
           uv run --frozen ansible-playbook -i inventory.example.yml playbooks/adopt.yml --syntax-check
+          uv run --frozen ansible-playbook -i inventory.example.yml playbooks/promote-operator.yml --syntax-check
       - name: Adoption and privacy on temporary local fixtures only
         env:
           MUQOLA_TEST_PYTHON: ${{ steps.target.outputs.python-path }}

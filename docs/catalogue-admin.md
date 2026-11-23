@@ -36,6 +36,28 @@ L’adresse et le motif ne sont pas des secrets ; ne mettre aucun mot de passe d
 
 `createsuperuser` Django reste techniquement disponible pour créer un nouveau compte avec saisie interactive du mot de passe, mais ne vérifie pas son e-mail, ne recueille pas l’attestation et n’utilise pas cet audit de promotion. Préférer inscription réelle puis `promote_operator` pour cette procédure.
 
+## Promotion ponctuelle avec Ansible
+
+Le [playbook dédié](../infra/ansible/README.md#promotion-ponctuelle-dun-compte-muqola)
+appelle la même commande, sous les verrous CD global et environnement. Déployer
+d'abord une image compatible avec ses nouvelles options, puis préparer les
+paramètres privés sur le poste de confiance et simuler avant toute application.
+Aucune promotion n'est exécutée par les playbooks habituels d'audit/adoption.
+
+- `--dry-run` vérifie cible, acteur, motif et bootstrap sous le verrou métier,
+  sans modifier de compte ni créer d'audit.
+- `--if-needed` autorise une relance sans écriture si le compte est déjà staff et
+  superuser ; tous les contrôles restent actifs. Un bootstrap répété n'est permis
+  que si aucun autre superuser n'existe. Ce flag ne rétablit aucun compte inactif
+  ou restreint et ne force pas la récupération d'un opérateur historique.
+- `--deployment-env staging|production` exige `APP_ENV=production` et le contexte
+  de déploiement demandé avant même la recherche du compte.
+- `--json` expose seulement statut (`would_promote`, `promoted`, `unchanged`),
+  simulation et environnement ; aucun e-mail, mot de passe ou motif en sortie.
+
+Les usages manuels existants sans ces options restent compatibles : une promotion
+déjà effectuée reste refusée par défaut. Aucun changement de schéma requis.
+
 ## Schéma et exploitation
 
 Activation de `django.contrib.admin.apps.SimpleAdminConfig` sans autodécouverte. Les migrations Django standard `admin` ajoutent `django_admin_log` ; aucune migration Muqola ni transformation de données métier. Le journal métier demeure celui des services, pas `LogEntry`. En production, appliquer les migrations avec le service de maintenance et réattribuer les droits runtime par la procédure existante ; le rôle web ne fait pas de DDL. Contrôler `migrate --plan`, sauvegarde et retour compatible avant déploiement autorisé. La table admin additionnelle peut rester en place lors d’un retour à l’image précédente ; ne pas supprimer les traces ni inverser le schéma pour revenir au code antérieur.

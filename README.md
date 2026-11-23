@@ -68,6 +68,11 @@ Inventaire privé hors Git, dépendances d'administration séparées du runtime,
 tests locaux synthétiques sans accès VPS. Ce premier lot conserve le contrôleur,
 les unités/alertes personnalisées, les secrets et Caddy ; leur gestion suivra par
 lots revus. Les déploiements applicatifs restent dans le flux GitHub `plan/apply`.
+Un [playbook ponctuel de promotion](infra/ansible/README.md#promotion-ponctuelle-dun-compte-muqola)
+utilise la commande applicative auditée : simulation par défaut, environnement et
+compte explicites, approbation avant attribution des droits Muqola. Une image
+compatible doit d'abord être déployée ; aucune promotion réelle n'est effectuée
+par la CI ou l'adoption des permissions.
 
 ## Images GHCR et promotion
 

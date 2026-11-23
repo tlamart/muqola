@@ -1,0 +1,8 @@
+---
+- name: Promouvoir ponctuellement un compte Muqola existant
+  hosts: muqola_vps
+  gather_facts: false
+  become: true
+  any_errors_fatal: true
+  roles:
+    - role: muqola_operator
