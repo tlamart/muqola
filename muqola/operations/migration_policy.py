@@ -25,4 +25,7 @@ REVIEWED: dict[str, str] = {
     "operations/0002_privacyreceipt_inactivitynotice": "037794b7ca10f0b6a7b7be6a3a4f10dace7df38a8cd8c49c61dab9944cbaf1f7",
     "operations/0003_privacyhold": "a78a10f4185f1c2426e902b0ac8e351ac3e43b4b0b29daa63c842c90d5a359a7",
     "identity/0005_remove_accounttoken_identity_token_purpose_and_more": "68555a014068137b692f1230521986ab3deead2c4f719311015c31b7538e3244",
+    "admin/0001_initial": "f4716989d9815b6231f0d7291754835e008c96818447fe57984bbf8985883335",
+    "admin/0002_logentry_remove_auto_add": "2c127e659a2236edea0ed57eccd38786ae84e365790a80b96b758c617f50be43",
+    "admin/0003_logentry_add_action_flag_choices": "02700a827190720e5c417495a395071b6baa28a34e74bc8f90824afaafc01841",
 }

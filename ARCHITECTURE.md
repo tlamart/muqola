@@ -193,3 +193,11 @@ avec marge sous le plafond sept jours. Le contrôleur lie le modèle et l'option
 plan CD ; le monitor lit ce namespace. L'hôte/global/Caddy et les volumes ne sont
 jamais modifiés automatiquement. Installation séparée des scripts/units et recette
 sur VPS requises. [Procédure, décisions et limites](docs/confidentialite-conservation.md).
+
+## Revue web du catalogue
+
+Le site `/operator/` est un AdminSite Django dédié, sans autodécouverte ni CRUD
+générique. Connexion applicative existante et contrôle staff/superuser actif,
+vérifié/adulte ; décisions exclusivement via les services de modération et
+leur audit transactionnel. Le formulaire signé protège des revues périmées.
+[Amorçage audité, droits, migrations et tests](docs/catalogue-admin.md).

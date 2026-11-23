@@ -1,7 +1,10 @@
+import json
 from datetime import timedelta
+from io import StringIO
 from uuid import uuid4
 
 import pytest
+from django.core.management import call_command
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.utils import timezone
@@ -22,7 +25,7 @@ def test_additive_privacy_migrations_preserve_every_loan_state_and_do_not_erase_
             "operations": "0001_initial",
             "catalogue": "0002_wikidata_catalogue",
         }
-        previous = [(app, previous_names.get(app, name)) for app, name in latest]
+        previous = [(app, previous_names.get(app, name)) for app, name in latest if app != "admin"]
         executor.migrate(previous)
         state = executor.loader.project_state(previous).apps
         User = state.get_model("identity", "User")
@@ -55,6 +58,15 @@ def test_additive_privacy_migrations_preserve_every_loan_state_and_do_not_erase_
         before = list(Loan.objects.order_by("pk").values())
         with connection.cursor() as cursor:
             cursor.execute(f"SET search_path TO {schema}, public")
+        output = StringIO()
+        call_command("release_snapshot", stdout=output)
+        pending = json.loads(output.getvalue())["pending"]
+        assert {
+            "admin/0001_initial",
+            "admin/0002_logentry_remove_auto_add",
+            "admin/0003_logentry_add_action_flag_choices",
+        } <= {item["migration"] for item in pending}
+        assert all(item["reviewed"] for item in pending)
         executor = MigrationExecutor(connection)
         executor.migrate(latest)
         current = executor.loader.project_state(latest).apps

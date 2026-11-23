@@ -30,6 +30,7 @@ if len(SECRET_KEY) < 50 or SECRET_KEY.startswith("CHANGE_ME"):
     raise ImproperlyConfigured("DJANGO_SECRET_KEY doit contenir au moins 50 caractères aléatoires.")
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1,[::1]").split(",")
 INSTALLED_APPS = [
+    "django.contrib.admin.apps.SimpleAdminConfig",
     "django.contrib.postgres",
     "django.contrib.auth",
     "django.contrib.contenttypes",

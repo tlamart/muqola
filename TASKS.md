@@ -673,3 +673,25 @@ cache local désactivé ; syntaxe des deux unités validée hors ligne avec dép
 de démarrage isolées. La rétention journald en fonctionnement et la recette VPS
 restent ouvertes. Une exécution de tests superposée a été écartée ; le résultat
 ci-dessus provient d'une exécution unique dans une base synthétique distincte.
+
+## Administration web minimale du catalogue — périmètre validé le 22 novembre 2026
+
+Complément à B.6 (moteur et CLI déjà livrés), sans réimplémenter la modération.
+
+- [x] Amorçage/promotion explicite d’un compte existant vérifié/adulte, accès OS de confiance, audit atomique et garde premier superuser.
+- [x] AdminSite dédié, connexion applicative existante, droits staff/superuser actifs/vérifiés/adultes revérifiés ; aucun CRUD générique.
+- [x] File paginée, filtres, détail, doublons/similaires et historique ; approbation/rejet/corrections via services métier.
+- [x] CSRF, rate limit, formulaire périmé signé, audit/rollback ; préserver exemplaires, partages et prêts.
+- [x] Suite complète (611 tests), lint/types/migrations et smoke navigateur local à 360/768/1280 px.
+Résultat de la CI de la tête finale : consigné dans la description de PR.
+- [x] Runbook premier opérateur et documentation du schéma/retour compatible.
+- [ ] Validation sur staging après déploiement explicitement autorisé par l’exploitant ; aucune intervention production dans cette PR.
+
+**Réconciliation avec #40, 23 novembre :** conserver les deux sections de
+README/ARCHITECTURE/TASKS et le site opérateur. Suite combinée : **651 tests
+réussis** (136,75 s), lint/format, mypy et migrations sans dérive. Les trois
+migrations standard `admin` de Django 5.2.19 ont été lues et leurs empreintes
+exactes ajoutées à la politique CD ; une base synthétique antérieure à l'admin
+et à la conservation vérifie que le plan reconnaît toutes les migrations et
+préserve les six états de prêt. Les 68 tests migration/CD concernés passent
+après ce complément. Aucune migration de production n'est exécutée.

@@ -630,3 +630,9 @@ minimales six mois ; support un mois et diagnostics trente jours sous procédure
 manuelle. Rétention des journaux sept jours : **installation hôte et validation
 séparées**, rotation en volume seule insuffisante. Le modèle légal est à compléter
 et revoir, sans publication ni effacement de production par cette PR.
+
+## Administration du catalogue
+
+Le site opérateur `/operator/` permet la revue et les décisions via les services
+métier existants, avec accès superuser/staff actif, vérifié et adulte.
+[Premier opérateur, permissions, migrations et tests](docs/catalogue-admin.md).
