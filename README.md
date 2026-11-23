@@ -94,13 +94,31 @@ configurés par l'exploitant. Ils serviront au lot CD manuel ; **aucun droit sud
 ou Docker supplémentaire n'est nécessaire à VPS_USER pour ce lot GHCR**.
 Aucun déploiement ni accès SSH depuis cette PR.
 
-## CD manuel : plan puis application
+## Staging automatique après fusion sur main
+
+Après succès complet de `Muqola checks` sur un push `main` (tests **et** publication
+GHCR), `Automatic staging delivery` livre automatiquement le digest publié au
+**staging uniquement**. Il produit puis applique son propre plan dans le même run,
+sans saisie de `publication_run`, `plan_run` ou `plan_hash`. Les contrôles de
+provenance, sauvegarde/restauration, capacité, migrations et HTTPS restent actifs.
+Un commit dépassé par un nouveau main est ignoré avant application ; une livraison
+déjà commencée n'est pas annulée. Aucune promotion de compte n'est automatisée.
+
+Le workflow utilise l'environnement GitHub `staging` et ses variables/secrets SSH
+existants. Pour fonctionner sans clic, cet environnement doit autoriser `main`
+sans approbation obligatoire ni attente manuelle. **Conserver les protections de
+`production`**. La fusion de cette PR active le nouveau flux ; aucun déploiement
+réel n'est effectué pendant sa préparation. Le contrôleur hôte existant est réutilisé.
+[Fonctionnement, prérequis, échecs et reprise](docs/staging-automatique.md).
+
+## CD manuel : production et interventions staging
 
 Le workflow `Manual Muqola delivery` est déclenché volontairement sur main.
 Choisir staging/production, digest publié, run/tentative de publication et `plan`.
 Lire l'artefact `muqola-plan-<environnement>-<tentative>`, puis lancer un **second
 run** `apply` avec son run ID et son hash exact après revue. Le nom du run affiche
-l'opération et la référence d'approbation. Aucune livraison sur push/PR.
+l'opération et la référence d'approbation. La production reste exclusivement
+manuelle ; le staging suit aussi le flux automatique décrit ci-dessus.
 
 Provenance revérifiée, SSH strict avec les variables/secrets déjà configurés,
 verrou hôte, sauvegarde/restauration/capacité obligatoires et migrations connues
@@ -219,12 +237,12 @@ export POSTGRES_HOST=127.0.0.1 POSTGRES_PORT=55432 EMAIL_PORT=11025 PYTHONPATH="
 
 Le rôle de base local/CI peut créer la base de tests éphémère `test_muqola` ;
 ce rôle est réservé au développement, pas à la production.
-Les workflows CI, publication GHCR et CD manuel utilisent explicitement
+Les workflows CI, publication GHCR, CD manuel et staging automatique utilisent explicitement
 `ubuntu-24.04`, afin de dissocier une migration d’Ubuntu des mises à jour de
 `ubuntu-latest`. Leurs actions JavaScript utilisent Node.js 24 et sont fixées
 par SHA de commit, avec la version lisible en commentaire. Pour les mettre à
 jour, relire les notes de version, vérifier le runtime et les entrées/sorties,
-puis valider les deux workflows avec `actionlint` et la CI. Le Node.js des
+puis valider les workflows avec `actionlint` et la CI. Le Node.js des
 actions est indépendant du runtime Python de l’application et du VPS.
 
 Les tests Docker de production et de staging demandent un sous-réseau libre à
@@ -255,7 +273,8 @@ de cookies réels seront validés au lot 6. Ce contrôle ne vaut pas homologatio
 
 La CI GitHub répète ces contrôles, vérifie le lock runtime généré, audite les
 dépendances runtime et démarre un Compose propre (build Docker + migrations +
-healthcheck + vraie capture SMTP locale). Aucun déploiement automatique.
+healthcheck + vraie capture SMTP locale). Son succès sur main déclenche ensuite
+le workflow de livraison automatique du staging ; aucun déploiement de production.
 Les tests de configuration vérifient qu'en production, l'origine CSRF autorisée
 est exactement `APP_BASE_URL`, même en présence de variables Codespaces ; les
 cookies sécurisés et la redirection HTTPS restent obligatoires.

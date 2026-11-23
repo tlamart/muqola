@@ -757,3 +757,41 @@ explicitement par une fixture. Ansible-lint profil production, syntaxe du
 playbook et actionlint réussis. Build Docker réussi ; contrôles sans réseau des
 quatre nouvelles options dans l'image et de l'absence d'Ansible/inventaire.
 Aucun accès SSH ni aucune promotion réelle sur le VPS n'ont été effectués.
+
+## CD — staging automatique après main (accord du 23 novembre 2026)
+
+Branche `ci/staging-auto-deploy`, depuis `origin/main` `70dc136`.
+Cette demande remplace le plan/apply manuel systématique pour staging/deploy ;
+production, rollback, restauration et promotion opérateur restent manuels.
+[Flux, prérequis GitHub, preuves et reprise](docs/staging-automatique.md).
+
+- [x] Déclencher un workflow distinct après succès complet de la CI push/main,
+  publication comprise ; refuser PR/fork/autre dépôt, tentative ou preuve étrangère.
+- [x] Reprendre le digest testé et les assets au commit publié ; revérifier la
+  provenance avant plan et apply, ignorer les candidats dépassés par main.
+- [x] Plan et apply staging dans le même run avec hash/nonce exacts ; réutiliser
+  transport SSH strict et contrôleur hôte sans modifier les gates de sauvegarde,
+  restauration, capacité, migrations connues, readiness et HTTPS privé.
+- [x] Conserver flux manuel/approbations production, verrou partagé staging,
+  non-annulation des opérations en cours et échec sans retry/rollback/restore.
+- [x] Documenter activation après fusion, règles de l'environnement GitHub staging,
+  prérequis hôte, artefacts et reprise ; ne pas automatiser la promotion de comptes.
+- [x] Vérifier la suite complète, lint/types/migrations, actionlint, build et
+  exercice staging/CD synthétique ; consigner les résultats effectifs dans la PR.
+- [ ] Après fusion : attester premier déclenchement automatique, digest livré,
+  santé privée et absence d'impact production ; vérifier les règles GitHub staging
+  pour ne pas conserver une approbation manuelle involontaire.
+
+Aucun déploiement réel, SSH/VPS, habilitation ou modification de production n'est
+effectué pendant cette implémentation. La première recette cible reste distincte.
+
+**Preuves locales :** `scripts/check.sh` réussi, **723 tests PostgreSQL en
+113,35 s**, Ruff/format, mypy (136 sources), Django, migrations sans dérive et
+statiques ; contrôle production et plan de migrations vide. Build Docker et
+actionlint 1.7.12 réussis. Exercice Docker staging/CD réussi : accès privé/capture,
+production témoin inchangée, persistance/volumes, cycles de livraison, refus de
+doublon, rollback d'image et reprise après échec santé. Les 48 nouveaux tests
+couvrent source/provenance/artefact/plan, dépassement de main, transport partagé
+et arrêt sans retry. Les métriques capacité restent invalides faute de cgroups
+dans ce Docker local ; aucune validation de capacité VPS n'est revendiquée.
+La CI du commit final est suivie dans la PR.

@@ -153,6 +153,24 @@ Pas de recréation DB/capture, build, restore ou downgrade implicite. Une tentat
 interrompue impose inspection/nouveau plan, les migrations encore actives bloquent
 la reprise. Rollback limité aux versions CD avec schéma identique, sans migration.
 
+## Livraison automatique du staging — accord du 23 novembre 2026
+
+Un workflow `workflow_run` distinct attend la fin réussie de la CI push/main,
+publication comprise. Il n'exécute jamais de code de PR : checkout du main de
+confiance, gardes dépôt/source/événement/workflow, puis relecture GitHub/GHCR.
+La référence main est revérifiée avant plan et application pour ignorer un ancien
+candidat en attente. L'image déployée est le digest testé, sans reconstruction.
+
+Le transport partagé conserve SSH strict, liste d'assets, secrets sur stdin et
+contrôleur hôte inchangé. Seul staging/deploy est accessible au nouvel orchestrateur :
+plan produit et hash vérifiés dans le même processus, provenance revérifiée avant
+application, nonce/état et tous les prérequis revérifiés par le contrôleur hôte.
+Concurrence `delivery-staging` partagée avec le manuel, sans annulation d'une
+livraison en cours ; les verrous hôte commun/environnement restent actifs.
+Échec fermé sans retry/rollback/restore automatique. La production conserve son
+workflow manuel et ses approbations ; la promotion des comptes reste distincte.
+[Prérequis GitHub, preuves et reprise](docs/staging-automatique.md).
+
 ## Gestion UI et préparation d’exemplaire
 
 Les fenêtres sont une amélioration de sections HTML `details` autorisées côté

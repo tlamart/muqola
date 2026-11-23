@@ -1,4 +1,4 @@
-"""Trusted runner transport; no VPS connection except explicit manual workflow execution."""
+"""Trusted runner transport shared by manual delivery and automatic staging."""
 
 import argparse
 import base64
@@ -151,6 +151,11 @@ def deliver(args: argparse.Namespace) -> dict[str, Any]:
         plan = approved_plan(args.environment, args.plan_run, args.plan_hash)["plan"]
         if plan["image"] != args.image or plan["kind"] != args.kind:
             raise OperationError("plan_target_mismatch")
+    return transport(args, publication)
+
+
+def transport(args: argparse.Namespace, publication: dict[str, Any]) -> dict[str, Any]:
+    """Transfer verified assets and request one operation, after caller authorization."""
     commit = publication["commit"]
     if not SHA.fullmatch(commit):
         raise OperationError("invalid_release_commit")
