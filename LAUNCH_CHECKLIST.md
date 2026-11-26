@@ -15,12 +15,24 @@ attestation, complétée par les tests automatisés identifiés dans le bilan.
 Le même digest `434632e9…` a été livré avec succès au staging automatiquement
 ([45784466562](https://github.com/tlamart/muqola/actions/runs/45784466562)) puis en
 production manuellement ([45801974696](https://github.com/tlamart/muqola/actions/runs/45801974696)).
-La CI du main suivant (`8384d42`) a échoué au téléchargement d'`age` (HTTP 504),
-avant le smoke de restauration ; sa nouvelle tentative est suivie séparément.
+La CI du main suivant (`8384d42`), initialement arrêtée sur HTTP 504 au
+téléchargement d'`age`, est réussie à la tentative 2, avec publication puis
+[livraison staging 45896131034](https://github.com/tlamart/muqola/actions/runs/45896131034)
+du digest `853aae03…`. La production reste sur la livraison `434632e9…` ci-dessus.
 Le correctif #45 du contrôleur hôte n'est pas réputé installé par sa seule fusion.
 
-Restent à confirmer les preuves d'exploitation, la rétention/effacement effectifs,
-la revue légale et les compléments techniques explicitement laissés ouverts.
+Le propriétaire a confirmé les sauvegardes externes/restauration, alertes,
+capacité, e-mails réels et rétention des journaux sur le VPS, puis la relecture
+et publication des quatre documents légaux complets. Ces validations sont
+consignées comme **attestations du propriétaire**, sans audit VPS exécuté par Codex.
+Les détails supplémentaires non mentionnés dans les questions (par exemple quotas,
+RPO/RTO chiffrés, DNS du fournisseur ou anciennes copies de journaux) ne sont pas
+validés par extrapolation : leurs lignes composites restent ouvertes.
+
+La recette complète de suppression n'est **pas encore entièrement testée**, selon
+sa réponse explicite. Son [protocole staging](docs/recette-confidentialite-staging.md)
+est préparé ; les critères correspondants et les autres contrôles composites
+dépassant les confirmations reçues restent ouverts.
 La validation sur téléphone ne vaut pas audit des contrastes ou de tous les écrans.
 
 ### Historique — point de situation du 23 novembre 2026
@@ -50,6 +62,10 @@ leur portée ; les cases cochées ici sont reliées à une preuve identifiée.
 - [ ] Mobile : compléter la revue de tous les écrans à 360 px, de la navigation clavier et des contrastes ; le parcours sur téléphone réel est confirmé ci-dessus.
 
 ## Infrastructure et sécurité
+
+- [x] Sauvegardes externes et restauration, alertes, capacité VPS, e-mails réels et rétention des journaux : vérifiés selon l’attestation du propriétaire du 26 novembre ; détails complémentaires des critères ci-dessous à conserver distincts.
+
+Preuves : livraisons tracées et [attestation d'exploitation du 26 novembre](docs/recette-2026-11-26.md#attestations-complémentaires). Les clauses supplémentaires d'une ligne composite restent à attester lorsqu'elles ne sont pas couvertes.
 - [ ] **BLOQUANT** : Caddy commun seul exposé, web seul sur `proxy` sous `muqola-web`, DB/worker privés ; IP Caddy stable/exacte, en-têtes et limites vérifiés ; autre site disponible pendant reload, aucun secret dans les logs d'erreur.
 - [x] **BLOQUANT** : image GHCR par digest, provenance main validée et disponibilité vérifiées ; contrôle `deploy.check_config` réussi ; aucune image locale/build sur le VPS. **Preuve :** applies staging/production ci-dessus, validation Compose appelée par le contrôleur et pull sans build ; périmètre des versions livrées, voir bilan.
 - [ ] **BLOQUANT** : Compose de production séparé du Compose local (Mailpit interdit en production), `APP_ENV=production`, URL HTTPS, proxy de confiance, cookies sécurisés, secrets distincts, services internes non publiés et rôle PostgreSQL à privilèges minimaux.
@@ -63,20 +79,23 @@ leur portée ; les cases cochées ici sont reliées à une preuve identifiée.
 
 ## Catalogue et droits de réutilisation
 - [ ] Catalogue neuf vide, sans ancien import BGG/Wikidata ; si données héritées, inventaire et revue des droits avant publication, sans suppression automatique. Aucune commande d'import historique recommandée au lancement.
-- [ ] Vérifier absence de seed/import dans démarrage, migrations et déploiement, et exclusion des catalogues réels de Git/images ; les identifiants externes facultatifs ne déclenchent aucune intégration.
+- [x] Vérifier absence de seed/import dans démarrage, migrations et déploiement, et exclusion des catalogues réels de Git/images ; les identifiants externes facultatifs ne déclenchent aucune intégration.
 
 ## Légal, vie privée et contact
-- [ ] **BLOQUANT** : mentions légales complétées avec exploitant, responsable du traitement, hébergeur et contact réels.
+
+Les quatre textes sont déclarés relus et publiés. Le traitement effectif des droits
+reste distinct : la recette complète d'effacement n'est pas encore confirmée.
+- [x] **BLOQUANT** : mentions légales complétées avec exploitant, responsable du traitement, hébergeur et contact réels.
 - [ ] **BLOQUANT** : politique de confidentialité et durées de conservation réellement applicables, informations sur les e-mails et leur partage lors des prêts ; traitement des droits RGPD.
-- [ ] **BLOQUANT** : CGU cohérentes avec un service gratuit de mise en relation, précisant responsabilités et règles de prêt.
+- [x] **BLOQUANT** : CGU cohérentes avec un service gratuit de mise en relation, précisant responsabilités et règles de prêt.
 - [ ] **BLOQUANT** : procédure effective de **traitement** des demandes de suppression de compte déjà enregistrables, gestion des prêts actifs, délais et conservation ; contact de support fonctionnel.
 - [ ] **BLOQUANT** : bêta **18+ exclusivement** (décision définitive), vérifier sur le vrai site la case non précochée, le contrôle serveur, les anciens comptes et la clôture des prêts ; CGU revues cohérentes.
-- [ ] Ne pas intégrer de traceurs facultatifs sans traiter les exigences de consentement applicables.
+- [x] Ne pas intégrer de traceurs facultatifs sans traiter les exigences de consentement applicables.
 - [ ] Vérifier disponibilité du nom/domaine et risques de conflit de marque.
 
 ## Validation finale
 - [ ] Contrôles de production (`check --deploy`), CI, tests de permissions/IDOR et de concurrence PostgreSQL, tests navigateur et HTTPS/cookies réels exécutés ; résultats documentés.
-- [ ] Plan de migration, sauvegarde préalable, procédure de rollback et d'incident validés ; aucune opération de production sans autorisation humaine explicite.
+- [x] Plan de migration, sauvegarde préalable, procédure de rollback et d'incident validés ; aucune opération de production sans autorisation humaine explicite.
 - [x] Le propriétaire du projet teste lui-même le parcours complet en production avec deux comptes et un jeu factice. **Attestation :** confirmation des points 1 et 2 sur les deux cibles, le 26 novembre.
 - [ ] Le projet a une version identifiée/taguée et une méthode de revenir à la précédente.
 - [ ] Les fonctionnalités hors MVP n'ont pas retardé les contrôles critiques ci-dessus.
@@ -99,7 +118,7 @@ leur portée ; les cases cochées ici sont reliées à une preuve identifiée.
 - [ ] Capture SMTP interne sans relais ni credentials Brevo, UI non publiée, contrôle staging réussi ; portes 18+/légales conservées.
 - [ ] Capacité mesurée sur le VPS sous charge/migration autorisées, marge validée et admission réussie ; staging arrêté hors usage.
 - [ ] Plan de migration revu/appliqué explicitement, start/stop/restart et production témoin vérifiés ; aucune suppression de volume.
-- [ ] Sonde HTTPS privée et monitoring utilisés lorsque staging actif, sauvegardes/états séparés si conservation nécessaire.
+- [x] Sonde HTTPS privée et monitoring utilisés lorsque staging actif, sauvegardes/états séparés si conservation nécessaire.
 
 ## Publication GHCR — contrôles réels après fusion
 
@@ -107,7 +126,7 @@ leur portée ; les cases cochées ici sont reliées à une preuve identifiée.
 
 - [ ] Premier run main : checks et publish réussis, package lié au dépôt, visibilité et droits revus.
 - [ ] Digest/commit/run/tentative et preuve distante vérifiés avec `deploy.image_provenance` ; conservation des preuves et digests de rollback.
-- [ ] Architecture VPS compatible avec l'image linux/amd64, accès registre en lecture défini si privé.
+- [x] Architecture VPS compatible avec l'image linux/amd64, accès registre en lecture défini si privé.
 - [ ] Environnements staging/production : restrictions main, approbations disponibles et empreintes SSH revues ; droits VPS à préciser au lot CD, aucun ajout requis pour GHCR.
 
 La préparation/test synthétique GHCR ne valide ni capacité VPS, ni déploiement,
@@ -120,7 +139,7 @@ ni SMTP réel, ni ouverture publique. Les conditions précédentes restent requi
 - [ ] Contrôleur revu installé, compte dédié et accès au démon Docker approuvés, configs/états/secrets privés lisibles par l'opérateur.
 - [ ] Références Compose/volumes existants inventoriées, adoption ou bootstrap revu sans reset ; image publiée après ajout du protocole CD.
 - [ ] Restrictions main, host keys hors bande et reviewers/fallback de revue testés ; jeton registre éphémère et SSH réel validés dans un créneau autorisé.
-- [ ] Sauvegarde externe récente et compte rendu de restauration réelle, capacité 4 Go et alertes validés.
+- [x] Sauvegarde externe récente et compte rendu de restauration réelle, capacité 4 Go et alertes validés.
 - [ ] Plan lu, hash approuvé, application staging puis promotion du même digest, reprise/rollback autorisés éprouvés sur cible.
 
 Les tests synthétiques du contrôleur et la CI ne cochent pas ces validations.
@@ -135,7 +154,8 @@ Les trois passages automatiques de supervision des 22 novembre 20:40, 20:46 et
 - [x] Déployer la préparation de [conservation](docs/confidentialite-conservation.md)
   après tests, revue/migrations additives et sauvegarde autorisées séparément.
   **Preuve de livraison :** production 45801974696, image `434632e9…`, schéma
-  `5b2f00a1…` identique au staging ; l'effacement et la rétention hôte restent à recetter.
+  `5b2f00a1…` identique au staging ; l'effacement reste à recetter, la rétention
+  des journaux a été confirmée par le propriétaire le 26 novembre.
 - [ ] Éprouver restriction/effacement et clôture des prêts sur comptes synthétiques,
   y compris exception temporaire, préavis non remis, reconnexion et restauration.
 - [ ] Installer/vérifier la rétention hôte sept jours et les anciennes copies, sans
