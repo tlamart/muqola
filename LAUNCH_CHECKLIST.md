@@ -4,7 +4,26 @@
 >
 > **No-go** si une ligne marquée **BLOQUANT** n'est pas satisfaite. Les coordonnées et informations légales doivent être fournies par l'exploitant, et non inventées par Codex. La bêta signifie inscriptions publiques, communautés privées.
 
-## Point de situation — 23 novembre 2026
+## Point de situation — 26 novembre 2026
+
+[Recette confirmée par le propriétaire et preuves datées](docs/recette-2026-11-26.md).
+Le propriétaire confirme la promotion opérateur, les tests de modération et le
+parcours complet avec deux comptes, permissions et téléphone réel **sur le staging
+et la production**. Les cases fonctionnelles ci-dessous s'appuient sur cette
+attestation, complétée par les tests automatisés identifiés dans le bilan.
+
+Le même digest `434632e9…` a été livré avec succès au staging automatiquement
+([45784466562](https://github.com/tlamart/muqola/actions/runs/45784466562)) puis en
+production manuellement ([45801974696](https://github.com/tlamart/muqola/actions/runs/45801974696)).
+La CI du main suivant (`8384d42`) a échoué au téléchargement d'`age` (HTTP 504),
+avant le smoke de restauration ; sa nouvelle tentative est suivie séparément.
+Le correctif #45 du contrôleur hôte n'est pas réputé installé par sa seule fusion.
+
+Restent à confirmer les preuves d'exploitation, la rétention/effacement effectifs,
+la revue légale et les compléments techniques explicitement laissés ouverts.
+La validation sur téléphone ne vaut pas audit des contrastes ou de tous les écrans.
+
+### Historique — point de situation du 23 novembre 2026
 
 [Preuves de livraison et protocole de recette](docs/recette-staging-2026-11-23.md).
 Le dernier apply staging tracé a réussi : [45153646180](https://github.com/tlamart/muqola/actions/runs/45153646180),
@@ -19,14 +38,16 @@ d’entre elles n’est pas attestée. Les validations historiques ci-dessous ga
 leur portée ; les cases cochées ici sont reliées à une preuve identifiée.
 
 ## Parcours réellement opérationnels
-- [ ] **BLOQUANT** : inscription sans invitation, vérification e-mail réelle, connexion et réinitialisation du mot de passe.
-- [ ] **BLOQUANT** : lien de communauté partageable, permanent par défaut et révocable/régénérable par admin, copiable par tout membre ; vérification e-mail et confirmation explicite, ancien lien invalidé, y compris pendant une inscription.
-- [ ] **BLOQUANT** : proposition titre seul, validation administrative avec type/base requis et revue des doublons ; recherche de fiche validée par titre/alias/fautes, ajout d'exemplaire sans communauté, contrôle des visibilités, indicateur pending et absence de fuite vers une communauté non autorisée (aucun upload photo).
-- [ ] **BLOQUANT** : demande, acceptation, remise et retour d'un jeu avec date future ; test avec deux comptes distincts.
-- [ ] **BLOQUANT** : impossible d'accepter deux prêts simultanés pour un même exemplaire (test PostgreSQL).
-- [ ] **BLOQUANT** : aucun accès croisé entre communautés par API/URL ; prêts déjà acceptés clôturables après retrait d'un membre.
+- [x] **BLOQUANT** : inscription sans invitation, vérification e-mail réelle, connexion et réinitialisation du mot de passe.
+- [x] **BLOQUANT** : lien de communauté partageable, permanent par défaut et révocable/régénérable par admin, copiable par tout membre ; vérification e-mail et confirmation explicite, ancien lien invalidé, y compris pendant une inscription.
+- [x] **BLOQUANT** : proposition titre seul, validation administrative avec type/base requis et revue des doublons ; recherche de fiche validée par titre/alias/fautes, ajout d'exemplaire sans communauté, contrôle des visibilités, indicateur pending et absence de fuite vers une communauté non autorisée (aucun upload photo).
+- [x] **BLOQUANT** : promotion opérateur effective, consultation des fiches en attente, approbation, rejet et demande de corrections ; permissions de modération contrôlées sur les deux cibles.
+- [x] **BLOQUANT** : demande, acceptation, remise et retour d'un jeu avec date future ; test avec deux comptes distincts.
+- [x] **BLOQUANT** : impossible d'accepter deux prêts simultanés pour un même exemplaire (test PostgreSQL). **Preuve automatisée :** CI de la version livrée, tests concurrents et index partiel ; pas une mesure de charge VPS.
+- [x] **BLOQUANT** : aucun accès croisé entre communautés par API/URL ; prêts déjà acceptés clôturables après retrait d'un membre.
 - [ ] **BLOQUANT** : migration sur base peuplée et fusion de fiches sans perte de propriétaires/exemplaires/prêts ; catalogue neuf vide, aucun ancien import BGG/Wikidata ni catalogue réel versionné.
-- [ ] Mobile : parcourir tous les écrans à 360 px et sur un vrai téléphone ; navigation clavier et contrastes.
+- [x] Parcours complet sur un vrai téléphone : confirmé par le propriétaire sur staging et production le 26 novembre.
+- [ ] Mobile : compléter la revue de tous les écrans à 360 px, de la navigation clavier et des contrastes ; le parcours sur téléphone réel est confirmé ci-dessus.
 
 ## Infrastructure et sécurité
 - [ ] **BLOQUANT** : Caddy commun seul exposé, web seul sur `proxy` sous `muqola-web`, DB/worker privés ; IP Caddy stable/exacte, en-têtes et limites vérifiés ; autre site disponible pendant reload, aucun secret dans les logs d'erreur.
@@ -56,7 +77,7 @@ leur portée ; les cases cochées ici sont reliées à une preuve identifiée.
 ## Validation finale
 - [ ] Contrôles de production (`check --deploy`), CI, tests de permissions/IDOR et de concurrence PostgreSQL, tests navigateur et HTTPS/cookies réels exécutés ; résultats documentés.
 - [ ] Plan de migration, sauvegarde préalable, procédure de rollback et d'incident validés ; aucune opération de production sans autorisation humaine explicite.
-- [ ] Le propriétaire du projet teste lui-même le parcours complet en production avec deux comptes et un jeu factice.
+- [x] Le propriétaire du projet teste lui-même le parcours complet en production avec deux comptes et un jeu factice. **Attestation :** confirmation des points 1 et 2 sur les deux cibles, le 26 novembre.
 - [ ] Le projet a une version identifiée/taguée et une méthode de revenir à la précédente.
 - [ ] Les fonctionnalités hors MVP n'ont pas retardé les contrôles critiques ci-dessus.
 
@@ -111,8 +132,10 @@ a été confirmée par l'exploitant après la livraison [45064624690](https://gi
 Les trois passages automatiques de supervision des 22 novembre 20:40, 20:46 et
 20:51 UTC sont réussis. Cela ne valide pas le code de conservation ajouté ensuite.
 
-- [ ] Déployer la préparation de [conservation](docs/confidentialite-conservation.md)
+- [x] Déployer la préparation de [conservation](docs/confidentialite-conservation.md)
   après tests, revue/migrations additives et sauvegarde autorisées séparément.
+  **Preuve de livraison :** production 45801974696, image `434632e9…`, schéma
+  `5b2f00a1…` identique au staging ; l'effacement et la rétention hôte restent à recetter.
 - [ ] Éprouver restriction/effacement et clôture des prêts sur comptes synthétiques,
   y compris exception temporaire, préavis non remis, reconnexion et restauration.
 - [ ] Installer/vérifier la rétention hôte sept jours et les anciennes copies, sans

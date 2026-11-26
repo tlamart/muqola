@@ -685,7 +685,7 @@ Complément à B.6 (moteur et CLI déjà livrés), sans réimplémenter la modé
 - [x] Suite complète (611 tests), lint/types/migrations et smoke navigateur local à 360/768/1280 px.
 Résultat de la CI de la tête finale : consigné dans la description de PR.
 - [x] Runbook premier opérateur et documentation du schéma/retour compatible.
-- [ ] Validation sur staging après déploiement explicitement autorisé par l’exploitant ; aucune intervention production dans cette PR.
+- [x] Validation de l'administration du catalogue sur staging après déploiement : **actualisation du 26 novembre**, promotion et modération confirmées par le propriétaire sur staging et production. [Attestation et portée](docs/recette-2026-11-26.md). La PR d'implémentation n'avait effectué aucune intervention réelle.
 
 **Réconciliation avec #40, 23 novembre :** conserver les deux sections de
 README/ARCHITECTURE/TASKS et le site opérateur. Suite combinée : **651 tests
@@ -803,7 +803,7 @@ La CI du commit final est suivie dans la PR.
 - [x] Vérifier les runs de publication, plan/apply et versions effectivement livrées : staging 45153646180 et production 45064624690, tous deux réussis.
 - [x] Relier les contrôles du contrôleur aux preuves et réconcilier les cases strictement attestées de LAUNCH_CHECKLIST ; distinguer livraison, recette cible et synthétique.
 - [x] Documenter le décalage d’image staging par rapport au complément Ansible et les prérequis d’accès privé, sans demander/utiliser de credentials VPS.
-- [ ] Recette sur le staging cible : accès depuis cet environnement bloqué au proxy ; aucun compte créé/promu ni parcours cible effectué dans ce lot.
+- [x] Recette fonctionnelle sur le staging cible : **actualisation du 26 novembre**, confirmée par le propriétaire également en production. L'audit Codex du 23 novembre restait bloqué au proxy et n'avait créé/promu aucun compte. [Attestation](docs/recette-2026-11-26.md).
 - [ ] Pièces d’exploitation et validation humaine restantes : ne pas cocher les cases composites sur la seule base de la CI.
 
 Aucun déploiement, changement de configuration distante, accès SSH ou effacement exécuté. Deux cases préexistantes de LAUNCH_CHECKLIST sont cochées sur preuves (digest/provenance/Compose sans build et procédures documentées) ; les autres conservent leurs réserves.
@@ -834,3 +834,25 @@ sur fixtures locales, lint profil production sans avertissement et actionlint
 réussis. Les nouveaux cas couvrent les umask permissifs, la conservation des
 inodes/modes existants, le refus des permissions groupe/autres et la persistance
 d'un verrou actif après correction explicite du mode. Aucune exécution sur VPS.
+
+## Recette confirmée sur staging et production — 26 novembre 2026
+
+[Attestation du propriétaire, preuves de livraison et réserves](docs/recette-2026-11-26.md).
+
+- [x] Promotion effective et tests de modération confirmés par le propriétaire.
+- [x] Parcours complet avec deux comptes, permissions et téléphone réel confirmé.
+  Le propriétaire précise explicitement que les deux points sont validés **sur les
+  deux environnements**. Pas de nouvelle recette distante exécutée par Codex.
+- [x] Actualiser les cases fonctionnelles de LAUNCH_CHECKLIST et relier les applies
+  staging 45784466562 / production 45801974696 au même digest `434632e9…`.
+- [x] Distinguer le correctif #45 fusionné de son installation hôte ; identifier
+  l'échec HTTP 504 du téléchargement d'age dans la première CI main 45893751015
+  et relancer ses contrôles sans modifier le workflow ni ses garde-fous.
+- [ ] Vérifier l'issue de cette nouvelle tentative avant d'attester publication
+  et déploiement d'une image postérieure à la recette.
+- [ ] Compléter les preuves d'exploitation, conservation/effacement, revue légale
+  et compléments techniques encore ouverts dans la checklist.
+
+Les cases historiques composites restent ouvertes quand la déclaration ne
+couvre pas leur volet exploitation ou légal. La validation téléphone est séparée
+d'une revue exhaustive des contrastes, du clavier et de chaque écran à 360 px.
