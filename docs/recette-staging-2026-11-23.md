@@ -1,5 +1,9 @@
 # Recette et preuves de livraison — 23 novembre 2026
 
+> Actualisation du 26 novembre : le propriétaire a confirmé la recette fonctionnelle
+> sur staging et production. Voir le [nouveau bilan daté](recette-2026-11-26.md).
+> Le présent document conserve l'état et les limites de l'audit du 23 novembre.
+
 ## Portée
 
 Réconciliation de la checklist à partir des runs GitHub et du contrat du contrôleur versionné, depuis `main` `70dc136bf3f22bc71d42225485975029962563b0`. Aucun nouveau déploiement, aucune promotion, aucun effacement, aucune connexion SSH au VPS ni aucune modification de production n’est effectué par ce bilan.
