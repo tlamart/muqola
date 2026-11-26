@@ -98,6 +98,11 @@
       - not (item.stat.islnk | default(false))
       - not (item.stat.wgrp | default(true))
       - not (item.stat.woth | default(true))
+    fail_msg: >-
+      Verrou CD invalide : {{ item.item }} (mode {{ item.stat.mode | default('absent') }}).
+      Un fichier régulier préexistant, non redirigé et sans écriture groupe/autres est requis.
+      Pour un verrou existant trop permissif, faire corriger son mode en 0600 par l'exploitant
+      sans le supprimer ni le recréer ; consulter infra/ansible/README.md.
   loop: "{{ muqola_operator_lock_stats.results }}"
   loop_control:
     label: "{{ item.item }}"

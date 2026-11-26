@@ -210,6 +210,48 @@ sont pris dans l'ordre de la CD, sans attente : code 75 si occupés ; attendre l
 fin de l'opération en cours, puis refaire la simulation. Un verrou manquant ou
 redirigé est refusé, aucun nouveau verrou n'est initialisé par le playbook.
 
+### Verrou refusé en mode 0664
+
+Le verrou global `/var/lib/muqola/cd.lock` sérialise les opérations CD entre
+environnements ; `production/cd/release.lock` ou `staging/cd/release.lock` protège
+l'environnement ciblé. `flock` réserve le fichier pendant l'opération et libère
+la réservation à la fermeture du descripteur ; le fichier reste normalement
+présent. Sa présence seule ne signifie pas qu'une opération est en cours.
+
+Un échec sur `not item.stat.wgrp` signifie que le fichier est modifiable par le
+groupe. Le rôle refuse ces permissions **avant toute promotion** et ne les corrige
+pas implicitement, même en simulation. Le contrôleur historique pouvait créer ses
+verrous en `0664` avec un umask `0002` ; les nouveaux verrous sont désormais créés
+avec un mode maximal `0600`, comme ceux du cycle staging. Les fichiers existants
+gardent leur mode, leur propriétaire, leur contenu et leur inode.
+
+Pour le cas identifié par l'audit Ansible (fichier régulier, non symbolique,
+propriétaire `muqola-deploy`, mode `0664`), l'exploitant peut corriger **ce fichier**
+sur le VPS après revue du chemin et des métadonnées :
+
+```sh
+sudo stat -c '%a %U:%G %n' -- /var/lib/muqola/production/cd/release.lock
+sudo chmod 0600 -- /var/lib/muqola/production/cd/release.lock
+sudo stat -c '%a %U:%G %n' -- /var/lib/muqola/production/cd/release.lock
+```
+
+Le propriétaire/groupe restent identiques ; seul le mode devient `600`.
+Pour staging ou le verrou global, utiliser le chemin **effectivement refusé**,
+sans opération récursive ni changement de propriétaire. Un fichier absent ou
+redirigé exige une inspection de l'installation, pas un `touch` de contournement.
+
+Ne jamais supprimer, renommer ou recréer un verrou pour débloquer une opération :
+deux processus pourraient alors réserver des inodes différents. `chmod` sur le
+fichier existant conserve le verrou détenu ; si la CD est active, la promotion
+reste refusée avec le code 75. Attendre sa fin, puis reprendre la simulation avec
+`--check` avant l'application approuvée.
+
+La correction du contrôleur doit être installée séparément sur l'hôte selon le
+runbook CD ; publier une image applicative ne remplace pas `/opt/muqola-controller`.
+Elle ne répare pas les anciens fichiers. Leur correction explicite reste durable
+avec l'ancien contrôleur tant que les fichiers sont conservés. Aucun accès VPS,
+changement de permissions réelles ou promotion n'est effectué par ce correctif.
+
 ## Vérification locale et CI
 
 Sans inventaire privé ni connexion VPS :
