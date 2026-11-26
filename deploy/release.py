@@ -407,7 +407,8 @@ def operate(
     with ExitStack() as locks:
         # Serialize heavy operations across both environments on a 4 GiB host.
         for path in (root.parent.parent / "cd.lock", root / "release.lock"):
-            lock = locks.enter_context(path.open("a"))
+            descriptor = os.open(path, os.O_CREAT | os.O_WRONLY | os.O_APPEND, 0o600)
+            lock = locks.enter_context(os.fdopen(descriptor, "a"))
             try:
                 fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError as error:

@@ -74,6 +74,11 @@ compte explicites, approbation avant attribution des droits Muqola. Une image
 compatible doit d'abord être déployée ; aucune promotion réelle n'est effectuée
 par la CI ou l'adoption des permissions.
 
+En cas de promotion Ansible refusée sur les permissions d'un verrou CD (par
+exemple `0664`), suivre la [correction ciblée des verrous existants](infra/ansible/README.md#verrou-refusé-en-mode-0664).
+Le contrôleur crée ses nouveaux verrous privés sans dépendre d'un umask permissif ;
+il ne remplace ni ne corrige automatiquement les fichiers déjà présents.
+
 ## Images GHCR et promotion
 
 La CI construit et teste une seule image, puis la conserve par save/load avec

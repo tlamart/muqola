@@ -179,3 +179,33 @@ class OperatorPlaybookTests(LocalAnsibleFixture):
         self.invoke(success=False)
         self.assertTrue(lock.is_symlink())
         self.assertFalse(self.record.exists())
+
+    def test_writable_group_or_other_lock_is_refused_without_repair(self) -> None:
+        for name in ("cd.lock", "staging/cd/release.lock"):
+            lock = self.root / "var/lib/muqola" / name
+            for mode in (0o664, 0o606):
+                with self.subTest(lock=name, mode=mode):
+                    lock.chmod(mode)
+                    self.invoke(success=False)
+                    self.assertEqual(lock.stat().st_mode & 0o777, mode)
+                    self.assertFalse(self.record.exists())
+            lock.chmod(0o600)
+
+    def test_explicit_mode_repair_preserves_busy_lock_and_then_allows_preview(self) -> None:
+        lock = self.root / "var/lib/muqola/staging/cd/release.lock"
+        lock.chmod(0o664)
+        before = lock.stat()
+        with lock.open("rb") as held:
+            fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            lock.chmod(0o600)
+            after = lock.stat()
+            self.assertEqual(
+                (before.st_dev, before.st_ino, before.st_uid, before.st_gid),
+                (after.st_dev, after.st_ino, after.st_uid, after.st_gid),
+            )
+            output = self.invoke(success=False)
+            self.assertIn("code 75", output)
+            self.assertFalse(self.record.exists())
+        output = self.invoke()
+        self.assertIn("would_promote", output)
+        self.assertIn("--dry-run", self.arguments())

@@ -807,3 +807,30 @@ La CI du commit final est suivie dans la PR.
 - [ ] Pièces d’exploitation et validation humaine restantes : ne pas cocher les cases composites sur la seule base de la CI.
 
 Aucun déploiement, changement de configuration distante, accès SSH ou effacement exécuté. Deux cases préexistantes de LAUNCH_CHECKLIST sont cochées sur preuves (digest/provenance/Compose sans build et procédures documentées) ; les autres conservent leurs réserves.
+
+## Correctif — permissions des verrous CD et promotion Ansible (26 novembre 2026)
+
+Retour opérateur : le rôle de promotion refuse `production/cd/release.lock` en
+mode `0664`, avant toute commande applicative (`changed=0`). Le contrôleur CD
+utilisait une ouverture dépendante de l'umask, contrairement au cycle staging.
+
+- [x] Créer les nouveaux verrous global/environnement avec un mode maximal `0600`,
+  sans changer l'ordre des verrous ni l'exclusion non bloquante.
+- [x] Préserver contenu, inode, propriétaire et mode des verrous préexistants ;
+  aucune réparation implicite ni suppression/recréation.
+- [x] Garder le refus Ansible des verrous groupe/autres modifiables, absents ou
+  redirigés ; préciser le diagnostic et la correction explicite en place.
+- [x] Documenter l'utilité des verrous, la reprise de simulation et la distinction
+  entre mise à jour du contrôleur hôte et publication d'une image applicative.
+- [x] Consigner tests applicatifs/CD et Ansible, lint/types/migrations/build ; suivre
+  séparément la CI de la tête finale dans la PR.
+- [ ] Correction des fichiers existants et installation du contrôleur revu sur VPS
+  par l'exploitant ; aucune modification hôte ni promotion réelle dans ce correctif.
+
+Preuves locales : `scripts/check.sh` réussi, **731 tests PostgreSQL en 122,21 s**,
+Ruff/format, mypy, Django, migrations sans dérive et statiques ; contrôle production,
+plan de migrations vide et build Docker réussis. **20 tests Ansible en 108,85 s**
+sur fixtures locales, lint profil production sans avertissement et actionlint
+réussis. Les nouveaux cas couvrent les umask permissifs, la conservation des
+inodes/modes existants, le refus des permissions groupe/autres et la persistance
+d'un verrou actif après correction explicite du mode. Aucune exécution sur VPS.

@@ -344,6 +344,85 @@ def test_host_lock_refuses_another_delivery(
             release.operate("production", "plan", {"protocol": 1})
 
 
+@pytest.mark.parametrize("environment", ["staging", "production"])
+@pytest.mark.parametrize("umask", [0o000, 0o002, 0o022])
+def test_controller_creates_private_locks_even_with_permissive_umask(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, environment: str, umask: int
+) -> None:
+    import os
+    import stat
+
+    config_path = tmp_path / "config"
+    atomic_json(
+        config_path,
+        {
+            "environment": environment,
+            "project": ("muqola-staging" if environment == "staging" else "muqola-prod"),
+        },
+    )
+    root = tmp_path / environment / "cd"
+    monkeypatch.setattr(release, "locations", lambda _: (config_path, root))
+    monkeypatch.setattr(release, "require_local_docker", lambda: None)
+
+    def after_locks(*args: Any, **kwargs: Any) -> bytes:
+        raise OperationError("synthetic_stop_after_lock_acquisition")
+
+    monkeypatch.setattr(release, "run", after_locks)
+    previous_umask = os.umask(umask)
+    try:
+        with pytest.raises(OperationError, match="synthetic_stop_after_lock_acquisition"):
+            release.operate(
+                environment,
+                "plan",
+                {"protocol": 1, "registry_user": "synthetic", "registry_token": "synthetic"},
+            )
+    finally:
+        os.umask(previous_umask)
+    for path in (tmp_path / "cd.lock", root / "release.lock"):
+        assert stat.S_IMODE(path.stat().st_mode) == 0o600
+        assert path.read_bytes() == b""
+
+
+@pytest.mark.parametrize("mode", [0o600, 0o664])
+def test_controller_reuses_existing_lock_inodes_without_repairing_them_implicitly(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mode: int
+) -> None:
+    import stat
+
+    config_path = tmp_path / "config"
+    atomic_json(config_path, {"environment": "production", "project": "muqola-prod"})
+    root = tmp_path / "production" / "cd"
+    root.mkdir(parents=True)
+    paths = (tmp_path / "cd.lock", root / "release.lock")
+    for path in paths:
+        path.write_bytes(b"synthetic existing lock")
+        path.chmod(mode)
+    before = {path: path.stat() for path in paths}
+    monkeypatch.setattr(release, "locations", lambda _: (config_path, root))
+    monkeypatch.setattr(release, "require_local_docker", lambda: None)
+
+    def after_locks(*args: Any, **kwargs: Any) -> bytes:
+        raise OperationError("synthetic_stop_after_lock_acquisition")
+
+    monkeypatch.setattr(release, "run", after_locks)
+    with pytest.raises(OperationError, match="synthetic_stop_after_lock_acquisition"):
+        release.operate(
+            "production",
+            "plan",
+            {"protocol": 1, "registry_user": "synthetic", "registry_token": "synthetic"},
+        )
+    for path in paths:
+        after = path.stat()
+        assert (after.st_dev, after.st_ino, after.st_uid, after.st_gid) == (
+            before[path].st_dev,
+            before[path].st_ino,
+            before[path].st_uid,
+            before[path].st_gid,
+        )
+        assert stat.S_IMODE(after.st_mode) == mode
+        assert path.read_bytes() == b"synthetic existing lock"
+
+
 def test_schema_changed_after_stop_never_runs_migration(
     application: dict[str, Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
