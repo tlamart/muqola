@@ -4,6 +4,20 @@
 >
 > **No-go** si une ligne marquée **BLOQUANT** n'est pas satisfaite. Les coordonnées et informations légales doivent être fournies par l'exploitant, et non inventées par Codex. La bêta signifie inscriptions publiques, communautés privées.
 
+## Point de situation — 23 novembre 2026
+
+[Preuves de livraison et protocole de recette](docs/recette-staging-2026-11-23.md).
+Le dernier apply staging tracé a réussi : [45153646180](https://github.com/tlamart/muqola/actions/runs/45153646180),
+image `4ff9e011…`, commit `51c9995`. La production a une livraison réussie
+[45064624690](https://github.com/tlamart/muqola/actions/runs/45064624690) sur `89b58e42…`
+(`ee13ea1`). Les digests complets et limites des preuves figurent dans le bilan.
+
+La livraison ne vaut pas recette utilisateur complète. L’accès depuis Codex au
+staging est bloqué au proxy sortant ; les parcours sur la cible n’ont pas été
+exécutés par cet audit. Les cases composites restent ouvertes si une partie
+d’entre elles n’est pas attestée. Les validations historiques ci-dessous gardent
+leur portée ; les cases cochées ici sont reliées à une preuve identifiée.
+
 ## Parcours réellement opérationnels
 - [ ] **BLOQUANT** : inscription sans invitation, vérification e-mail réelle, connexion et réinitialisation du mot de passe.
 - [ ] **BLOQUANT** : lien de communauté partageable, permanent par défaut et révocable/régénérable par admin, copiable par tout membre ; vérification e-mail et confirmation explicite, ancien lien invalidé, y compris pendant une inscription.
@@ -16,13 +30,13 @@
 
 ## Infrastructure et sécurité
 - [ ] **BLOQUANT** : Caddy commun seul exposé, web seul sur `proxy` sous `muqola-web`, DB/worker privés ; IP Caddy stable/exacte, en-têtes et limites vérifiés ; autre site disponible pendant reload, aucun secret dans les logs d'erreur.
-- [ ] **BLOQUANT** : image GHCR par digest, provenance main validée et disponibilité vérifiées ; contrôle `deploy.check_config` réussi ; aucune image locale/build sur le VPS.
+- [x] **BLOQUANT** : image GHCR par digest, provenance main validée et disponibilité vérifiées ; contrôle `deploy.check_config` réussi ; aucune image locale/build sur le VPS. **Preuve :** applies staging/production ci-dessus, validation Compose appelée par le contrôleur et pull sans build ; périmètre des versions livrées, voir bilan.
 - [ ] **BLOQUANT** : Compose de production séparé du Compose local (Mailpit interdit en production), `APP_ENV=production`, URL HTTPS, proxy de confiance, cookies sécurisés, secrets distincts, services internes non publiés et rôle PostgreSQL à privilèges minimaux.
 - [ ] **BLOQUANT** : HTTPS opérationnel, domaine dirigé vers le bon VPS, secrets forts non présents dans Git.
 - [ ] **BLOQUANT** : base PostgreSQL persistante (comptes, communautés, prêts, outbox et catalogue, y compris fiches importées) ; migration documentée ; sauvegarde **hors VPS**, chiffrée, avec rétention définie et **restaurée avec succès** sur un environnement de test.
 - [ ] **BLOQUANT** : fournisseurs e-mail transactionnels configurés avec DNS SPF/DKIM/DMARC ; envoi réel et vérification des liens testés sur une nouvelle adresse.
 - [ ] **BLOQUANT** : protections anti-bruteforce/anti-spam et vérifications d'autorisation activées.
-- [ ] **BLOQUANT** : procédure de déploiement, retour arrière et gestion des incidents documentée.
+- [x] **BLOQUANT** : procédure de déploiement, retour arrière et gestion des incidents documentée. **Preuve documentaire :** [runbook lot 6](docs/lot-6-infrastructure.md), contrôleur et [limites de retour compatible](docs/recette-staging-2026-11-23.md). L’exercice réel de rollback reste distinct.
 - [ ] Suivi du taux d'erreur, de l'espace disque, du worker/outbox et des sauvegardes ; alertes minimales, en réutilisant les logs JSON existants.
 - [ ] Tester la déconnexion, les liens historiques expirés, liens révoqués/régénérés, l'absence de fuites de jetons et la suppression de session.
 
@@ -68,6 +82,8 @@
 
 ## Publication GHCR — contrôles réels après fusion
 
+**Preuves partielles acquises :** checks/publish du [run 45134687469](https://github.com/tlamart/muqola/actions/runs/45134687469) réussis, provenance revérifiée lors des livraisons et image tirée par digest. Les revues de visibilité/droits et de conservation ci-dessous ne sont pas déduites de ces seuls runs.
+
 - [ ] Premier run main : checks et publish réussis, package lié au dépôt, visibilité et droits revus.
 - [ ] Digest/commit/run/tentative et preuve distante vérifiés avec `deploy.image_provenance` ; conservation des preuves et digests de rollback.
 - [ ] Architecture VPS compatible avec l'image linux/amd64, accès registre en lecture défini si privé.
@@ -77,6 +93,8 @@ La préparation/test synthétique GHCR ne valide ni capacité VPS, ni déploieme
 ni SMTP réel, ni ouverture publique. Les conditions précédentes restent requises.
 
 ## CD manuel — activation réelle distincte
+
+**Preuves partielles acquises :** plan/apply et santé HTTPS réussis sur les deux cibles, dont 401/noindex anonyme puis 200 privé pour la santé staging. La recette des parcours, la mesure sous charge, l’audit du stockage externe et l’exercice réel de rollback restent à consigner.
 
 - [ ] Contrôleur revu installé, compte dédié et accès au démon Docker approuvés, configs/états/secrets privés lisibles par l'opérateur.
 - [ ] Références Compose/volumes existants inventoriées, adoption ou bootstrap revu sans reset ; image publiée après ajout du protocole CD.
