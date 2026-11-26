@@ -85,8 +85,8 @@ La décision **18+ est définitive** ; les validations réelles restent ouvertes
 - [x] Réserver la bêta aux 18+ : attestation serveur explicite et migration additive sans consentement inventé ; préserver la clôture des prêts existants.
 - [x] Modèles légaux/contact/confidentialité/CGU, pages échappées, contrôle de complétude et blocage inscription production avant revue ; procédure de droits et limites documentées.
 - [ ] **BLOQUANT ouverture** : VPS/domaine/DNS, HTTPS ACME réel, pare-feu, mémoire et charge, secrets réels, rôles et persistance validés sur l'instance cible.
-- [ ] **BLOQUANT ouverture** : SMTP transactionnel, SPF/DKIM/DMARC et délivrabilité réelle (vérification/reset/prêt), bounces et quotas.
-- [ ] **BLOQUANT ouverture** : stockage externe chiffré réellement configuré, restauration autorisée sur pile isolée et RPO/RTO mesurés ; alertes et sonde indépendante réellement testées.
+- [ ] **BLOQUANT ouverture** : SMTP transactionnel, SPF/DKIM/DMARC et délivrabilité réelle (vérification/reset/prêt), bounces et quotas. Les e-mails réels sont confirmés le 26 novembre ; les clauses DNS, bounces et quotas ne sont pas détaillées par cette attestation.
+- [ ] **BLOQUANT ouverture** : stockage externe chiffré réellement configuré, restauration autorisée sur pile isolée et RPO/RTO mesurés ; alertes et sonde indépendante réellement testées. Sauvegardes externes, restauration et alertes confirmées le 26 novembre ; détails complémentaires, dont les RPO/RTO mesurés, non fournis.
 - [ ] **BLOQUANT ouverture** : identité/coordonnées et politique de conservation fournies, revue juridique, traitement effectif des demandes de suppression éprouvé (désactivation ≠ effacement).
 - [ ] Vérifier sur infrastructure cible permissions, concurrence, cookies/CSRF, parcours avec deux comptes et téléphone réel ; sauvegarde préalable et rollback éprouvés.
 - [ ] Catalogue neuf vide ; éventuelles données héritées inventoriées/revue des droits sans suppression. Aucun ancien import BGG/Wikidata ni catalogue réel dans Git/image ; aucune commande d'import au lancement.
@@ -362,7 +362,7 @@ Les validations ci-dessous sont synthétiques ; aucune intervention sur le VPS.
   Manuel **à faire sur VPS** : hash d'accès privé et testeurs, certificats/DNS,
   validation/rechargement Caddy avec témoin, documents légaux revus et alertes stage.
 
-- [ ] **V7 / P2 — En cours : cycle de vie vérifié, capacité VPS non satisfaite.** Dépendances : V5–V6.
+- [ ] **V7 / P2 — Cycle de vie vérifié ; capacité VPS confirmée par l'exploitant le 26 novembre, revue des clauses détaillées encore ouverte.** Dépendances : V5–V6.
   Acceptation : staging arrêté par défaut ; start/stop sans build ni destruction,
   admission capacité et mesure de pointe sous charge synthétique sur cible 4 Go.
   Implémenté/vérifié : profils opt-in, restart=no, verrou/état indépendants,
@@ -373,7 +373,9 @@ Les validations ci-dessous sont synthétiques ; aucune intervention sur le VPS.
   migration 384 Mio + marge 512 Mio, soit **1 728 Mio disponibles** exigés.
   Tests : refus ressources/cgroups/revue insuffisants, Docker distant et migrations
   en attente ; smoke Docker avec échantillonnage et résultat JSON conservé en CI.
-  **Non satisfait :** mesure mémoire/CPU de pointe et disponibilité sur VPS réel.
+  **État à la livraison du lot : non satisfait. Actualisation du 26 novembre :**
+  l'exploitant confirme avoir vérifié la capacité sur le VPS ; les métriques
+  locales invalides ci-dessous ne sont pas réinterprétées comme mesures réelles.
   Docker local rootless sans cgroups : métriques invalides, valeurs nulles dans
   `work/staging-smoke.json`, refus d'admission ; aucun chiffre assimilé au VPS.
   Fichiers : `deploy/staging.py`, exemples JSON de cycle/monitoring/backup,
@@ -651,7 +653,8 @@ validés. [Décisions, architecture et runbook](docs/confidentialite-conservatio
   distinguer préparation et activation réelle, corriger les formulations du staging.
 - [ ] Installation/recette hôte : rétention effective de tous les journaux concernés
   et anciennes copies (DB, unités et Caddy partagé inclus) ; jamais validée par
-  les seuls tests de transport ou une rotation limitée en volume.
+  les seuls tests de transport ou une rotation limitée en volume. Attestation de
+  vérification de la rétention des journaux par l'exploitant le 26 novembre ; le détail du plafond et des anciennes copies n'est pas fourni.
 - [ ] Routines opérateur effectives : revue hebdomadaire des demandes/échéances,
   revue mensuelle de l'inactivité, support un mois, diagnostics trente jours,
   preuves/exports six mois ; vérifier sur staging avant interventions réelles.
@@ -848,11 +851,30 @@ d'un verrou actif après correction explicite du mode. Aucune exécution sur VPS
 - [x] Distinguer le correctif #45 fusionné de son installation hôte ; identifier
   l'échec HTTP 504 du téléchargement d'age dans la première CI main 45893751015
   et relancer ses contrôles sans modifier le workflow ni ses garde-fous.
-- [ ] Vérifier l'issue de cette nouvelle tentative avant d'attester publication
-  et déploiement d'une image postérieure à la recette.
-- [ ] Compléter les preuves d'exploitation, conservation/effacement, revue légale
-  et compléments techniques encore ouverts dans la checklist.
+- [x] Vérifier l'issue de cette nouvelle tentative avant d'attester publication
+  et déploiement d'une image postérieure à la recette : CI 45893751015 tentative 2
+  réussie, puis staging 45896131034 réussi, digest `853aae03…`.
+- [x] Consigner les confirmations d'exploitation et des quatre documents légaux
+  relus/publiés, reçues du propriétaire lors de la finalisation.
+- [ ] Terminer la recette réelle de confidentialité et les compléments de critères
+  composites non établis par ces attestations. Le propriétaire confirme que les
+  scénarios de suppression ne sont pas encore tous testés.
 
 Les cases historiques composites restent ouvertes quand la déclaration ne
 couvre pas leur volet exploitation ou légal. La validation téléphone est séparée
 d'une revue exhaustive des contrastes, du clavier et de chaque écran à 360 px.
+
+## Finalisation — contrôles acquis et réserve de confidentialité
+
+- [x] Récupérer l'échec réseau HTTP 504 : nouvelle tentative CI main, publication
+  et livraison staging vérifiées, sans changement des garde-fous de CD.
+- [x] Mettre à jour les cases et le bilan avec les attestations d'exploitation et
+  de relecture/publication des textes, sans publier d'informations privées.
+- [x] Préparer la [recette restante sur comptes fictifs](docs/recette-confidentialite-staging.md) :
+  contexte staging, simulation, restriction/prêts actifs, effacement final et
+  rejeu du ledger sur une base isolée, avec résultats attendus et preuves limitées.
+- [x] Vérifier les liens et la syntaxe Bash des exemples, et accepter la configuration
+  de rejeu isolé dans un conteneur sans réseau ni base ; aucune opération de compte
+  réelle ou restauration n'est exécutée pour cette vérification.
+- [ ] Exécuter les scénarios restants sur la cible et fournir le compte rendu avant
+  de cocher le traitement effectif des droits RGPD.
